@@ -15,6 +15,7 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import { ROUTES } from '../../routes/routes.config';
 import { useAuthStore } from '../../store/useAuthStore';
+import { NotificationBell } from '../NotificationBell';
 
 const { Header: AntHeader } = Layout;
 const { Text } = Typography;
@@ -149,8 +150,8 @@ export const Header: React.FC<HeaderProps> = ({
           </Button>
         </Dropdown>
 
-        {/* Notifications */}
-        <Button type="text" icon={<BellOutlined />} />
+        {/* Real-time Notifications Bell */}
+        <NotificationBell />
 
         {/* User Dropdown */}
         <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">

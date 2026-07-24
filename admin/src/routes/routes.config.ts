@@ -60,8 +60,14 @@ export const ROUTES: Record<string, RouteConfigItem> = {
     name: 'Cấu Hình Hệ Thống',
     permission: 'setting:read',
   },
+  ADMIN_NOTIFICATIONS: {
+    path: '/admin/notifications',
+    name: 'Thông Báo Hệ Thống',
+    permission: 'notification:read',
+  },
   ADMIN_PROFILE: {
     path: '/admin/profile',
     name: 'Hồ Sơ Cá Nhân',
   },
 };
+

@@ -8,6 +8,7 @@ import { UserModule } from './modules/user/user.module';
 import { DepartmentModule } from './modules/department/department.module';
 import { PermissionModule } from './modules/permission/permission.module';
 import { MediaModule } from './modules/media/media.module';
+import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -18,8 +19,10 @@ import { MediaModule } from './modules/media/media.module';
     DepartmentModule,
     PermissionModule,
     MediaModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
+

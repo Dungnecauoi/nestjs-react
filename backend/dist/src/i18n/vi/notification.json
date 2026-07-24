@@ -1,0 +1,6 @@
+{
+  "NOT_FOUND": "Không tìm thấy thông báo hoặc thông báo đã bị xóa",
+  "MARK_READ_SUCCESS": "Đã đánh dấu thông báo là đã đọc",
+  "MARK_ALL_READ_SUCCESS": "Đã đánh dấu tất cả thông báo là đã đọc",
+  "DELETE_SUCCESS": "Đã xóa thông báo thành công"
+}

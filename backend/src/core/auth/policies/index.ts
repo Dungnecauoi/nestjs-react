@@ -4,6 +4,7 @@ import { ROLE_PERMISSIONS_POLICY } from './role.policy';
 import { DEPARTMENT_PERMISSIONS_POLICY } from './department.policy';
 import { MEDIA_PERMISSIONS_POLICY } from './media.policy';
 import { SETTING_PERMISSIONS_POLICY } from './setting.policy';
+import { NOTIFICATION_PERMISSIONS_POLICY } from './notification.policy';
 
 export type { PermissionPolicyItem };
 
@@ -13,6 +14,7 @@ export const ALL_SYSTEM_POLICIES: PermissionPolicyItem[] = [
   ...DEPARTMENT_PERMISSIONS_POLICY,
   ...MEDIA_PERMISSIONS_POLICY,
   ...SETTING_PERMISSIONS_POLICY,
+  ...NOTIFICATION_PERMISSIONS_POLICY,
 ];
 
 export {
@@ -21,4 +23,6 @@ export {
   DEPARTMENT_PERMISSIONS_POLICY,
   MEDIA_PERMISSIONS_POLICY,
   SETTING_PERMISSIONS_POLICY,
+  NOTIFICATION_PERMISSIONS_POLICY,
 };
+

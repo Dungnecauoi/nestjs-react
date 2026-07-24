@@ -17,6 +17,7 @@ const user_module_1 = require("./modules/user/user.module");
 const department_module_1 = require("./modules/department/department.module");
 const permission_module_1 = require("./modules/permission/permission.module");
 const media_module_1 = require("./modules/media/media.module");
+const notification_module_1 = require("./modules/notification/notification.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -30,6 +31,7 @@ exports.AppModule = AppModule = __decorate([
             department_module_1.DepartmentModule,
             permission_module_1.PermissionModule,
             media_module_1.MediaModule,
+            notification_module_1.NotificationModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

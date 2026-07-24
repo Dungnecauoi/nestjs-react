@@ -12,6 +12,7 @@ import {
   SettingOutlined,
   IdcardOutlined,
   ThunderboltFilled,
+  BellOutlined,
 } from '@ant-design/icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -99,6 +100,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed }) => {
       icon: <SettingOutlined />,
       label: t('nav.settings'),
       permission: ROUTES.ADMIN_SETTINGS.permission,
+    },
+    {
+      key: ROUTES.ADMIN_NOTIFICATIONS.path,
+      icon: <BellOutlined />,
+      label: t('nav.notifications'),
+      permission: ROUTES.ADMIN_NOTIFICATIONS.permission,
     },
   ];
 

@@ -1,7 +1,7 @@
 export interface NavItem {
   title: string;
   path: string;
-  iconName: 'LayoutDashboard' | 'Users' | 'Shield' | 'Building2' | 'Settings' | 'KeyRound';
+  iconName: 'LayoutDashboard' | 'Users' | 'Shield' | 'Building2' | 'Settings' | 'KeyRound' | 'Bell';
   badge?: string;
   badgeVariant?: 'default' | 'success' | 'warning' | 'info';
   children?: NavItem[];
@@ -20,6 +20,11 @@ export const NAVIGATION_CONFIG: NavGroup[] = [
         title: 'Tổng Quan (Dashboard)',
         path: '/admin/dashboard',
         iconName: 'LayoutDashboard',
+      },
+      {
+        title: 'Thông Báo Hệ Thống',
+        path: '/admin/notifications',
+        iconName: 'Bell',
       },
     ],
   },

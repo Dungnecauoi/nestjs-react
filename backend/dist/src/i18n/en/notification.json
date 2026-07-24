@@ -1,0 +1,6 @@
+{
+  "NOT_FOUND": "Notification not found or has been deleted",
+  "MARK_READ_SUCCESS": "Notification marked as read successfully",
+  "MARK_ALL_READ_SUCCESS": "All notifications marked as read successfully",
+  "DELETE_SUCCESS": "Notification deleted successfully"
+}

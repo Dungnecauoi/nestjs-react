@@ -14,6 +14,7 @@ import RolesModule from '../pages/roles';
 import DepartmentsModule from '../pages/departments';
 import MediaModule from '../pages/media';
 import SettingsModule from '../pages/settings';
+import NotificationsPage from '../pages/notifications';
 import Forbidden from '../pages/errors/Forbidden';
 import NotFound from '../pages/errors/NotFound';
 import { ProtectedRoute } from './ProtectedRoute';
@@ -62,6 +63,10 @@ export const AppRoutes: React.FC = () => {
 
           <Route element={<ProtectedRoute requiredPermission={ROUTES.ADMIN_SETTINGS.permission} />}>
             <Route path={ROUTES.ADMIN_SETTINGS.path} element={<SettingsModule />} />
+          </Route>
+
+          <Route element={<ProtectedRoute requiredPermission={ROUTES.ADMIN_NOTIFICATIONS.permission} />}>
+            <Route path={ROUTES.ADMIN_NOTIFICATIONS.path} element={<NotificationsPage />} />
           </Route>
         </Route>
       </Route>

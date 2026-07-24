@@ -83,3 +83,29 @@ export interface LoginResponseData {
   tokenType: string;
   expiresIn: string;
 }
+
+// Notification Model Interface
+export interface NotificationItem {
+  id: string;
+  userId?: string | null;
+  title: string;
+  content: string;
+  type: 'info' | 'success' | 'warning' | 'error' | 'system';
+  data?: string | null;
+  isRead: boolean;
+  readAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaginatedNotificationsResponse {
+  data: NotificationItem[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    unreadCount: number;
+  };
+}
+
