@@ -1,0 +1,8 @@
+{
+  "NOT_EMPTY": "Field {property} should not be empty",
+  "IS_EMAIL": "Field {property} must be a valid email address",
+  "IS_STRING": "Field {property} must be a string",
+  "MIN_LENGTH": "Field {property} must be at least {constraints.0} characters",
+  "INVALID_FILE_TYPE": "File type is not supported",
+  "FILE_TOO_LARGE": "File size exceeds the allowed limit"
+}

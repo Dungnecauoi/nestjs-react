@@ -1,0 +1,20 @@
+{
+  "name": "nestjs-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "admin"
+  ],
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:admin": "npm --prefix admin run dev",
+    "dev:all": "concurrently \"npm --prefix backend run dev\" \"npm --prefix admin run dev\"",
+    "build:backend": "npm --prefix backend run build",
+    "build:admin": "npm --prefix admin run build",
+    "build:all": "npm --prefix backend run build && npm --prefix admin run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.4"
+  }
+}

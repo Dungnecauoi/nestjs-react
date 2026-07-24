@@ -1,0 +1,80 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../../core/database/prisma.service';
+import * as fs from 'fs';
+import * as path from 'path';
+
+@Injectable()
+export class MediaService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async findAll() {
+    return this.prisma.media.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async findOne(id: string) {
+    const item = await this.prisma.media.findUnique({
+      where: { id },
+    });
+    if (!item) {
+      throw new NotFoundException(`Không tìm thấy tập tin media với ID: ${id}`);
+    }
+    return item;
+  }
+
+  async createMedia(file: Express.Multer.File, createdById?: string) {
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const uniqueFilename = `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`;
+    const filePath = path.join(uploadsDir, uniqueFilename);
+
+    fs.writeFileSync(filePath, file.buffer);
+
+    const host = process.env.APP_URL || 'http://localhost:3000';
+    const publicUrl = `${host}/uploads/${uniqueFilename}`;
+
+    return this.prisma.media.create({
+      data: {
+        filename: file.originalname,
+        filepath: `/uploads/${uniqueFilename}`,
+        url: publicUrl,
+        mimetype: file.mimetype,
+        size: file.size,
+        title: file.originalname,
+        altText: file.originalname,
+        createdById: createdById || null,
+      },
+    });
+  }
+
+  async updateMedia(id: string, dto: { title?: string; altText?: string; caption?: string; description?: string }) {
+    await this.findOne(id);
+    return this.prisma.media.update({
+      where: { id },
+      data: dto,
+    });
+  }
+
+  async removeMedia(id: string) {
+    const item = await this.findOne(id);
+
+    // Remove physical file from disk
+    const relativePath = item.filepath.startsWith('/') ? item.filepath.substring(1) : item.filepath;
+    const fullPath = path.join(process.cwd(), relativePath);
+    if (fs.existsSync(fullPath)) {
+      try {
+        fs.unlinkSync(fullPath);
+      } catch (err) {
+        console.error('Lỗi khi xóa file vật lý:', err);
+      }
+    }
+
+    return this.prisma.media.delete({
+      where: { id },
+    });
+  }
+}

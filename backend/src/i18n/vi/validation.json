@@ -1,0 +1,8 @@
+{
+  "NOT_EMPTY": "Trường {property} không được để trống",
+  "IS_EMAIL": "Trường {property} phải là địa chỉ email hợp lệ",
+  "IS_STRING": "Trường {property} phải là chuỗi ký tự",
+  "MIN_LENGTH": "Trường {property} phải chứa ít nhất {constraints.0} ký tự",
+  "INVALID_FILE_TYPE": "Định dạng file không được hỗ trợ",
+  "FILE_TOO_LARGE": "Kích thước file vượt quá giới hạn cho phép"
+}

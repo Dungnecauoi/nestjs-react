@@ -1,0 +1,1 @@
+{"version":3,"file":"setting.policy.js","sourceRoot":"","sources":["../../../../src/core/auth/policies/setting.policy.ts"],"names":[],"mappings":";;;AAEa,QAAA,0BAA0B,GAA2B;IAChE;QACE,IAAI,EAAE,cAAc;QACpB,IAAI,EAAE,uBAAuB;QAC7B,MAAM,EAAE,SAAS;QACjB,WAAW,EAAE,gCAAgC;KAC9C;IACD;QACE,IAAI,EAAE,eAAe;QACrB,IAAI,EAAE,4BAA4B;QAClC,MAAM,EAAE,SAAS;QACjB,WAAW,EAAE,oDAAoD;KAClE;CACF,CAAC"}
