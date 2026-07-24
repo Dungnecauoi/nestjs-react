@@ -3,14 +3,14 @@ import { PermissionPolicyItem } from './policy.interface';
 export const SETTING_PERMISSIONS_POLICY: PermissionPolicyItem[] = [
   {
     code: 'setting:read',
-    name: 'Xem Cấu Hình Hệ Thống',
+    name: 'permissions.setting.read.name',
     module: 'setting',
-    description: 'Quyền xem các cài đặt hệ thống',
+    description: 'permissions.setting.read.desc',
   },
   {
     code: 'setting:update',
-    name: 'Cập Nhật Cấu Hình Hệ Thống',
+    name: 'permissions.setting.update.name',
     module: 'setting',
-    description: 'Quyền thay đổi và lưu các tham số cài đặt hệ thống',
+    description: 'permissions.setting.update.desc',
   },
 ];

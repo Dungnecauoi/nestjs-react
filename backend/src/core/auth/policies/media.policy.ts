@@ -3,26 +3,26 @@ import { PermissionPolicyItem } from './policy.interface';
 export const MEDIA_PERMISSIONS_POLICY: PermissionPolicyItem[] = [
   {
     code: 'media:create',
-    name: 'Tải Lên Media (Tạo Mới)',
+    name: 'permissions.media.create.name',
     module: 'media',
-    description: 'Quyền tải lên tập tin media mới',
+    description: 'permissions.media.create.desc',
   },
   {
     code: 'media:read',
-    name: 'Xem Thư Viện Media',
+    name: 'permissions.media.read.name',
     module: 'media',
-    description: 'Quyền xem danh sách tập tin và hình ảnh media',
+    description: 'permissions.media.read.desc',
   },
   {
     code: 'media:update',
-    name: 'Cập Nhật Chi Tiết Media',
+    name: 'permissions.media.update.name',
     module: 'media',
-    description: 'Quyền cập nhật tiêu đề, chú thích và Alt text media',
+    description: 'permissions.media.update.desc',
   },
   {
     code: 'media:delete',
-    name: 'Xóa Media',
+    name: 'permissions.media.delete.name',
     module: 'media',
-    description: 'Quyền xóa vĩnh viễn tập tin media khỏi hệ thống',
+    description: 'permissions.media.delete.desc',
   },
 ];

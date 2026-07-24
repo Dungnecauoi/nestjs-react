@@ -3,26 +3,26 @@ import { PermissionPolicyItem } from './policy.interface';
 export const NOTIFICATION_PERMISSIONS_POLICY: PermissionPolicyItem[] = [
   {
     code: 'notification:create',
-    name: 'Tạo Thông Báo Mới',
+    name: 'permissions.notification.create.name',
     module: 'notification',
-    description: 'Quyền phát thông báo thời gian thực tới người dùng',
+    description: 'permissions.notification.create.desc',
   },
   {
     code: 'notification:read',
-    name: 'Xem Thông Báo',
+    name: 'permissions.notification.read.name',
     module: 'notification',
-    description: 'Quyền xem danh sách thông báo của hệ thống và tài khoản',
+    description: 'permissions.notification.read.desc',
   },
   {
     code: 'notification:update',
-    name: 'Cập Nhật / Đánh Dấu Thông Báo',
+    name: 'permissions.notification.update.name',
     module: 'notification',
-    description: 'Quyền đánh dấu đã đọc hoặc cập nhật thông báo hệ thống',
+    description: 'permissions.notification.update.desc',
   },
   {
     code: 'notification:delete',
-    name: 'Xóa Thông Báo',
+    name: 'permissions.notification.delete.name',
     module: 'notification',
-    description: 'Quyền xóa các thông báo khỏi hệ thống',
+    description: 'permissions.notification.delete.desc',
   },
 ];

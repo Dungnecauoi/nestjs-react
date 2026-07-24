@@ -1,0 +1,128 @@
+{
+  "user": {
+    "create": {
+      "name": "Create New User",
+      "desc": "Permission to create new user accounts"
+    },
+    "read": {
+      "name": "View Users List",
+      "desc": "Permission to view users list and details"
+    },
+    "update": {
+      "name": "Update User Information",
+      "desc": "Permission to update user details and activate accounts"
+    },
+    "delete": {
+      "name": "Delete User Account",
+      "desc": "Permission to delete user accounts from the system"
+    },
+    "import": {
+      "name": "Import Users Data",
+      "desc": "Permission to import users list from Excel/CSV files"
+    },
+    "export": {
+      "name": "Export Users Data",
+      "desc": "Permission to export users list to Excel/CSV files"
+    }
+  },
+  "role": {
+    "create": {
+      "name": "Create New Role",
+      "desc": "Permission to create new system roles"
+    },
+    "read": {
+      "name": "View Roles List",
+      "desc": "Permission to view roles and permission matrix"
+    },
+    "update": {
+      "name": "Update Role & Matrix",
+      "desc": "Permission to update role details and assign permissions"
+    },
+    "delete": {
+      "name": "Delete System Role",
+      "desc": "Permission to delete roles from the system"
+    }
+  },
+  "department": {
+    "create": {
+      "name": "Create New Department",
+      "desc": "Permission to create new departments/teams"
+    },
+    "read": {
+      "name": "View Departments List",
+      "desc": "Permission to view departments list and hierarchy tree"
+    },
+    "update": {
+      "name": "Update Department Details",
+      "desc": "Permission to edit department information"
+    },
+    "delete": {
+      "name": "Delete Department",
+      "desc": "Permission to delete departments from the system"
+    },
+    "import": {
+      "name": "Import Departments Data",
+      "desc": "Permission to import department hierarchy from Excel/CSV"
+    },
+    "export": {
+      "name": "Export Departments Data",
+      "desc": "Permission to export departments list to Excel/CSV"
+    }
+  },
+  "media": {
+    "create": {
+      "name": "Upload New Media",
+      "desc": "Permission to upload new media files"
+    },
+    "read": {
+      "name": "View Media Library",
+      "desc": "Permission to view media files and images library"
+    },
+    "update": {
+      "name": "Update Media Details",
+      "desc": "Permission to update title, caption, and Alt text of media"
+    },
+    "delete": {
+      "name": "Delete Media File",
+      "desc": "Permission to permanently delete media files"
+    }
+  },
+  "setting": {
+    "read": {
+      "name": "View System Settings",
+      "desc": "Permission to view system configurations"
+    },
+    "update": {
+      "name": "Update System Settings",
+      "desc": "Permission to modify and save system settings parameters"
+    }
+  },
+  "notification": {
+    "create": {
+      "name": "Create System Notification",
+      "desc": "Permission to broadcast real-time notifications to users"
+    },
+    "read": {
+      "name": "View Notifications",
+      "desc": "Permission to view system and account notifications"
+    },
+    "update": {
+      "name": "Update / Mark Notification",
+      "desc": "Permission to mark read or update system notifications"
+    },
+    "delete": {
+      "name": "Delete Notification",
+      "desc": "Permission to delete notifications from the system"
+    }
+  },
+  "audit": {
+    "read": {
+      "name": "View Audit Logs",
+      "desc": "Permission to view system audit trail and history diffs"
+    },
+    "delete": {
+      "name": "Delete Audit Logs",
+      "desc": "Permission to delete old audit logs from the system"
+    }
+  }
+}

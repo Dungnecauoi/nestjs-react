@@ -11,8 +11,28 @@ export class RoleService {
     private readonly i18n: I18nService,
   ) {}
 
+  private translateRolePermissions(role: any, lang: string) {
+    if (!role || !role.permissions) return role;
+    return {
+      ...role,
+      permissions: role.permissions.map((rp: any) => ({
+        ...rp,
+        permission: rp.permission
+          ? {
+              ...rp.permission,
+              name: this.i18n.t(rp.permission.name, { lang, defaultValue: rp.permission.name }),
+              description: rp.permission.description
+                ? this.i18n.t(rp.permission.description, { lang, defaultValue: rp.permission.description })
+                : null,
+            }
+          : rp.permission,
+      })),
+    };
+  }
+
   async findAll() {
-    return this.prisma.role.findMany({
+    const lang = I18nContext.current()?.lang || 'vi';
+    const roles = await this.prisma.role.findMany({
       include: {
         permissions: {
           include: {
@@ -21,9 +41,12 @@ export class RoleService {
         },
       },
     });
+
+    return roles.map((role) => this.translateRolePermissions(role, lang));
   }
 
   async findOne(id: string) {
+    const lang = I18nContext.current()?.lang || 'vi';
     const role = await this.prisma.role.findUnique({
       where: { id },
       include: {
@@ -36,11 +59,10 @@ export class RoleService {
     });
 
     if (!role) {
-      const lang = I18nContext.current()?.lang;
       throw new NotFoundException(this.i18n.t('messages.NOT_FOUND', { lang, args: { id } }));
     }
 
-    return role;
+    return this.translateRolePermissions(role, lang);
   }
 
   async create(dto: CreateRoleDto) {

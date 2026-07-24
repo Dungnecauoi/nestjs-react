@@ -1,0 +1,128 @@
+{
+  "user": {
+    "create": {
+      "name": "Tạo Người Dùng Mới",
+      "desc": "Quyền tạo mới tài khoản người dùng"
+    },
+    "read": {
+      "name": "Xem Danh Sách Người Dùng",
+      "desc": "Quyền xem danh sách và thông tin chi tiết người dùng"
+    },
+    "update": {
+      "name": "Cập Nhật Người Dùng",
+      "desc": "Quyền cập nhật thông tin người dùng và kích hoạt tài khoản"
+    },
+    "delete": {
+      "name": "Xóa Người Dùng",
+      "desc": "Quyền xóa người dùng khỏi hệ thống"
+    },
+    "import": {
+      "name": "Nhập Dữ Liệu Người Dùng (Import)",
+      "desc": "Quyền import danh sách người dùng từ tệp Excel/CSV"
+    },
+    "export": {
+      "name": "Xuất Dữ Liệu Người Dùng (Export)",
+      "desc": "Quyền export danh sách người dùng ra tệp Excel/CSV"
+    }
+  },
+  "role": {
+    "create": {
+      "name": "Tạo Vai Trò Mới",
+      "desc": "Quyền tạo mới vai trò trong hệ thống"
+    },
+    "read": {
+      "name": "Xem Danh Sách Vai Trò",
+      "desc": "Quyền xem danh sách vai trò và ma trận phân quyền"
+    },
+    "update": {
+      "name": "Cập Nhật Vai Trò",
+      "desc": "Quyền cập nhật thông tin vai trò và ma trận gán quyền"
+    },
+    "delete": {
+      "name": "Xóa Vai Trò",
+      "desc": "Quyền xóa vai trò khỏi hệ thống"
+    }
+  },
+  "department": {
+    "create": {
+      "name": "Tạo Phòng Ban Mới",
+      "desc": "Quyền tạo mới phòng ban trong hệ thống"
+    },
+    "read": {
+      "name": "Xem Danh Sách Phòng Ban",
+      "desc": "Quyền xem danh sách phòng ban và sơ đồ tổ chức"
+    },
+    "update": {
+      "name": "Cập Nhật Phòng Ban",
+      "desc": "Quyền chỉnh sửa thông tin phòng ban"
+    },
+    "delete": {
+      "name": "Xóa Phòng Ban",
+      "desc": "Quyền xóa phòng ban khỏi hệ thống"
+    },
+    "import": {
+      "name": "Nhập Dữ Liệu Phòng Ban (Import)",
+      "desc": "Quyền import cây sơ đồ phòng ban từ Excel/CSV"
+    },
+    "export": {
+      "name": "Xuất Dữ Liệu Phòng Ban (Export)",
+      "desc": "Quyền export danh sách phòng ban ra tệp Excel/CSV"
+    }
+  },
+  "media": {
+    "create": {
+      "name": "Tải Lên Media (Tạo Mới)",
+      "desc": "Quyền tải lên tập tin media mới"
+    },
+    "read": {
+      "name": "Xem Thư Viện Media",
+      "desc": "Quyền xem danh sách tập tin và hình ảnh media"
+    },
+    "update": {
+      "name": "Cập Nhật Chi Tiết Media",
+      "desc": "Quyền cập nhật tiêu đề, chú thích và Alt text media"
+    },
+    "delete": {
+      "name": "Xóa Media",
+      "desc": "Quyền xóa vĩnh viễn tập tin media khỏi hệ thống"
+    }
+  },
+  "setting": {
+    "read": {
+      "name": "Xem Cấu Hình Hệ Thống",
+      "desc": "Quyền xem các cài đặt hệ thống"
+    },
+    "update": {
+      "name": "Cập Nhật Cấu Hình Hệ Thống",
+      "desc": "Quyền thay đổi và lưu các tham số cài đặt hệ thống"
+    }
+  },
+  "notification": {
+    "create": {
+      "name": "Tạo Thông Báo Mới",
+      "desc": "Quyền phát thông báo thời gian thực tới người dùng"
+    },
+    "read": {
+      "name": "Xem Thông Báo",
+      "desc": "Quyền xem danh sách thông báo của hệ thống và tài khoản"
+    },
+    "update": {
+      "name": "Cập Nhật / Đánh Dấu Thông Báo",
+      "desc": "Quyền đánh dấu đã đọc hoặc cập nhật thông báo hệ thống"
+    },
+    "delete": {
+      "name": "Xóa Thông Báo",
+      "desc": "Quyền xóa các thông báo khỏi hệ thống"
+    }
+  },
+  "audit": {
+    "read": {
+      "name": "Xem Nhật Ký Thao Tác",
+      "desc": "Quyền xem nhật ký hệ thống và so sánh lịch sử thay đổi dữ liệu (Diff)"
+    },
+    "delete": {
+      "name": "Xóa Nhật Ký Thao Tác",
+      "desc": "Quyền xóa các bản ghi nhật ký thao tác cũ khỏi hệ thống"
+    }
+  }
+}
