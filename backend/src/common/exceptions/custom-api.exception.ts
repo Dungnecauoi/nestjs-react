@@ -7,7 +7,7 @@ export class CustomApiException extends HttpException {
   constructor(
     errorCode: ErrorCode,
     message: string,
-    statusCode: HttpStatus = HttpStatus.BAD_REQUEST
+    statusCode: HttpStatus = HttpStatus.BAD_REQUEST,
   ) {
     super(
       {
@@ -16,7 +16,7 @@ export class CustomApiException extends HttpException {
         errorCode,
         message,
       },
-      statusCode
+      statusCode,
     );
     this.errorCode = errorCode;
   }

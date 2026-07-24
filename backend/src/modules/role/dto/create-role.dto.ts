@@ -18,7 +18,10 @@ export class CreateRoleDto {
   @IsOptional()
   description?: string;
 
-  @ApiPropertyOptional({ example: ['permission_id_1', 'permission_id_2'], description: 'Danh sách ID quyền hạn gán vào Role' })
+  @ApiPropertyOptional({
+    example: ['permission_id_1', 'permission_id_2'],
+    description: 'Danh sách ID quyền hạn gán vào Role',
+  })
   @IsArray()
   @IsOptional()
   permissionIds?: string[];

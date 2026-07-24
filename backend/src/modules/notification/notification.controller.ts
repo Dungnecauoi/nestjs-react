@@ -29,7 +29,10 @@ export class NotificationController {
   @Get()
   @RequirePermissions('notification:read')
   @ApiOperation({ summary: 'Lấy danh sách thông báo của người dùng' })
-  async findAll(@CurrentUser() user: any, @Query() query: QueryNotificationDto) {
+  async findAll(
+    @CurrentUser() user: any,
+    @Query() query: QueryNotificationDto,
+  ) {
     return this.notificationService.findAllForUser(user.id, query);
   }
 
@@ -53,7 +56,9 @@ export class NotificationController {
 
   @Post('test')
   @RequirePermissions('notification:update')
-  @ApiOperation({ summary: 'Gửi thông báo thử nghiệm (Realtime Test Endpoint)' })
+  @ApiOperation({
+    summary: 'Gửi thông báo thử nghiệm (Realtime Test Endpoint)',
+  })
   async sendTestNotification(
     @Body() dto: CreateNotificationDto,
     @I18nLang() lang: string,

@@ -61,7 +61,6 @@
     "clsx": "^2.1.1",
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
-    "csurf": "^1.11.0",
     "handlebars": "^4.7.9",
     "helmet": "^8.3.0",
     "ioredis": "^5.11.1",

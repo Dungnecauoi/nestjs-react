@@ -16,7 +16,11 @@ export class TwoFactorService {
   }
 
   // Generate OTPAuth URL for Google Authenticator QR Code
-  generateOtpauthUrl(email: string, secret: string, issuer: string = 'ECOMCX ERP'): string {
+  generateOtpauthUrl(
+    email: string,
+    secret: string,
+    issuer: string = 'ECOMCX ERP',
+  ): string {
     return `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(email)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}`;
   }
 

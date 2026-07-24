@@ -35,7 +35,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
       if (typeof res === 'object') {
         message = res.message || exception.message;
         errorCode = res.errorCode || this.getDefaultErrorCode(status);
-        errors = res.errors || (Array.isArray(res.message) ? res.message : null);
+        errors =
+          res.errors || (Array.isArray(res.message) ? res.message : null);
         if (Array.isArray(res.message)) {
           message = 'Validation failed';
           errorCode = ErrorCode.SYS_VALIDATION_ERROR;

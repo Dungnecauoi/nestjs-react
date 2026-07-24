@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { RoleService } from './role.service';
 import { CreateRoleDto } from './dto/create-role.dto';
@@ -44,8 +53,13 @@ export class RoleController {
 
   @Post(':id/permissions')
   @RequirePermissions('role:update')
-  @ApiOperation({ summary: 'Gán danh sách Quyền hạn (Permissions) vào Role từ giao diện UI' })
-  assignPermissions(@Param('id') id: string, @Body() dto: AssignPermissionsToRoleDto) {
+  @ApiOperation({
+    summary: 'Gán danh sách Quyền hạn (Permissions) vào Role từ giao diện UI',
+  })
+  assignPermissions(
+    @Param('id') id: string,
+    @Body() dto: AssignPermissionsToRoleDto,
+  ) {
     return this.roleService.assignPermissions(id, dto);
   }
 

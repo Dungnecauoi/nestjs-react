@@ -15,7 +15,9 @@ export class PermissionController {
 
   @Get()
   @RequirePermissions('role:manage')
-  @ApiOperation({ summary: 'Lấy danh sách tất cả Quyền hạn (Gom nhóm theo Module cho UI)' })
+  @ApiOperation({
+    summary: 'Lấy danh sách tất cả Quyền hạn (Gom nhóm theo Module cho UI)',
+  })
   findAll() {
     return this.permissionService.findAll();
   }

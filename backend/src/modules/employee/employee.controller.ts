@@ -10,7 +10,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiConsumes, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiConsumes,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { EmployeeService } from './employee.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { StorageService } from '../../core/storage/storage.service';
@@ -35,16 +40,22 @@ export class EmployeeController {
 
   @Get(':id')
   @RequirePermissions('employee:read')
-  @ApiOperation({ summary: 'Lấy chi tiết employee (Yêu cầu quyền: employee:read)' })
+  @ApiOperation({
+    summary: 'Lấy chi tiết employee (Yêu cầu quyền: employee:read)',
+  })
   findOne(@Param('id') id: string) {
     return this.employeeService.findOne(id);
   }
 
   @Post()
   @RequirePermissions('employee:create')
-  @ApiOperation({ summary: 'Tạo mới employee (Yêu cầu quyền: employee:create)' })
+  @ApiOperation({
+    summary: 'Tạo mới employee (Yêu cầu quyền: employee:create)',
+  })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('avatar', StorageService.getMulterConfig('employees')))
+  @UseInterceptors(
+    FileInterceptor('avatar', StorageService.getMulterConfig('employees')),
+  )
   create(
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: CreateEmployeeDto,

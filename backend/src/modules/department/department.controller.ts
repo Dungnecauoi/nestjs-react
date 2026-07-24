@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { DepartmentService } from './department.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
@@ -15,36 +24,57 @@ export class DepartmentController {
 
   @Get()
   @RequirePermissions('department:read')
-  @ApiOperation({ summary: 'Lấy danh sách Phòng ban / Team (Yêu cầu quyền: department:read)' })
+  @ApiOperation({
+    summary: 'Lấy danh sách Phòng ban / Team (Yêu cầu quyền: department:read)',
+  })
   findAll() {
     return this.departmentService.findAll();
   }
 
   @Get(':id')
   @RequirePermissions('department:read')
-  @ApiOperation({ summary: 'Lấy chi tiết Phòng ban / Team (Yêu cầu quyền: department:read)' })
+  @ApiOperation({
+    summary: 'Lấy chi tiết Phòng ban / Team (Yêu cầu quyền: department:read)',
+  })
   findOne(@Param('id') id: string) {
     return this.departmentService.findOne(id);
   }
 
   @Post()
   @RequirePermissions('department:create')
-  @ApiOperation({ summary: 'Tạo mới Phòng ban / Team (Yêu cầu quyền: department:create)' })
+  @ApiOperation({
+    summary: 'Tạo mới Phòng ban / Team (Yêu cầu quyền: department:create)',
+  })
   create(@Body() dto: CreateDepartmentDto) {
     return this.departmentService.create(dto);
   }
 
   @Put(':id')
   @RequirePermissions('department:update')
-  @ApiOperation({ summary: 'Cập nhật Phòng ban / Team (Yêu cầu quyền: department:update)' })
+  @ApiOperation({
+    summary: 'Cập nhật Phòng ban / Team (Yêu cầu quyền: department:update)',
+  })
   update(@Param('id') id: string, @Body() dto: Partial<CreateDepartmentDto>) {
     return this.departmentService.update(id, dto);
   }
 
   @Delete(':id')
   @RequirePermissions('department:delete')
-  @ApiOperation({ summary: 'Xóa Phòng ban / Team (Yêu cầu quyền: department:delete)' })
+  @ApiOperation({
+    summary:
+      'Xóa Phòng ban / Team - Soft Delete (Yêu cầu quyền: department:delete)',
+  })
   remove(@Param('id') id: string) {
     return this.departmentService.remove(id);
+  }
+
+  @Post(':id/restore')
+  @RequirePermissions('department:delete')
+  @ApiOperation({
+    summary:
+      'Khôi phục Phòng ban / Team đã xóa (Yêu cầu quyền: department:delete)',
+  })
+  restore(@Param('id') id: string) {
+    return this.departmentService.restore(id);
   }
 }

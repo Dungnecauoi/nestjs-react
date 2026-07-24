@@ -8,6 +8,40 @@ import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { AuditService } from '../../modules/audit/audit.service';
 
+const SENSITIVE_KEYS = [
+  'password',
+  'currentPassword',
+  'newPassword',
+  'accessToken',
+  'refreshToken',
+  'token',
+  'preAuthToken',
+  'otpCode',
+  'secret',
+  'twoFactorSecret',
+  'tokenHash',
+];
+
+function sanitizeForAudit(value: any, depth = 0): any {
+  if (!value || typeof value !== 'object' || depth > 2) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeForAudit(item, depth + 1));
+  }
+
+  const result: Record<string, any> = {};
+  for (const [key, val] of Object.entries(value)) {
+    if (SENSITIVE_KEYS.includes(key)) {
+      result[key] = '[REDACTED]';
+    } else {
+      result[key] = sanitizeForAudit(val, depth + 1);
+    }
+  }
+  return result;
+}
+
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
   constructor(private readonly auditService: AuditService) {}
@@ -54,8 +88,8 @@ export class AuditInterceptor implements NestInterceptor {
             action,
             module,
             entityId: responseContent?.id || body?.id || null,
-            beforeState: action === 'UPDATE' ? body : null,
-            afterState: responseContent ?? body ?? null,
+            beforeState: action === 'UPDATE' ? sanitizeForAudit(body) : null,
+            afterState: sanitizeForAudit(responseContent ?? body ?? null),
             ipAddress: ip || request.connection?.remoteAddress,
             userAgent,
           });

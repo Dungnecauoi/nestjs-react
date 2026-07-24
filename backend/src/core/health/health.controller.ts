@@ -20,11 +20,14 @@ export class HealthController {
 
   @Get()
   @HealthCheck()
-  @ApiOperation({ summary: 'Kiểm tra sức khỏe hệ thống (Probes cho Load Balancer)' })
+  @ApiOperation({
+    summary: 'Kiểm tra sức khỏe hệ thống (Probes cho Load Balancer)',
+  })
   check() {
     return this.health.check([
       () => this.memory.checkHeap('memory_heap', 150 * 1024 * 1024),
-      () => this.disk.checkStorage('storage', { thresholdPercent: 0.9, path: '/' }),
+      () =>
+        this.disk.checkStorage('storage', { thresholdPercent: 0.9, path: '/' }),
     ]);
   }
 }

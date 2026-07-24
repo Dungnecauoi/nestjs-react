@@ -4,7 +4,9 @@ import { ALL_SYSTEM_POLICIES } from './policies';
 const prisma = new PrismaClient();
 
 export async function syncPermissionsToDatabase() {
-  console.log('🔄 --- Start Syncing Modular System Policies to MySQL Database ---');
+  console.log(
+    '🔄 --- Start Syncing Modular System Policies to MySQL Database ---',
+  );
 
   // 1. Ensure Super Admin Role exists
   const superAdminRole = await prisma.role.upsert({
@@ -13,7 +15,8 @@ export async function syncPermissionsToDatabase() {
     create: {
       code: 'super-admin',
       name: 'Quản Trị Viên Tối Cao (Super Admin)',
-      description: 'Quản trị viên có đầy đủ mảng quyền hạn kiểm soát toàn hệ thống',
+      description:
+        'Quản trị viên có đầy đủ mảng quyền hạn kiểm soát toàn hệ thống',
     },
   });
 
@@ -52,7 +55,9 @@ export async function syncPermissionsToDatabase() {
     });
 
     syncedCount++;
-    console.log(` ✅ Synced Permission: [${permission.code}] - ${permission.name}`);
+    console.log(
+      ` ✅ Synced Permission: [${permission.code}] - ${permission.name}`,
+    );
   }
 
   // 4. Cleanup old obsolete permissions from MySQL Database (e.g. user:write, role:write, etc.)
@@ -66,10 +71,14 @@ export async function syncPermissionsToDatabase() {
   });
 
   if (deleted.count > 0) {
-    console.log(` 🧹 Cleaned up ${deleted.count} obsolete permission(s) from MySQL Database!`);
+    console.log(
+      ` 🧹 Cleaned up ${deleted.count} obsolete permission(s) from MySQL Database!`,
+    );
   }
 
-  console.log(`🎉 Successfully Synced ${syncedCount} Atomic Action Permissions to Database and Super Admin Role!`);
+  console.log(
+    `🎉 Successfully Synced ${syncedCount} Atomic Action Permissions to Database and Super Admin Role!`,
+  );
 }
 
 if (require.main === module) {

@@ -24,23 +24,14 @@ export class MediaService {
   }
 
   async createMedia(file: Express.Multer.File, createdById?: string) {
-    const uploadsDir = path.join(process.cwd(), 'uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
-    const uniqueFilename = `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`;
-    const filePath = path.join(uploadsDir, uniqueFilename);
-
-    fs.writeFileSync(filePath, file.buffer);
-
+    // file đã được multer (StorageService.getMulterConfig) ghi an toàn vào ./uploads/<file.filename>
     const host = process.env.APP_URL || 'http://localhost:3000';
-    const publicUrl = `${host}/uploads/${uniqueFilename}`;
+    const publicUrl = `${host}/uploads/${file.filename}`;
 
     return this.prisma.media.create({
       data: {
         filename: file.originalname,
-        filepath: `/uploads/${uniqueFilename}`,
+        filepath: `/uploads/${file.filename}`,
         url: publicUrl,
         mimetype: file.mimetype,
         size: file.size,
@@ -51,7 +42,15 @@ export class MediaService {
     });
   }
 
-  async updateMedia(id: string, dto: { title?: string; altText?: string; caption?: string; description?: string }) {
+  async updateMedia(
+    id: string,
+    dto: {
+      title?: string;
+      altText?: string;
+      caption?: string;
+      description?: string;
+    },
+  ) {
     await this.findOne(id);
     return this.prisma.media.update({
       where: { id },
@@ -63,7 +62,9 @@ export class MediaService {
     const existing = await this.findOne(id);
 
     // 1. Remove old physical file from disk
-    const relativePath = existing.filepath.startsWith('/') ? existing.filepath.substring(1) : existing.filepath;
+    const relativePath = existing.filepath.startsWith('/')
+      ? existing.filepath.substring(1)
+      : existing.filepath;
     const fullPath = path.join(process.cwd(), relativePath);
     if (fs.existsSync(fullPath)) {
       try {
@@ -73,26 +74,16 @@ export class MediaService {
       }
     }
 
-    // 2. Save new physical file
-    const uploadsDir = path.join(process.cwd(), 'uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
-    const uniqueFilename = `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`;
-    const newFilePath = path.join(uploadsDir, uniqueFilename);
-
-    fs.writeFileSync(newFilePath, file.buffer);
-
+    // 2. File mới đã được multer (StorageService.getMulterConfig) ghi an toàn vào ./uploads/<file.filename>
     const host = process.env.APP_URL || 'http://localhost:3000';
-    const publicUrl = `${host}/uploads/${uniqueFilename}`;
+    const publicUrl = `${host}/uploads/${file.filename}`;
 
     // 3. Update database record
     return this.prisma.media.update({
       where: { id },
       data: {
         filename: file.originalname,
-        filepath: `/uploads/${uniqueFilename}`,
+        filepath: `/uploads/${file.filename}`,
         url: publicUrl,
         mimetype: file.mimetype,
         size: file.size,
@@ -104,7 +95,9 @@ export class MediaService {
     const item = await this.findOne(id);
 
     // Remove physical file from disk
-    const relativePath = item.filepath.startsWith('/') ? item.filepath.substring(1) : item.filepath;
+    const relativePath = item.filepath.startsWith('/')
+      ? item.filepath.substring(1)
+      : item.filepath;
     const fullPath = path.join(process.cwd(), relativePath);
     if (fs.existsSync(fullPath)) {
       try {

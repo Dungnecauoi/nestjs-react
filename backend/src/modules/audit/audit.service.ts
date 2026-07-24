@@ -74,7 +74,15 @@ export class AuditService {
    * Lấy danh sách Nhật Ký Thao Tác (Audit Logs) phân trang Server-side
    */
   async findAll(query: QueryAuditDto) {
-    const { page = 1, limit = 10, search, module, action, sortBy = 'createdAt', sortOrder = 'desc' } = query;
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      module,
+      action,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+    } = query;
     const skip = (page - 1) * limit;
 
     const where: any = {};

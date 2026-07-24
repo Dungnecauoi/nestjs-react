@@ -16,6 +16,7 @@ model Department {
   name        String
   description String?
   parentId    String?
+  deletedAt   DateTime? @map("deleted_at")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -43,6 +44,8 @@ model User {
   isActive            Boolean   @default(true)
   twoFactorSecret     String?   @map("two_factor_secret")
   isTwoFactorEnabled  Boolean   @default(false) @map("is_two_factor_enabled")
+  emailVerifiedAt     DateTime? @map("email_verified_at")
+  deletedAt           DateTime? @map("deleted_at")
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
@@ -52,8 +55,24 @@ model User {
   sessions    UserSession[]
   notifications Notification[]
   auditLogs   AuditLog[]
+  tokens      UserToken[]
 
   @@map("users")
+}
+
+// 2.0 Model Token dùng chung (Quên mật khẩu / Xác minh Email)
+model UserToken {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  type      String    // 'PASSWORD_RESET' | 'EMAIL_VERIFY'
+  tokenHash String    @map("token_hash") @db.Text
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_tokens")
 }
 
 // 2.1 Model Phiên Đăng Nhập Đa Thiết Bị (Multi-Device User Sessions)

@@ -65,7 +65,9 @@ export class PermissionGuard implements CanActivate {
     if (!hasPermission) {
       const permissionsStr = requiredPermissions.join(', ');
       const message = i18n
-        ? i18n.t('messages.FORBIDDEN', { args: { permissions: permissionsStr } })
+        ? i18n.t('messages.FORBIDDEN', {
+            args: { permissions: permissionsStr },
+          })
         : `Bạn không có quyền truy cập. Yêu cầu quyền: [${permissionsStr}]`;
 
       throw new ForbiddenException(message);

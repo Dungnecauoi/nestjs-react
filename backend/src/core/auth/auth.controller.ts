@@ -1,9 +1,20 @@
-import { Controller, Post, Get, Body, UseGuards, Res, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  UseGuards,
+  Res,
+  Req,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
+import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
-import { AuthService } from './auth.service';
+import { AuthService, parseDurationToMs } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
@@ -14,25 +25,19 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
   ) {}
 
   private getCookieName(): string {
-    return this.configService.get<string>('auth.cookieName') || 'ecomcx_session';
+    return (
+      this.configService.get<string>('auth.cookieName') || 'ecomcx_session'
+    );
   }
 
   private getCookieMaxAge(): number {
-    const expiresIn = this.configService.get<string>('auth.jwtRefreshExpiresIn') || '7d';
-    if (expiresIn.endsWith('d')) {
-      return parseInt(expiresIn, 10) * 24 * 60 * 60 * 1000;
-    }
-    if (expiresIn.endsWith('h')) {
-      return parseInt(expiresIn, 10) * 60 * 60 * 1000;
-    }
-    if (expiresIn.endsWith('m')) {
-      return parseInt(expiresIn, 10) * 60 * 1000;
-    }
-    return 7 * 24 * 60 * 60 * 1000;
+    const expiresIn =
+      this.configService.get<string>('auth.jwtRefreshExpiresIn') || '7d';
+    return parseDurationToMs(expiresIn);
   }
 
   private getCookieOptions() {
@@ -46,12 +51,15 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
-  @ApiOperation({ summary: 'Đăng nhập hệ thống (Cấp Access Token hoặc Chặn 2FA OTP)' })
+  @ApiOperation({
+    summary: 'Đăng nhập hệ thống (Cấp Access Token hoặc Chặn 2FA OTP)',
+  })
   async login(
     @Body() dto: LoginDto,
     @Req() req: Request,
-    @Res({ passthrough: true }) res: Response
+    @Res({ passthrough: true }) res: Response,
   ) {
     const meta = {
       userAgent: req.headers['user-agent'],
@@ -61,54 +69,84 @@ export class AuthController {
     const result = await this.authService.login(dto, meta);
 
     // If 2FA is not required and refreshToken exists, set HttpOnly Cookie scoped to /api/auth
-    if (result && !result.isTwoFactorRequired && 'refreshToken' in result && result.refreshToken) {
-      res.cookie(this.getCookieName(), result.refreshToken as string, this.getCookieOptions());
+    if (
+      result &&
+      !result.isTwoFactorRequired &&
+      'refreshToken' in result &&
+      result.refreshToken
+    ) {
+      res.cookie(
+        this.getCookieName(),
+        result.refreshToken,
+        this.getCookieOptions(),
+      );
     }
 
     return result;
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('2fa/authenticate')
   @ApiOperation({ summary: 'Xác nhận mã 6 số 2FA OTP khi Đăng Nhập' })
   async authenticate2FA(
     @Body() body: { preAuthToken: string; otpCode: string },
     @Req() req: Request,
-    @Res({ passthrough: true }) res: Response
+    @Res({ passthrough: true }) res: Response,
   ) {
     const meta = {
       userAgent: req.headers['user-agent'],
       ipAddress: req.ip,
     };
 
-    const result = await this.authService.authenticate2FA(body.preAuthToken, body.otpCode, meta);
+    const result = await this.authService.authenticate2FA(
+      body.preAuthToken,
+      body.otpCode,
+      meta,
+    );
 
     if (result && result.refreshToken) {
-      res.cookie(this.getCookieName(), result.refreshToken, this.getCookieOptions());
+      res.cookie(
+        this.getCookieName(),
+        result.refreshToken,
+        this.getCookieOptions(),
+      );
     }
 
     return result;
   }
 
-  @Public()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @Post('2fa/generate')
-  @ApiOperation({ summary: 'Tạo Secret & QR Code TOTP cho Google Authenticator' })
-  async generate2FASecret(@Body() body: { email: string }) {
-    return this.authService.generate2FASecret(body.email || 'admin@ecomcx.com');
+  @ApiOperation({
+    summary: 'Tạo Secret & QR Code TOTP cho tài khoản đang đăng nhập',
+  })
+  async generate2FASecret(@CurrentUser() user: any) {
+    return this.authService.generate2FASecret(user.id ?? user.sub);
   }
 
-  @Public()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @Post('2fa/turn-on')
-  @ApiOperation({ summary: 'Xác minh OTP và Kích Hoạt 2FA trong Database' })
-  async turnOn2FA(@Body() body: { email: string; otpCode: string }) {
-    return this.authService.turnOn2FA(body.email || 'admin@ecomcx.com', body.otpCode);
+  @ApiOperation({
+    summary: 'Xác minh OTP và Kích Hoạt 2FA cho tài khoản đang đăng nhập',
+  })
+  async turnOn2FA(@CurrentUser() user: any, @Body() body: { otpCode: string }) {
+    return this.authService.turnOn2FA(user.id ?? user.sub, body.otpCode);
   }
 
-  @Public()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @Post('2fa/turn-off')
-  @ApiOperation({ summary: 'Tắt 2FA trong Database' })
-  async turnOff2FA(@Body() body: { email: string }) {
-    return this.authService.turnOff2FA(body.email || 'admin@ecomcx.com');
+  @ApiOperation({
+    summary: 'Tắt 2FA cho tài khoản đang đăng nhập (yêu cầu OTP hiện tại)',
+  })
+  async turnOff2FA(
+    @CurrentUser() user: any,
+    @Body() body: { otpCode: string },
+  ) {
+    return this.authService.turnOff2FA(user.id ?? user.sub, body.otpCode);
   }
 
   @Public()
@@ -119,7 +157,7 @@ export class AuthController {
   async refreshToken(
     @CurrentUser() user: any,
     @Req() req: Request,
-    @Res({ passthrough: true }) res: Response
+    @Res({ passthrough: true }) res: Response,
   ) {
     const refreshToken = req.cookies?.[this.getCookieName()];
     const meta = {
@@ -131,19 +169,58 @@ export class AuthController {
     const tokens = await this.authService.refreshToken(user, meta);
 
     if (tokens && tokens.refreshToken) {
-      res.cookie(this.getCookieName(), tokens.refreshToken, this.getCookieOptions());
+      res.cookie(
+        this.getCookieName(),
+        tokens.refreshToken,
+        this.getCookieOptions(),
+      );
     }
 
     return tokens;
   }
 
   @Public()
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Post('forgot-password')
+  @ApiOperation({ summary: 'Gửi email hướng dẫn đặt lại mật khẩu' })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto.email);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post('reset-password')
+  @ApiOperation({ summary: 'Đặt lại mật khẩu bằng token nhận được qua email' })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto.token, dto.newPassword);
+  }
+
+  @Public()
+  @Post('verify-email')
+  @ApiOperation({
+    summary: 'Xác minh địa chỉ email bằng token nhận được qua email',
+  })
+  async verifyEmail(@Body() body: { token: string }) {
+    return this.authService.verifyEmail(body.token);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Post('resend-verification')
+  @ApiOperation({
+    summary: 'Gửi lại email xác minh cho tài khoản đang đăng nhập',
+  })
+  async resendVerification(@CurrentUser() user: any) {
+    return this.authService.resendVerificationEmail(user.id ?? user.sub);
+  }
+
+  @Public()
   @Post('logout')
-  @ApiOperation({ summary: 'Đăng xuất hệ thống và xóa HttpOnly Refresh Cookie' })
-  async logout(
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response
-  ) {
+  @ApiOperation({
+    summary: 'Đăng xuất hệ thống và xóa HttpOnly Refresh Cookie',
+  })
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const refreshToken = req.cookies?.[this.getCookieName()];
     const userId = (req as any).user?.id || (req as any).user?.sub;
 

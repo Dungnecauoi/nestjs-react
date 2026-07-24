@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -19,7 +28,9 @@ export class UserController {
 
   @Get()
   @RequirePermissions('user:read')
-  @ApiOperation({ summary: 'Lấy danh sách User kèm Roles, Direct Permissions & Departments' })
+  @ApiOperation({
+    summary: 'Lấy danh sách User kèm Roles, Direct Permissions & Departments',
+  })
   findAll() {
     return this.userService.findAll();
   }
@@ -33,7 +44,10 @@ export class UserController {
 
   @Post()
   @RequirePermissions('user:create')
-  @ApiOperation({ summary: 'Tạo mới User kèm thông tin định danh CCCD, Giới tính, Ngày sinh, Địa chỉ' })
+  @ApiOperation({
+    summary:
+      'Tạo mới User kèm thông tin định danh CCCD, Giới tính, Ngày sinh, Địa chỉ',
+  })
   create(@Body() dto: CreateUserDto) {
     return this.userService.create(dto);
   }
@@ -47,9 +61,16 @@ export class UserController {
 
   @Delete(':id')
   @RequirePermissions('user:delete')
-  @ApiOperation({ summary: 'Xóa User' })
+  @ApiOperation({ summary: 'Xóa User (Soft Delete)' })
   remove(@Param('id') id: string) {
     return this.userService.remove(id);
+  }
+
+  @Patch(':id/restore')
+  @RequirePermissions('user:delete')
+  @ApiOperation({ summary: 'Khôi phục User đã xóa (Soft Delete)' })
+  restore(@Param('id') id: string) {
+    return this.userService.restore(id);
   }
 
   @Patch(':id/approve')
@@ -68,15 +89,23 @@ export class UserController {
 
   @Post(':id/permissions')
   @RequirePermissions('role:update')
-  @ApiOperation({ summary: 'Gán mảng Quyền hạn (Permissions) TRỰC TIẾP cho User từ UI' })
-  assignDirectPermissions(@Param('id') id: string, @Body() dto: AssignUserPermissionsDto) {
+  @ApiOperation({
+    summary: 'Gán mảng Quyền hạn (Permissions) TRỰC TIẾP cho User từ UI',
+  })
+  assignDirectPermissions(
+    @Param('id') id: string,
+    @Body() dto: AssignUserPermissionsDto,
+  ) {
     return this.userService.assignDirectPermissions(id, dto);
   }
 
   @Post(':id/departments')
   @RequirePermissions('department:update')
   @ApiOperation({ summary: 'Gán User vào mảng Phòng ban / Team từ UI' })
-  assignDepartments(@Param('id') id: string, @Body() dto: AssignUserDepartmentsDto) {
+  assignDepartments(
+    @Param('id') id: string,
+    @Body() dto: AssignUserDepartmentsDto,
+  ) {
     return this.userService.assignDepartments(id, dto);
   }
 }

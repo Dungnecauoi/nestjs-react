@@ -16,9 +16,10 @@ export interface Response<T> {
 }
 
 @Injectable()
-export class TransformInterceptor<T>
-  implements NestInterceptor<T, Response<T>>
-{
+export class TransformInterceptor<T> implements NestInterceptor<
+  T,
+  Response<T>
+> {
   intercept(
     context: ExecutionContext,
     next: CallHandler,
@@ -33,7 +34,12 @@ export class TransformInterceptor<T>
         let message = 'Operation successful';
         let resultData = data;
 
-        if (data && typeof data === 'object' && 'message' in data && 'data' in data) {
+        if (
+          data &&
+          typeof data === 'object' &&
+          'message' in data &&
+          'data' in data
+        ) {
           message = data.message;
           resultData = data.data;
         }

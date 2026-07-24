@@ -19,17 +19,25 @@ export class PermissionService {
     const permissions = rawPermissions.map((perm) => ({
       ...perm,
       name: this.i18n.t(perm.name, { lang, defaultValue: perm.name }),
-      description: perm.description ? this.i18n.t(perm.description, { lang, defaultValue: perm.description }) : null,
+      description: perm.description
+        ? this.i18n.t(perm.description, {
+            lang,
+            defaultValue: perm.description,
+          })
+        : null,
     }));
 
     // Gom nhóm theo Module cho giao diện UI phân quyền dễ chọn
-    const grouped = permissions.reduce((acc, perm) => {
-      if (!acc[perm.module]) {
-        acc[perm.module] = [];
-      }
-      acc[perm.module].push(perm);
-      return acc;
-    }, {} as Record<string, typeof permissions>);
+    const grouped = permissions.reduce(
+      (acc, perm) => {
+        if (!acc[perm.module]) {
+          acc[perm.module] = [];
+        }
+        acc[perm.module].push(perm);
+        return acc;
+      },
+      {} as Record<string, typeof permissions>,
+    );
 
     return {
       total: permissions.length,
@@ -39,9 +47,13 @@ export class PermissionService {
   }
 
   async create(dto: CreatePermissionDto) {
-    const existing = await this.prisma.permission.findUnique({ where: { code: dto.code } });
+    const existing = await this.prisma.permission.findUnique({
+      where: { code: dto.code },
+    });
     if (existing) {
-      throw new BadRequestException(`Permission code "${dto.code}" đã tồn tại!`);
+      throw new BadRequestException(
+        `Permission code "${dto.code}" đã tồn tại!`,
+      );
     }
 
     return this.prisma.permission.create({

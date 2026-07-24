@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../core/database/prisma.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { AssignPermissionsToRoleDto } from './dto/assign-permissions-role.dto';
@@ -20,9 +24,15 @@ export class RoleService {
         permission: rp.permission
           ? {
               ...rp.permission,
-              name: this.i18n.t(rp.permission.name, { lang, defaultValue: rp.permission.name }),
+              name: this.i18n.t(rp.permission.name, {
+                lang,
+                defaultValue: rp.permission.name,
+              }),
               description: rp.permission.description
-                ? this.i18n.t(rp.permission.description, { lang, defaultValue: rp.permission.description })
+                ? this.i18n.t(rp.permission.description, {
+                    lang,
+                    defaultValue: rp.permission.description,
+                  })
                 : null,
             }
           : rp.permission,
@@ -59,14 +69,18 @@ export class RoleService {
     });
 
     if (!role) {
-      throw new NotFoundException(this.i18n.t('messages.NOT_FOUND', { lang, args: { id } }));
+      throw new NotFoundException(
+        this.i18n.t('messages.NOT_FOUND', { lang, args: { id } }),
+      );
     }
 
     return this.translateRolePermissions(role, lang);
   }
 
   async create(dto: CreateRoleDto) {
-    const existing = await this.prisma.role.findUnique({ where: { code: dto.code } });
+    const existing = await this.prisma.role.findUnique({
+      where: { code: dto.code },
+    });
     if (existing) {
       throw new BadRequestException(`Role code "${dto.code}" đã tồn tại!`);
     }
@@ -78,7 +92,9 @@ export class RoleService {
         description: dto.description,
         permissions: dto.permissionIds
           ? {
-              create: dto.permissionIds.map((permissionId) => ({ permissionId })),
+              create: dto.permissionIds.map((permissionId) => ({
+                permissionId,
+              })),
             }
           : undefined,
       },

@@ -8,7 +8,9 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(private readonly configService: ConfigService) {
     const jwtSecret = configService.get<string>('auth.jwtSecret');
     if (!jwtSecret) {
-      throw new Error('CRITICAL SECURITY FAIL: JWT_SECRET environment variable is missing!');
+      throw new Error(
+        'CRITICAL SECURITY FAIL: JWT_SECRET environment variable is missing!',
+      );
     }
 
     super({

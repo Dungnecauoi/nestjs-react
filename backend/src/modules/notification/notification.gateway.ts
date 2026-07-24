@@ -8,13 +8,21 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 
+const corsAllowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 @WebSocketGateway({
   namespace: '/notifications',
   cors: {
-    origin: '*',
+    origin: corsAllowedOrigins.length > 0 ? corsAllowedOrigins : true,
+    credentials: true,
   },
 })
-export class NotificationGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class NotificationGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -24,7 +32,9 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
     const userId = client.handshake.query.userId as string;
     if (userId) {
       client.join(`user_${userId}`);
-      this.logger.log(`Client connected & joined room user_${userId}: ${client.id}`);
+      this.logger.log(
+        `Client connected & joined room user_${userId}: ${client.id}`,
+      );
     } else {
       this.logger.log(`Client connected anonymously: ${client.id}`);
     }
@@ -38,7 +48,9 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
   handleJoinRoom(client: Socket, payload: { userId: string }) {
     if (payload?.userId) {
       client.join(`user_${payload.userId}`);
-      this.logger.log(`Client ${client.id} explicitly joined user_${payload.userId}`);
+      this.logger.log(
+        `Client ${client.id} explicitly joined user_${payload.userId}`,
+      );
     }
   }
 

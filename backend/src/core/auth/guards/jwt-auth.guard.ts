@@ -27,7 +27,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   handleRequest(err: any, user: any, info: any) {
     if (err || !user) {
       const isExpired = info?.name === 'TokenExpiredError';
-      const errorCode = isExpired ? ErrorCode.AUTH_TOKEN_EXPIRED : ErrorCode.AUTH_UNAUTHORIZED;
+      const errorCode = isExpired
+        ? ErrorCode.AUTH_TOKEN_EXPIRED
+        : ErrorCode.AUTH_UNAUTHORIZED;
       const message = isExpired
         ? 'Access Token đã hết hạn. Vui lòng làm mới Token'
         : 'Phiên truy cập không hợp lệ hoặc chưa được đăng nhập';

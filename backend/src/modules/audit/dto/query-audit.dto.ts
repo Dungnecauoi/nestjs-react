@@ -17,17 +17,25 @@ export class QueryAuditDto {
   @IsOptional()
   limit?: number = 10;
 
-  @ApiPropertyOptional({ description: 'Từ khóa tìm kiếm (Tên, Email, Module, Action)' })
+  @ApiPropertyOptional({
+    description: 'Từ khóa tìm kiếm (Tên, Email, Module, Action)',
+  })
   @IsString()
   @IsOptional()
   search?: string;
 
-  @ApiPropertyOptional({ example: 'user', description: 'Lọc theo Module (user, role, department, media, setting)' })
+  @ApiPropertyOptional({
+    example: 'user',
+    description: 'Lọc theo Module (user, role, department, media, setting)',
+  })
   @IsString()
   @IsOptional()
   module?: string;
 
-  @ApiPropertyOptional({ example: 'UPDATE', description: 'Lọc theo Thao Tác (CREATE, UPDATE, DELETE, LOGIN)' })
+  @ApiPropertyOptional({
+    example: 'UPDATE',
+    description: 'Lọc theo Thao Tác (CREATE, UPDATE, DELETE, LOGIN)',
+  })
   @IsString()
   @IsOptional()
   action?: string;

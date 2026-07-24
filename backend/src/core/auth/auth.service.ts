@@ -1,18 +1,45 @@
 import { Injectable, HttpStatus } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { PrismaService } from '../database/prisma.service';
 import { TwoFactorService } from './two-factor.service';
+import { MailService } from '../mail/mail.service';
 import { CustomApiException } from '../../common/exceptions/custom-api.exception';
 import { ErrorCode } from '../../common/enums/error-code.enum';
 import { LoginDto } from './dto/login.dto';
+
+type UserTokenType = 'PASSWORD_RESET' | 'EMAIL_VERIFY';
 
 interface SessionMeta {
   userAgent?: string;
   ipAddress?: string;
   refreshToken?: string;
+}
+
+/**
+ * Parse chuỗi thời hạn kiểu '7d' | '12h' | '30m' | '45s' sang mili-giây.
+ * Dùng chung cho cookie maxAge (AuthController) và UserSession.expiresAt (AuthService).
+ */
+export function parseDurationToMs(
+  value: string,
+  fallbackMs = 7 * 24 * 60 * 60 * 1000,
+): number {
+  const match = /^(\d+)(d|h|m|s)$/.exec(value?.trim() || '');
+  if (!match) {
+    return fallbackMs;
+  }
+  const amount = parseInt(match[1], 10);
+  const unitMs: Record<string, number> = {
+    d: 24 * 60 * 60 * 1000,
+    h: 60 * 60 * 1000,
+    m: 60 * 1000,
+    s: 1000,
+  };
+  return amount * unitMs[match[2]];
 }
 
 @Injectable()
@@ -43,19 +70,24 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly i18n: I18nService,
     private readonly prisma: PrismaService,
-    private readonly twoFactorService: TwoFactorService
+    private readonly twoFactorService: TwoFactorService,
+    private readonly mailService: MailService,
   ) {}
 
   private extractUserPermissionsAndRoles(dbUser: any) {
     const roles = dbUser.roles ? dbUser.roles.map((r: any) => r.role.code) : [];
     const rolePermissions = dbUser.roles
-      ? dbUser.roles.flatMap((r: any) => r.role.permissions.map((p: any) => p.permission.code))
+      ? dbUser.roles.flatMap((r: any) =>
+          r.role.permissions.map((p: any) => p.permission.code),
+        )
       : [];
     const directPermissions = dbUser.permissions
       ? dbUser.permissions.map((p: any) => p.permission.code)
       : [];
 
-    const permissions = Array.from(new Set([...rolePermissions, ...directPermissions]));
+    const permissions = Array.from(
+      new Set([...rolePermissions, ...directPermissions]),
+    );
     return { roles, permissions };
   }
 
@@ -70,14 +102,22 @@ export class AuthService {
 
     if (!dbUser || !dbUser.isActive) {
       const message = this.i18n.t('auth.LOGIN_FAILED', { lang });
-      throw new CustomApiException(ErrorCode.AUTH_LOGIN_FAILED, message, HttpStatus.UNAUTHORIZED);
+      throw new CustomApiException(
+        ErrorCode.AUTH_LOGIN_FAILED,
+        message,
+        HttpStatus.UNAUTHORIZED,
+      );
     }
 
     // 2. Verify Bcrypt Hashed Password
     const isPasswordValid = await bcrypt.compare(dto.password, dbUser.password);
     if (!isPasswordValid) {
       const message = this.i18n.t('auth.LOGIN_FAILED', { lang });
-      throw new CustomApiException(ErrorCode.AUTH_LOGIN_FAILED, message, HttpStatus.UNAUTHORIZED);
+      throw new CustomApiException(
+        ErrorCode.AUTH_LOGIN_FAILED,
+        message,
+        HttpStatus.UNAUTHORIZED,
+      );
     }
 
     // 3. Extract dynamic roles and permissions from database relations
@@ -87,7 +127,7 @@ export class AuthService {
     if (dbUser.isTwoFactorEnabled) {
       const preAuthToken = await this.jwtService.signAsync(
         { sub: dbUser.id, email: dbUser.email, isPreAuth: true },
-        { expiresIn: '5m' }
+        { expiresIn: '5m' },
       );
 
       const message = this.i18n.t('auth.TWO_FACTOR_REQUIRED', { lang });
@@ -108,8 +148,11 @@ export class AuthService {
     const tokens = await this.generateTokens(payload);
 
     // 5. Save Multi-Device UserSession record in MySQL
-    const tokenHash = await bcrypt.hash(tokens.refreshToken, 10);
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const tokenHash = await bcrypt.hash(
+      tokens.refreshToken,
+      this.configService.get<number>('auth.bcryptRounds') || 12,
+    );
+    const expiresAt = new Date(Date.now() + this.getSessionDurationMs());
 
     await this.prisma.userSession.create({
       data: {
@@ -135,7 +178,11 @@ export class AuthService {
     };
   }
 
-  async authenticate2FA(preAuthToken: string, otpCode: string, meta?: SessionMeta) {
+  async authenticate2FA(
+    preAuthToken: string,
+    otpCode: string,
+    meta?: SessionMeta,
+  ) {
     const lang = I18nContext.current()?.lang;
 
     let decoded: any;
@@ -143,7 +190,11 @@ export class AuthService {
       decoded = await this.jwtService.verifyAsync(preAuthToken);
     } catch {
       const message = this.i18n.t('auth.TWO_FACTOR_EXPIRED', { lang });
-      throw new CustomApiException(ErrorCode.AUTH_2FA_EXPIRED, message, HttpStatus.UNAUTHORIZED);
+      throw new CustomApiException(
+        ErrorCode.AUTH_2FA_EXPIRED,
+        message,
+        HttpStatus.UNAUTHORIZED,
+      );
     }
 
     const dbUser = await this.prisma.user.findUnique({
@@ -153,18 +204,33 @@ export class AuthService {
 
     if (!dbUser || !dbUser.isActive) {
       const message = this.i18n.t('auth.LOGIN_FAILED', { lang });
-      throw new CustomApiException(ErrorCode.AUTH_LOGIN_FAILED, message, HttpStatus.UNAUTHORIZED);
+      throw new CustomApiException(
+        ErrorCode.AUTH_LOGIN_FAILED,
+        message,
+        HttpStatus.UNAUTHORIZED,
+      );
     }
 
     if (!dbUser.twoFactorSecret) {
       const message = this.i18n.t('auth.TWO_FACTOR_INVALID', { lang });
-      throw new CustomApiException(ErrorCode.AUTH_2FA_INVALID, message, HttpStatus.BAD_REQUEST);
+      throw new CustomApiException(
+        ErrorCode.AUTH_2FA_INVALID,
+        message,
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
-    const isValid = this.twoFactorService.verifyCode(dbUser.twoFactorSecret, otpCode);
+    const isValid = this.twoFactorService.verifyCode(
+      dbUser.twoFactorSecret,
+      otpCode,
+    );
     if (!isValid) {
       const message = this.i18n.t('auth.TWO_FACTOR_INVALID', { lang });
-      throw new CustomApiException(ErrorCode.AUTH_2FA_INVALID, message, HttpStatus.BAD_REQUEST);
+      throw new CustomApiException(
+        ErrorCode.AUTH_2FA_INVALID,
+        message,
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const { roles, permissions } = this.extractUserPermissionsAndRoles(dbUser);
@@ -179,8 +245,11 @@ export class AuthService {
     const tokens = await this.generateTokens(payload);
 
     // Save Multi-Device UserSession record in MySQL
-    const tokenHash = await bcrypt.hash(tokens.refreshToken, 10);
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const tokenHash = await bcrypt.hash(
+      tokens.refreshToken,
+      this.configService.get<number>('auth.bcryptRounds') || 12,
+    );
+    const expiresAt = new Date(Date.now() + this.getSessionDurationMs());
 
     await this.prisma.userSession.create({
       data: {
@@ -205,9 +274,30 @@ export class AuthService {
     };
   }
 
-  async generate2FASecret(email: string) {
+  async generate2FASecret(userId: string) {
+    const lang = I18nContext.current()?.lang;
+
+    const dbUser = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!dbUser) {
+      const message = this.i18n.t('auth.UNAUTHORIZED', { lang });
+      throw new CustomApiException(
+        ErrorCode.AUTH_UNAUTHORIZED,
+        message,
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
     const secret = this.twoFactorService.generateSecret();
-    const otpAuthUrl = this.twoFactorService.generateOtpauthUrl(email, secret);
+    const otpAuthUrl = this.twoFactorService.generateOtpauthUrl(
+      dbUser.email,
+      secret,
+    );
+
+    // Lưu secret tạm thời (chưa bật isTwoFactorEnabled) để turnOn2FA có thể verify OTP đầu tiên
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { twoFactorSecret: secret },
+    });
 
     return {
       secret,
@@ -215,29 +305,41 @@ export class AuthService {
     };
   }
 
-  async turnOn2FA(email: string, otpCode: string) {
+  async turnOn2FA(userId: string, otpCode: string) {
     const lang = I18nContext.current()?.lang;
 
-    const dbUser = await this.prisma.user.findUnique({ where: { email } });
+    const dbUser = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!dbUser) {
       const message = this.i18n.t('auth.UNAUTHORIZED', { lang });
-      throw new CustomApiException(ErrorCode.AUTH_UNAUTHORIZED, message, HttpStatus.UNAUTHORIZED);
+      throw new CustomApiException(
+        ErrorCode.AUTH_UNAUTHORIZED,
+        message,
+        HttpStatus.UNAUTHORIZED,
+      );
     }
 
     const secret = dbUser.twoFactorSecret;
     if (!secret) {
       const message = this.i18n.t('auth.TWO_FACTOR_INVALID', { lang });
-      throw new CustomApiException(ErrorCode.AUTH_2FA_INVALID, message, HttpStatus.BAD_REQUEST);
+      throw new CustomApiException(
+        ErrorCode.AUTH_2FA_INVALID,
+        message,
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const isValid = this.twoFactorService.verifyCode(secret, otpCode);
     if (!isValid) {
       const message = this.i18n.t('auth.TWO_FACTOR_INVALID', { lang });
-      throw new CustomApiException(ErrorCode.AUTH_2FA_INVALID, message, HttpStatus.BAD_REQUEST);
+      throw new CustomApiException(
+        ErrorCode.AUTH_2FA_INVALID,
+        message,
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     await this.prisma.user.update({
-      where: { email },
+      where: { id: userId },
       data: { isTwoFactorEnabled: true },
     });
 
@@ -245,17 +347,35 @@ export class AuthService {
     return { success: true, message };
   }
 
-  async turnOff2FA(email: string) {
+  async turnOff2FA(userId: string, otpCode: string) {
     const lang = I18nContext.current()?.lang;
 
-    const dbUser = await this.prisma.user.findUnique({ where: { email } });
+    const dbUser = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!dbUser) {
       const message = this.i18n.t('auth.UNAUTHORIZED', { lang });
-      throw new CustomApiException(ErrorCode.AUTH_UNAUTHORIZED, message, HttpStatus.UNAUTHORIZED);
+      throw new CustomApiException(
+        ErrorCode.AUTH_UNAUTHORIZED,
+        message,
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    if (dbUser.isTwoFactorEnabled) {
+      if (
+        !dbUser.twoFactorSecret ||
+        !this.twoFactorService.verifyCode(dbUser.twoFactorSecret, otpCode)
+      ) {
+        const message = this.i18n.t('auth.TWO_FACTOR_INVALID', { lang });
+        throw new CustomApiException(
+          ErrorCode.AUTH_2FA_INVALID,
+          message,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
     }
 
     await this.prisma.user.update({
-      where: { email },
+      where: { id: userId },
       data: { isTwoFactorEnabled: false, twoFactorSecret: null },
     });
 
@@ -279,8 +399,15 @@ export class AuthService {
 
     if (!dbUser || !dbUser.isActive) {
       const lang = I18nContext.current()?.lang;
-      const message = this.i18n.t('auth.UNAUTHORIZED', { lang, defaultValue: 'Không có quyền truy cập' });
-      throw new CustomApiException(ErrorCode.AUTH_UNAUTHORIZED, message, HttpStatus.UNAUTHORIZED);
+      const message = this.i18n.t('auth.UNAUTHORIZED', {
+        lang,
+        defaultValue: 'Không có quyền truy cập',
+      });
+      throw new CustomApiException(
+        ErrorCode.AUTH_UNAUTHORIZED,
+        message,
+        HttpStatus.UNAUTHORIZED,
+      );
     }
 
     // Verify incoming refreshToken against active MySQL UserSessions
@@ -316,8 +443,11 @@ export class AuthService {
     const tokens = await this.generateTokens(payload);
 
     // Rotate token on active session if found, or create session
-    const newTokenHash = await bcrypt.hash(tokens.refreshToken, 10);
-    const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const newTokenHash = await bcrypt.hash(
+      tokens.refreshToken,
+      this.configService.get<number>('auth.bcryptRounds') || 12,
+    );
+    const newExpiresAt = new Date(Date.now() + this.getSessionDurationMs());
 
     if (matchingSession) {
       await this.prisma.userSession.update({
@@ -376,15 +506,19 @@ export class AuthService {
 
   private async generateTokens(payload: any) {
     const jwtSecret = this.configService.get<string>('auth.jwtSecret');
-    const jwtExpiresIn = this.configService.get<string>('auth.jwtExpiresIn') || '1h';
-    const jwtRefreshSecret = this.configService.get<string>('auth.jwtRefreshSecret');
-    const jwtRefreshExpiresIn = this.configService.get<string>('auth.jwtRefreshExpiresIn') || '7d';
+    const jwtExpiresIn =
+      this.configService.get<string>('auth.jwtExpiresIn') || '1h';
+    const jwtRefreshSecret = this.configService.get<string>(
+      'auth.jwtRefreshSecret',
+    );
+    const jwtRefreshExpiresIn =
+      this.configService.get<string>('auth.jwtRefreshExpiresIn') || '7d';
 
     if (!jwtSecret || !jwtRefreshSecret) {
       throw new CustomApiException(
         ErrorCode.SYS_CONFIG_ERROR,
         'Cấu hình JWT Secret chưa được khai báo trong hệ thống',
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
 
@@ -405,5 +539,198 @@ export class AuthService {
       tokenType: 'Bearer',
       expiresIn: jwtExpiresIn,
     };
+  }
+
+  private hashToken(rawToken: string): string {
+    return crypto.createHash('sha256').update(rawToken).digest('hex');
+  }
+
+  /**
+   * Sinh token ngẫu nhiên dùng 1 lần (quên mật khẩu / xác minh email), lưu bản băm SHA-256
+   * (không dùng bcrypt vì cần tra cứu trực tiếp theo hash, token đã đủ entropy ngẫu nhiên).
+   */
+  private async issueUserToken(
+    userId: string,
+    type: UserTokenType,
+    ttlMinutes: number,
+  ): Promise<string> {
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = this.hashToken(rawToken);
+    const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+
+    await this.prisma.userToken.create({
+      data: { userId, type, tokenHash, expiresAt },
+    });
+
+    return rawToken;
+  }
+
+  private async consumeUserToken(
+    rawToken: string,
+    type: UserTokenType,
+  ): Promise<string | null> {
+    const tokenHash = this.hashToken(rawToken);
+    const record = await this.prisma.userToken.findFirst({
+      where: { tokenHash, type, usedAt: null, expiresAt: { gt: new Date() } },
+    });
+
+    if (!record) {
+      return null;
+    }
+
+    await this.prisma.userToken.update({
+      where: { id: record.id },
+      data: { usedAt: new Date() },
+    });
+
+    return record.userId;
+  }
+
+  async forgotPassword(email: string) {
+    const lang = I18nContext.current()?.lang;
+    const dbUser = await this.prisma.user.findUnique({ where: { email } });
+
+    if (dbUser && dbUser.isActive && !dbUser.deletedAt) {
+      const rawToken = await this.issueUserToken(
+        dbUser.id,
+        'PASSWORD_RESET',
+        30,
+      );
+      const appUrl =
+        this.configService.get<string>('app.url') || 'http://localhost:3000';
+      const resetLink = `${appUrl}/reset-password?token=${rawToken}`;
+
+      await this.mailService.send(
+        dbUser.email,
+        'Đặt lại mật khẩu',
+        `<p>Nhấn vào liên kết sau để đặt lại mật khẩu (hiệu lực 30 phút):</p><p><a href="${resetLink}">${resetLink}</a></p>`,
+      );
+    }
+
+    // Luôn trả message chung chung, không tiết lộ email có tồn tại trong hệ thống hay không
+    return {
+      success: true,
+      message: this.i18n.t('auth.PASSWORD_RESET_EMAIL_SENT', {
+        lang,
+        defaultValue:
+          'Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi.',
+      }),
+    };
+  }
+
+  async resetPassword(rawToken: string, newPassword: string) {
+    const lang = I18nContext.current()?.lang;
+    const userId = await this.consumeUserToken(rawToken, 'PASSWORD_RESET');
+
+    if (!userId) {
+      const message = this.i18n.t('auth.TOKEN_INVALID', {
+        lang,
+        defaultValue: 'Token đặt lại mật khẩu không hợp lệ hoặc đã hết hạn',
+      });
+      throw new CustomApiException(
+        ErrorCode.AUTH_TOKEN_INVALID,
+        message,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(
+      newPassword,
+      this.configService.get<number>('auth.bcryptRounds') || 12,
+    );
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
+    // Đổi mật khẩu bắt buộc đăng xuất mọi thiết bị (refresh token cũ không còn hiệu lực)
+    await this.prisma.userSession.updateMany({
+      where: { userId, isRevoked: false },
+      data: { isRevoked: true },
+    });
+
+    const message = this.i18n.t('auth.PASSWORD_RESET_SUCCESS', {
+      lang,
+      defaultValue: 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại.',
+    });
+    return { success: true, message };
+  }
+
+  async verifyEmail(rawToken: string) {
+    const lang = I18nContext.current()?.lang;
+    const userId = await this.consumeUserToken(rawToken, 'EMAIL_VERIFY');
+
+    if (!userId) {
+      const message = this.i18n.t('auth.TOKEN_INVALID', { lang });
+      throw new CustomApiException(
+        ErrorCode.AUTH_TOKEN_INVALID,
+        message,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { emailVerifiedAt: new Date() },
+    });
+
+    const message = this.i18n.t('auth.EMAIL_VERIFY_SUCCESS', { lang });
+    return { success: true, message };
+  }
+
+  async resendVerificationEmail(userId: string) {
+    const lang = I18nContext.current()?.lang;
+    const dbUser = await this.prisma.user.findUnique({ where: { id: userId } });
+
+    if (!dbUser) {
+      const message = this.i18n.t('auth.UNAUTHORIZED', { lang });
+      throw new CustomApiException(
+        ErrorCode.AUTH_UNAUTHORIZED,
+        message,
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    if (dbUser.emailVerifiedAt) {
+      const message = this.i18n.t('auth.EMAIL_ALREADY_VERIFIED', { lang });
+      return { success: true, message };
+    }
+
+    const rawToken = await this.issueUserToken(dbUser.id, 'EMAIL_VERIFY', 60);
+    const appUrl =
+      this.configService.get<string>('app.url') || 'http://localhost:3000';
+    const verifyLink = `${appUrl}/verify-email?token=${rawToken}`;
+
+    await this.mailService.send(
+      dbUser.email,
+      'Xác minh địa chỉ email',
+      `<p>Nhấn vào liên kết sau để xác minh email (hiệu lực 60 phút):</p><p><a href="${verifyLink}">${verifyLink}</a></p>`,
+    );
+
+    const message = this.i18n.t('auth.VERIFICATION_EMAIL_SENT', { lang });
+    return { success: true, message };
+  }
+
+  private getSessionDurationMs(): number {
+    const jwtRefreshExpiresIn =
+      this.configService.get<string>('auth.jwtRefreshExpiresIn') || '7d';
+    return parseDurationToMs(jwtRefreshExpiresIn);
+  }
+
+  /**
+   * Dọn UserSession rác mỗi ngày: đã hết hạn, hoặc đã bị revoke quá 30 ngày.
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async cleanupExpiredSessions() {
+    const revokedCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    await this.prisma.userSession.deleteMany({
+      where: {
+        OR: [
+          { expiresAt: { lt: new Date() } },
+          { isRevoked: true, updatedAt: { lt: revokedCutoff } },
+        ],
+      },
+    });
   }
 }

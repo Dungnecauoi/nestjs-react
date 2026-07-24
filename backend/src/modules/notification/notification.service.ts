@@ -46,7 +46,15 @@ export class NotificationService {
    * Lấy danh sách thông báo của User đăng nhập kèm phân trang và số lượng chưa đọc
    */
   async findAllForUser(userId: string, query: QueryNotificationDto) {
-    const { page = 1, limit = 10, search, isRead, type, sortBy = 'createdAt', sortOrder = 'desc' } = query;
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      isRead,
+      type,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+    } = query;
     const skip = (page - 1) * limit;
 
     const where: any = {
@@ -107,9 +115,13 @@ export class NotificationService {
    * Đánh dấu 1 thông báo là đã đọc
    */
   async markAsRead(id: string, userId: string, lang: string = 'vi') {
-    const existing = await this.prisma.notification.findUnique({ where: { id } });
+    const existing = await this.prisma.notification.findUnique({
+      where: { id },
+    });
     if (!existing) {
-      throw new NotFoundException(this.i18n.t('notification.NOT_FOUND', { lang }));
+      throw new NotFoundException(
+        this.i18n.t('notification.NOT_FOUND', { lang }),
+      );
     }
 
     return this.prisma.notification.update({
@@ -141,9 +153,13 @@ export class NotificationService {
    * Xóa thông báo
    */
   async remove(id: string, lang: string = 'vi') {
-    const existing = await this.prisma.notification.findUnique({ where: { id } });
+    const existing = await this.prisma.notification.findUnique({
+      where: { id },
+    });
     if (!existing) {
-      throw new NotFoundException(this.i18n.t('notification.NOT_FOUND', { lang }));
+      throw new NotFoundException(
+        this.i18n.t('notification.NOT_FOUND', { lang }),
+      );
     }
 
     return this.prisma.notification.delete({ where: { id } });

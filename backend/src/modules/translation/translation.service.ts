@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -23,7 +27,13 @@ const KNOWN_LANGUAGES: Record<string, string> = {
 @Injectable()
 export class TranslationService {
   private readonly backendI18nPath = path.join(process.cwd(), 'src', 'i18n');
-  private readonly frontendLocalesPath = path.join(process.cwd(), '..', 'admin', 'src', 'locales');
+  private readonly frontendLocalesPath = path.join(
+    process.cwd(),
+    '..',
+    'admin',
+    'src',
+    'locales',
+  );
 
   getLanguagesList() {
     if (!fs.existsSync(this.backendI18nPath)) {
@@ -53,7 +63,14 @@ export class TranslationService {
         { key: 'backend', name: 'Dịch Hệ Thống Backend (API & Permissions)' },
         { key: 'frontend', name: 'Dịch Giao Diện Frontend (React Admin)' },
       ],
-      backendDomains: ['permissions', 'messages', 'auth', 'notification', 'audit', 'validation'],
+      backendDomains: [
+        'permissions',
+        'messages',
+        'auth',
+        'notification',
+        'audit',
+        'validation',
+      ],
       frontendDomains: ['locales'],
       languages: this.getLanguagesList(),
     };
@@ -82,7 +99,9 @@ export class TranslationService {
     if (!flatObj || typeof flatObj !== 'object') return result;
 
     // Process deeper paths first to avoid parent string key collisions
-    const keys = Object.keys(flatObj).sort((a, b) => b.split('.').length - a.split('.').length);
+    const keys = Object.keys(flatObj).sort(
+      (a, b) => b.split('.').length - a.split('.').length,
+    );
 
     for (const key of keys) {
       const val = flatObj[key];
@@ -111,7 +130,11 @@ export class TranslationService {
     const targetLang = (lang || 'vi').toLowerCase();
 
     if (scope === 'backend') {
-      const filePath = path.join(this.backendI18nPath, targetLang, `${domain}.json`);
+      const filePath = path.join(
+        this.backendI18nPath,
+        targetLang,
+        `${domain}.json`,
+      );
       if (!fs.existsSync(filePath)) {
         return { scope, domain, lang: targetLang, data: {} };
       }
@@ -140,14 +163,21 @@ export class TranslationService {
         }
         return { scope, domain: 'locales', lang: targetLang, data: {} };
       } catch (err: any) {
-        throw new BadRequestException(`Không thể đọc tệp dịch Frontend: ${err.message}`);
+        throw new BadRequestException(
+          `Không thể đọc tệp dịch Frontend: ${err.message}`,
+        );
       }
     }
 
     throw new NotFoundException('Scope dịch không hợp lệ!');
   }
 
-  async updateTranslations(scope: string, domain: string, lang: string, flatPayload: Record<string, string>) {
+  async updateTranslations(
+    scope: string,
+    domain: string,
+    lang: string,
+    flatPayload: Record<string, string>,
+  ) {
     const targetLang = (lang || 'vi').toLowerCase();
 
     if (scope === 'backend') {
@@ -158,7 +188,10 @@ export class TranslationService {
       const filePath = path.join(dirPath, `${domain}.json`);
       const nestedObj = this.unflattenObject(flatPayload);
       fs.writeFileSync(filePath, JSON.stringify(nestedObj, null, 2), 'utf-8');
-      return { success: true, message: `Đã cập nhật tệp dịch Backend ${domain}.json cho ngôn ngữ ${targetLang} thành công!` };
+      return {
+        success: true,
+        message: `Đã cập nhật tệp dịch Backend ${domain}.json cho ngôn ngữ ${targetLang} thành công!`,
+      };
     }
 
     if (scope === 'frontend') {
@@ -170,7 +203,10 @@ export class TranslationService {
       const nestedObj = this.unflattenObject(flatPayload);
       const tsContent = `export default ${JSON.stringify(nestedObj, null, 2)};\n`;
       fs.writeFileSync(filePath, tsContent, 'utf-8');
-      return { success: true, message: `Đã cập nhật tệp dịch Frontend ${targetLang}.ts thành công!` };
+      return {
+        success: true,
+        message: `Đã cập nhật tệp dịch Frontend ${targetLang}.ts thành công!`,
+      };
     }
 
     throw new BadRequestException('Scope cập nhật không hợp lệ!');
@@ -179,7 +215,9 @@ export class TranslationService {
   async addLanguage(dto: { code: string; name?: string; cloneFrom?: string }) {
     const cleanCode = dto.code.trim().toLowerCase();
     if (!cleanCode || !/^[a-z]{2,5}$/.test(cleanCode)) {
-      throw new BadRequestException('Mã ngôn ngữ (ISO Code) phải chứa từ 2-5 ký tự chữ cái (Ví dụ: zh, ja, kr)!');
+      throw new BadRequestException(
+        'Mã ngôn ngữ (ISO Code) phải chứa từ 2-5 ký tự chữ cái (Ví dụ: zh, ja, kr)!',
+      );
     }
 
     const templateLang = (dto.cloneFrom || 'vi').toLowerCase();
@@ -196,14 +234,23 @@ export class TranslationService {
       const files = fs.readdirSync(templateBackendDir);
       for (const file of files) {
         if (file.endsWith('.json')) {
-          fs.copyFileSync(path.join(templateBackendDir, file), path.join(targetBackendDir, file));
+          fs.copyFileSync(
+            path.join(templateBackendDir, file),
+            path.join(targetBackendDir, file),
+          );
         }
       }
     }
 
     // 2. Create Frontend Locales file and copy template
-    const templateFrontendFile = path.join(this.frontendLocalesPath, `${templateLang}.ts`);
-    const targetFrontendFile = path.join(this.frontendLocalesPath, `${cleanCode}.ts`);
+    const templateFrontendFile = path.join(
+      this.frontendLocalesPath,
+      `${templateLang}.ts`,
+    );
+    const targetFrontendFile = path.join(
+      this.frontendLocalesPath,
+      `${cleanCode}.ts`,
+    );
 
     if (fs.existsSync(templateFrontendFile)) {
       fs.copyFileSync(templateFrontendFile, targetFrontendFile);
@@ -214,14 +261,22 @@ export class TranslationService {
     return {
       success: true,
       message: `Đã khởi tạo thành công gói ngôn ngữ mới [${cleanCode}] từ bản mẫu [${templateLang}]!`,
-      language: { code: cleanCode, name: KNOWN_LANGUAGES[cleanCode] || dto.name || `🌐 Ngôn Ngữ (${cleanCode})` },
+      language: {
+        code: cleanCode,
+        name:
+          KNOWN_LANGUAGES[cleanCode] ||
+          dto.name ||
+          `🌐 Ngôn Ngữ (${cleanCode})`,
+      },
     };
   }
 
   async deleteLanguage(code: string) {
     const cleanCode = code.trim().toLowerCase();
     if (cleanCode === 'vi' || cleanCode === 'en') {
-      throw new BadRequestException('Không thể xóa ngôn ngữ mặc định (vi, en) của hệ thống!');
+      throw new BadRequestException(
+        'Không thể xóa ngôn ngữ mặc định (vi, en) của hệ thống!',
+      );
     }
 
     // Delete Backend directory
@@ -231,11 +286,17 @@ export class TranslationService {
     }
 
     // Delete Frontend locale file
-    const targetFrontendFile = path.join(this.frontendLocalesPath, `${cleanCode}.ts`);
+    const targetFrontendFile = path.join(
+      this.frontendLocalesPath,
+      `${cleanCode}.ts`,
+    );
     if (fs.existsSync(targetFrontendFile)) {
       fs.unlinkSync(targetFrontendFile);
     }
 
-    return { success: true, message: `Đã xóa gói ngôn ngữ [${cleanCode}] khỏi hệ thống thành công!` };
+    return {
+      success: true,
+      message: `Đã xóa gói ngôn ngữ [${cleanCode}] khỏi hệ thống thành công!`,
+    };
   }
 }

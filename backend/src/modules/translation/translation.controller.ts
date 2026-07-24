@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { TranslationService } from './translation.service';
 import { JwtAuthGuard } from '../../core/auth/guards/jwt-auth.guard';
@@ -21,8 +31,12 @@ export class TranslationController {
 
   @Post('languages')
   @RequirePermissions('translation:create')
-  @ApiOperation({ summary: 'Thêm và khởi tạo gói ngôn ngữ mới (Dynamic Language Clone)' })
-  addLanguage(@Body() dto: { code: string; name?: string; cloneFrom?: string }) {
+  @ApiOperation({
+    summary: 'Thêm và khởi tạo gói ngôn ngữ mới (Dynamic Language Clone)',
+  })
+  addLanguage(
+    @Body() dto: { code: string; name?: string; cloneFrom?: string },
+  ) {
     return this.translationService.addLanguage(dto);
   }
 
@@ -53,6 +67,11 @@ export class TranslationController {
     @Query('lang') lang: string,
     @Body() payload: Record<string, string>,
   ) {
-    return this.translationService.updateTranslations(scope, domain, lang || 'vi', payload);
+    return this.translationService.updateTranslations(
+      scope,
+      domain,
+      lang || 'vi',
+      payload,
+    );
   }
 }

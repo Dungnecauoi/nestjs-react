@@ -22,12 +22,17 @@ export class QueryNotificationDto {
   @IsOptional()
   search?: string;
 
-  @ApiPropertyOptional({ description: 'Lọc theo trạng thái đã đọc (true/false)' })
+  @ApiPropertyOptional({
+    description: 'Lọc theo trạng thái đã đọc (true/false)',
+  })
   @IsString()
   @IsOptional()
   isRead?: string;
 
-  @ApiPropertyOptional({ example: 'info', enum: ['info', 'success', 'warning', 'error', 'system'] })
+  @ApiPropertyOptional({
+    example: 'info',
+    enum: ['info', 'success', 'warning', 'error', 'system'],
+  })
   @IsString()
   @IsOptional()
   type?: string;

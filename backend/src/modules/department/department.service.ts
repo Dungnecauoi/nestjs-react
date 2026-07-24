@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../core/database/prisma.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { I18nContext, I18nService } from 'nestjs-i18n';
@@ -12,6 +16,7 @@ export class DepartmentService {
 
   async findAll() {
     return this.prisma.department.findMany({
+      where: { deletedAt: null },
       include: {
         children: true,
         parent: true,
@@ -28,7 +33,7 @@ export class DepartmentService {
 
   async findOne(id: string) {
     const department = await this.prisma.department.findUnique({
-      where: { id },
+      where: { id, deletedAt: null },
       include: {
         children: true,
         parent: true,
@@ -44,16 +49,22 @@ export class DepartmentService {
 
     if (!department) {
       const lang = I18nContext.current()?.lang;
-      throw new NotFoundException(this.i18n.t('messages.NOT_FOUND', { lang, args: { id } }));
+      throw new NotFoundException(
+        this.i18n.t('messages.NOT_FOUND', { lang, args: { id } }),
+      );
     }
 
     return department;
   }
 
   async create(dto: CreateDepartmentDto) {
-    const existing = await this.prisma.department.findUnique({ where: { code: dto.code } });
+    const existing = await this.prisma.department.findUnique({
+      where: { code: dto.code, deletedAt: null },
+    });
     if (existing) {
-      throw new BadRequestException(`Department code "${dto.code}" đã tồn tại!`);
+      throw new BadRequestException(
+        `Department code "${dto.code}" đã tồn tại!`,
+      );
     }
 
     return this.prisma.department.create({
@@ -71,8 +82,28 @@ export class DepartmentService {
 
   async remove(id: string) {
     await this.findOne(id);
-    await this.prisma.department.delete({ where: { id } });
+    await this.prisma.department.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
     const lang = I18nContext.current()?.lang;
     return { message: this.i18n.t('messages.DELETE_SUCCESS', { lang }) };
+  }
+
+  async restore(id: string) {
+    const department = await this.prisma.department.findUnique({
+      where: { id },
+    });
+    if (!department || !department.deletedAt) {
+      const lang = I18nContext.current()?.lang;
+      throw new NotFoundException(
+        this.i18n.t('messages.NOT_FOUND', { lang, args: { id } }),
+      );
+    }
+    await this.prisma.department.update({
+      where: { id },
+      data: { deletedAt: null },
+    });
+    return this.findOne(id);
   }
 }

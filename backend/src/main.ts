@@ -39,8 +39,20 @@ async function bootstrap() {
   app.use(helmet({ crossOriginResourcePolicy: false }));
   app.use(compression());
   app.use(cookieParser());
+
+  const corsAllowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  if (corsAllowedOrigins.length === 0) {
+    logger.warn(
+      'CORS_ALLOWED_ORIGINS chưa được cấu hình — đang cho phép mọi Origin (chỉ nên dùng ở development).',
+    );
+  }
+
   app.enableCors({
-    origin: true,
+    origin: corsAllowedOrigins.length > 0 ? corsAllowedOrigins : true,
     credentials: true,
   });
 
@@ -71,7 +83,9 @@ async function bootstrap() {
   // 7. Swagger API Documentation (/api/docs)
   const config = new DocumentBuilder()
     .setTitle('ECOMCX ERP Core Framework API')
-    .setDescription('Tài liệu API hệ thống NestJS Core Framework (Batteries-Included)')
+    .setDescription(
+      'Tài liệu API hệ thống NestJS Core Framework (Batteries-Included)',
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .addApiKey({ type: 'apiKey', name: 'x-api-key', in: 'header' }, 'x-api-key')

@@ -4,7 +4,6 @@ import { ApiTags, ApiOperation } from '@nestjs/swagger';
 @ApiTags('Root')
 @Controller()
 export class AppController {
-
   @Get()
   @ApiOperation({ summary: 'Thông tin hệ thống Root API' })
   getRoot() {

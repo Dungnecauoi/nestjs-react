@@ -26,6 +26,7 @@ import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
 import { DatabaseModule } from './database/database.module';
 import { OptionsModule } from './options/options.module';
+import { MailModule } from './mail/mail.module';
 
 @Global()
 @Module({
@@ -51,7 +52,8 @@ import { OptionsModule } from './options/options.module';
     // 2. Multi-Language i18n Module
     I18nModule.forRootAsync({
       useFactory: (configService: ConfigService) => ({
-        fallbackLanguage: configService.get<string>('app.fallbackLocale') || 'en',
+        fallbackLanguage:
+          configService.get<string>('app.fallbackLocale') || 'en',
         loaderOptions: {
           path: path.join(process.cwd(), 'src/i18n/'),
           watch: true,
@@ -85,6 +87,7 @@ import { OptionsModule } from './options/options.module';
     LoggerModule,
     StorageModule,
     HealthModule,
+    MailModule,
   ],
   providers: [
     {
@@ -99,6 +102,7 @@ import { OptionsModule } from './options/options.module';
     StorageModule,
     AuthModule,
     DatabaseModule,
+    MailModule,
   ],
 })
 export class CoreModule {}

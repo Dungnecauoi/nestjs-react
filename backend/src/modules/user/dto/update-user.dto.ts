@@ -3,7 +3,9 @@ import { CreateUserDto } from './create-user.dto';
 import { IsString, IsOptional, MinLength } from 'class-validator';
 
 export class UpdateUserDto extends PartialType(CreateUserDto) {
-  @ApiPropertyOptional({ description: 'Mật khẩu hiện tại (Cần nhập nếu đổi mật khẩu)' })
+  @ApiPropertyOptional({
+    description: 'Mật khẩu hiện tại (Cần nhập nếu đổi mật khẩu)',
+  })
   @IsString()
   @IsOptional()
   currentPassword?: string;

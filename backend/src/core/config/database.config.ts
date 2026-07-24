@@ -43,7 +43,10 @@ export default registerAs('database', () => {
         driver: process.env.DB2_CONNECTION || 'mysql',
         url: process.env.SECOND_DATABASE_URL,
       };
-    } else if (envKey === 'MONGO_DATABASE_URL' && process.env.MONGO_DATABASE_URL) {
+    } else if (
+      envKey === 'MONGO_DATABASE_URL' &&
+      process.env.MONGO_DATABASE_URL
+    ) {
       connections['mongodb'] = {
         driver: 'mongodb',
         url: process.env.MONGO_DATABASE_URL,
@@ -51,7 +54,11 @@ export default registerAs('database', () => {
     }
 
     // Dynamic scanning pattern: DB_<NAME>_URL (e.g. DB_TENANT1_URL, DB_ANALYTICS_URL, DB_POSTGRES_URL)
-    if (envKey.startsWith('DB_') && envKey.endsWith('_URL') && envKey !== 'DATABASE_URL') {
+    if (
+      envKey.startsWith('DB_') &&
+      envKey.endsWith('_URL') &&
+      envKey !== 'DATABASE_URL'
+    ) {
       const connName = envKey
         .replace(/^DB_/, '')
         .replace(/_URL$/, '')

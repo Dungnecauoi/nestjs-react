@@ -12,4 +12,8 @@ export default registerAs('app', () => ({
   locale: process.env.APP_LOCALE || 'vi',
   fallbackLocale: process.env.APP_FALLBACK_LOCALE || 'en',
   currency: process.env.APP_CURRENCY || 'VND',
+  corsAllowedOrigins: (process.env.CORS_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean),
 }));

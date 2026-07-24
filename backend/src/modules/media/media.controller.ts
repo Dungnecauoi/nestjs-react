@@ -13,7 +13,12 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiConsumes, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiConsumes,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import { MediaService } from './media.service';
 import { JwtAuthGuard } from '../../core/auth/guards/jwt-auth.guard';
@@ -21,6 +26,7 @@ import { PermissionGuard } from '../../core/auth/guards/permission.guard';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { CustomApiException } from '../../common/exceptions/custom-api.exception';
 import { ErrorCode } from '../../common/enums/error-code.enum';
+import { StorageService } from '../../core/storage/storage.service';
 
 @ApiTags('Media Manager Module')
 @ApiBearerAuth()
@@ -29,7 +35,7 @@ import { ErrorCode } from '../../common/enums/error-code.enum';
 export class MediaController {
   constructor(
     private readonly mediaService: MediaService,
-    private readonly i18n: I18nService
+    private readonly i18n: I18nService,
   ) {}
 
   @Get()
@@ -48,28 +54,44 @@ export class MediaController {
 
   @Post('upload')
   @RequirePermissions('media:create')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', StorageService.getMulterConfig()))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Tải lên 1 tập tin Media mới' })
   async uploadFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       const lang = I18nContext.current()?.lang;
-      const message = this.i18n.t('media.FILE_REQUIRED', { lang, defaultValue: 'Vui lòng chọn 1 tập tin để tải lên' });
-      throw new CustomApiException(ErrorCode.MEDIA_TYPE_NOT_ALLOWED, message, HttpStatus.BAD_REQUEST);
+      const message = this.i18n.t('media.FILE_REQUIRED', {
+        lang,
+        defaultValue: 'Vui lòng chọn 1 tập tin để tải lên',
+      });
+      throw new CustomApiException(
+        ErrorCode.MEDIA_TYPE_NOT_ALLOWED,
+        message,
+        HttpStatus.BAD_REQUEST,
+      );
     }
     return this.mediaService.createMedia(file);
   }
 
   @Post('upload-multiple')
   @RequirePermissions('media:create')
-  @UseInterceptors(FilesInterceptor('files', 10))
+  @UseInterceptors(
+    FilesInterceptor('files', 10, StorageService.getMulterConfig()),
+  )
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Tải lên nhiều tập tin Media cùng lúc (Tối đa 10)' })
   async uploadMultipleFiles(@UploadedFiles() files: Express.Multer.File[]) {
     if (!files || files.length === 0) {
       const lang = I18nContext.current()?.lang;
-      const message = this.i18n.t('media.FILE_REQUIRED', { lang, defaultValue: 'Vui lòng chọn ít nhất 1 tập tin' });
-      throw new CustomApiException(ErrorCode.MEDIA_TYPE_NOT_ALLOWED, message, HttpStatus.BAD_REQUEST);
+      const message = this.i18n.t('media.FILE_REQUIRED', {
+        lang,
+        defaultValue: 'Vui lòng chọn ít nhất 1 tập tin',
+      });
+      throw new CustomApiException(
+        ErrorCode.MEDIA_TYPE_NOT_ALLOWED,
+        message,
+        HttpStatus.BAD_REQUEST,
+      );
     }
     const promises = files.map((file) => this.mediaService.createMedia(file));
     return Promise.all(promises);
@@ -77,22 +99,39 @@ export class MediaController {
 
   @Patch(':id')
   @RequirePermissions('media:update')
-  @ApiOperation({ summary: 'Cập nhật thông tin Alt Text, Title, Caption của Media' })
+  @ApiOperation({
+    summary: 'Cập nhật thông tin Alt Text, Title, Caption của Media',
+  })
   async updateMedia(
     @Param('id') id: string,
-    @Body() dto: { title?: string; altText?: string; caption?: string; description?: string }
+    @Body()
+    dto: {
+      title?: string;
+      altText?: string;
+      caption?: string;
+      description?: string;
+    },
   ) {
     return this.mediaService.updateMedia(id, dto);
   }
 
   @Patch(':id/replace')
   @RequirePermissions('media:update')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', StorageService.getMulterConfig()))
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Tải lên tập tin mới thay thế tập tin cũ (Replace File)' })
-  async replaceMediaFile(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+  @ApiOperation({
+    summary: 'Tải lên tập tin mới thay thế tập tin cũ (Replace File)',
+  })
+  async replaceMediaFile(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
     if (!file) {
-      throw new CustomApiException(ErrorCode.MEDIA_TYPE_NOT_ALLOWED, 'Vui lòng chọn 1 tập tin mới để thay thế', HttpStatus.BAD_REQUEST);
+      throw new CustomApiException(
+        ErrorCode.MEDIA_TYPE_NOT_ALLOWED,
+        'Vui lòng chọn 1 tập tin mới để thay thế',
+        HttpStatus.BAD_REQUEST,
+      );
     }
     return this.mediaService.replaceMediaFile(id, file);
   }

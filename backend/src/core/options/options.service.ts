@@ -19,8 +19,15 @@ export class OptionsService {
     }
   }
 
-  async setOption(optionName: string, optionValue: any, autoload: boolean = true) {
-    const valueStr = typeof optionValue === 'object' ? JSON.stringify(optionValue) : String(optionValue);
+  async setOption(
+    optionName: string,
+    optionValue: any,
+    autoload: boolean = true,
+  ) {
+    const valueStr =
+      typeof optionValue === 'object'
+        ? JSON.stringify(optionValue)
+        : String(optionValue);
 
     return this.prisma.option.upsert({
       where: { optionName },
@@ -48,7 +55,9 @@ export class OptionsService {
   }
 
   async setMultipleOptions(options: Record<string, any>) {
-    const promises = Object.entries(options).map(([key, val]) => this.setOption(key, val));
+    const promises = Object.entries(options).map(([key, val]) =>
+      this.setOption(key, val),
+    );
     await Promise.all(promises);
     return this.getAllOptions();
   }

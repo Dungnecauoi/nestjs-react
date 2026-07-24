@@ -24,14 +24,18 @@ export class AuditController {
 
   @Get()
   @RequirePermissions('audit:read')
-  @ApiOperation({ summary: 'Lấy danh sách Nhật Ký Thao Tác (Audit Logs) phân trang' })
+  @ApiOperation({
+    summary: 'Lấy danh sách Nhật Ký Thao Tác (Audit Logs) phân trang',
+  })
   async findAll(@Query() query: QueryAuditDto) {
     return this.auditService.findAll(query);
   }
 
   @Get(':id')
   @RequirePermissions('audit:read')
-  @ApiOperation({ summary: 'Lấy chi tiết 1 bản ghi Nhật Ký và dữ liệu So Sánh (Diff)' })
+  @ApiOperation({
+    summary: 'Lấy chi tiết 1 bản ghi Nhật Ký và dữ liệu So Sánh (Diff)',
+  })
   async findOne(@Param('id') id: string, @I18nLang() lang: string) {
     return this.auditService.findOne(id, lang);
   }
