@@ -1,9 +1,0 @@
-{
-  "WELCOME": "Welcome to system {name}",
-  "SUCCESS": "Operation completed successfully",
-  "FAILED": "Operation failed",
-  "NOT_FOUND": "Requested data not found with ID: {id}",
-  "UNAUTHORIZED": "Unauthorized or session expired",
-  "FORBIDDEN": "You do not have permission for this action. Required permissions: {permissions}",
-  "DELETE_SUCCESS": "Data deleted successfully"
-}

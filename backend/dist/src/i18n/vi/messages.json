@@ -1,9 +1,0 @@
-{
-  "WELCOME": "Chào mừng bạn đến với hệ thống {name}",
-  "SUCCESS": "Thao tác thực hiện thành công",
-  "FAILED": "Thao tác thất bại",
-  "NOT_FOUND": "Không tìm thấy dữ liệu yêu cầu với ID: {id}",
-  "UNAUTHORIZED": "Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn",
-  "FORBIDDEN": "Bạn không có quyền thực hiện thao tác này. Yêu cầu quyền: {permissions}",
-  "DELETE_SUCCESS": "Đã xóa dữ liệu thành công"
-}
