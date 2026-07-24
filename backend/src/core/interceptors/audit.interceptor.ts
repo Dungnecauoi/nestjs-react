@@ -16,17 +16,30 @@ export class AuditInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
     const { method, url, user, ip, body } = request;
 
-    // Chỉ log các thao tác làm thay đổi dữ liệu (POST, PATCH, PUT, DELETE)
+    // 1. Chỉ log các thao tác làm thay đổi dữ liệu (POST, PATCH, PUT, DELETE)
     if (!['POST', 'PATCH', 'PUT', 'DELETE'].includes(method)) {
       return next.handle();
     }
 
-    // Bỏ qua log API audit-logs để tránh vòng lặp
-    if (url.includes('/api/audit-logs')) {
+    // 2. Bỏ qua các API nội bộ / silent refresh / thông báo để tránh tạo log giả & vòng lặp
+    if (
+      url.includes('/api/audit-logs') ||
+      url.includes('/api/notifications') ||
+      url.includes('/api/auth/refresh') ||
+      url.includes('/api/auth/me')
+    ) {
       return next.handle();
     }
 
-    const action = method === 'POST' ? 'CREATE' : method === 'DELETE' ? 'DELETE' : 'UPDATE';
+    let action: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' =
+      method === 'POST' ? 'CREATE' : method === 'DELETE' ? 'DELETE' : 'UPDATE';
+
+    if (url.includes('/api/auth/login')) {
+      action = 'LOGIN';
+    } else if (url.includes('/api/auth/logout')) {
+      action = 'LOGOUT';
+    }
+
     const pathParts = url.split('?')[0].split('/').filter(Boolean);
     const module = pathParts[1] || 'system';
 

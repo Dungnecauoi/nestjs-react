@@ -59,6 +59,47 @@ export class MediaService {
     });
   }
 
+  async replaceMediaFile(id: string, file: Express.Multer.File) {
+    const existing = await this.findOne(id);
+
+    // 1. Remove old physical file from disk
+    const relativePath = existing.filepath.startsWith('/') ? existing.filepath.substring(1) : existing.filepath;
+    const fullPath = path.join(process.cwd(), relativePath);
+    if (fs.existsSync(fullPath)) {
+      try {
+        fs.unlinkSync(fullPath);
+      } catch (err) {
+        console.error('Lỗi khi xóa file vật lý cũ:', err);
+      }
+    }
+
+    // 2. Save new physical file
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const uniqueFilename = `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`;
+    const newFilePath = path.join(uploadsDir, uniqueFilename);
+
+    fs.writeFileSync(newFilePath, file.buffer);
+
+    const host = process.env.APP_URL || 'http://localhost:3000';
+    const publicUrl = `${host}/uploads/${uniqueFilename}`;
+
+    // 3. Update database record
+    return this.prisma.media.update({
+      where: { id },
+      data: {
+        filename: file.originalname,
+        filepath: `/uploads/${uniqueFilename}`,
+        url: publicUrl,
+        mimetype: file.mimetype,
+        size: file.size,
+      },
+    });
+  }
+
   async removeMedia(id: string) {
     const item = await this.findOne(id);
 

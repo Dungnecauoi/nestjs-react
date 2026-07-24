@@ -85,6 +85,18 @@ export class MediaController {
     return this.mediaService.updateMedia(id, dto);
   }
 
+  @Patch(':id/replace')
+  @RequirePermissions('media:update')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Tải lên tập tin mới thay thế tập tin cũ (Replace File)' })
+  async replaceMediaFile(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new CustomApiException(ErrorCode.MEDIA_TYPE_NOT_ALLOWED, 'Vui lòng chọn 1 tập tin mới để thay thế', HttpStatus.BAD_REQUEST);
+    }
+    return this.mediaService.replaceMediaFile(id, file);
+  }
+
   @Delete(':id')
   @RequirePermissions('media:delete')
   @ApiOperation({ summary: 'Xóa vĩnh viễn tập tin Media khỏi đĩa và Database' })

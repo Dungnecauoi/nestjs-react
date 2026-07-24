@@ -54,8 +54,11 @@ export class AuditService {
       },
     });
 
-    // Phát sự kiện tới Notification System để thông báo cho Admin nếu là hành động quan trọng
-    if (['CREATE', 'DELETE'].includes(action) || module === 'setting') {
+    // Phát sự kiện tới Notification System để thông báo cho Admin nếu là hành động quan trọng (bỏ qua auth refresh/login)
+    if (
+      (['CREATE', 'DELETE'].includes(action) || module === 'setting') &&
+      module !== 'auth'
+    ) {
       this.eventEmitter.emit('notification.send', {
         title: `Nhật ký thao tác: ${action} [${module}]`,
         content: `${userEmail || 'Hệ thống'} vừa thực hiện thao tác ${action} trên module ${module}`,
