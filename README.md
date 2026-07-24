@@ -1,99 +1,181 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# 🚀 EcomCX Core ERP System (NestJS + React Monorepo)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Hệ thống quản trị doanh nghiệp **EcomCX Core ERP** chuẩn Enterprise, được thiết kế theo mô hình Monorepo hiện đại với hiệu năng cao, bảo mật đa tầng, và khả năng mở rộng linh hoạt.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## 📌 Công Nghệ Sử Dụng (Tech Stack)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+### 🖥️ Backend Framework & Services (`/backend`)
+- **Core Framework**: [NestJS 11](https://nestjs.com/) (TypeScript)
+- **Database ORM**: [Prisma ORM](https://www.prisma.io/) (MySQL Database)
+- **Authentication & Security**:
+  - Access Token lưu thuần trong RAM (Zustand Store)
+  - Refresh Token mã hóa lưu trong HttpOnly Cookie (`ecomcx_session`)
+  - Quản lý phiên đa thiết bị (Multi-Device Session Tracking) qua bảng `user_sessions`
+- **Authorization & Policy**:
+  - Atomic Action Permissions (`domain:action`)
+  - Modular Policy System (`/backend/src/core/auth/policies/`)
+  - Auto Sync Permissions CLI
+- **Caching & Async Queue**: Redis, Cache Manager, [BullMQ](https://docs.bullmq.io/)
+- **Documentation & i18n**: NestJS Swagger (`/api/docs`), `nestjs-i18n` (Việt / Anh)
+- **Real-time & Media**: Socket.IO, AWS S3 Client / Local File Storage
 
-## Project setup
+### 🎨 Frontend Admin App (`/admin`)
+- **Core Framework**: [React 19](https://react.dev/) + [Vite](https://vitejs.dev/) (TypeScript)
+- **UI Components & Icons**: [Ant Design v5](https://ant.design/), `@ant-design/icons`, [Lucide React](https://lucide.dev/)
+- **State Management & Async Data**:
+  - [Zustand](https://zustand-demo.pmnd.rs/) (Auth & App UI State)
+  - [TanStack React Query v5](https://tanstack.com/query/latest) (Server Data Fetching & Caching)
+- **Styling & Responsive**: TailwindCSS v4, CSS Variables, Full Dark/Light/System Theme Switching
+- **Internationalization**: `react-i18n` / `i18next` (Full i18n 100% song ngữ Việt - Anh)
 
-```bash
-$ npm install
+---
+
+## 📁 Cấu Trúc Dự Án (Project Structure)
+
+```text
+nestjs-react/
+├── admin/                  # Giao diện Quản trị React 19 + Vite + Ant Design
+│   ├── src/
+│   │   ├── api/            # API Clients & Interceptors
+│   │   ├── components/     # Reusable UI Components & Protection (<Can />)
+│   │   ├── locales/        # Song ngữ Frontend (vi.ts, en.ts)
+│   │   ├── pages/          # Các trang quản trị (Dashboard, Users, Roles, Media,...)
+│   │   ├── stores/         # State Zustand (Auth, Theme)
+│   │   └── types/          # TypeScript Type Definitions
+│   └── package.json
+│
+├── backend/                # Server NestJS 11 API Gateway & Business Logic
+│   ├── prisma/             # Schema MySQL & Database Seeders
+│   ├── bin/                # CLI Tools (Make CRUD, Remove CRUD, Key Generate)
+│   ├── src/
+│   │   ├── core/           # Auth, Guards, Policies, Interceptors, Storage, i18n
+│   │   ├── modules/        # Business Modules (User, Role, Permission, Media, Department,...)
+│   │   └── i18n/           # Song ngữ Backend Exception/Messages (vi, en)
+│   └── package.json
+│
+├── package.json            # Root Monorepo Workspaces & Concurrently Scripts
+├── AGENTS.md               # Quy chuẩn phát triển & Manifesto dự án
+└── README.md               # Tài liệu dự án
 ```
 
-## Compile and run the project
+---
 
+## 🔥 Tính Năng & Kiến Trúc Nổi Bật
+
+1. **🔐 Hệ Thống Phân Quyền (Atomic Action Permissions)**:
+   - Phân quyền chi tiết dạng `domain:action` (ví dụ: `user:read`, `user:create`, `role:write`, `media:create`).
+   - Tự động quét và đồng bộ danh sách quyền mới vào cơ sở dữ liệu qua lệnh `npm run sync:permissions`.
+   - UI tự động ẩn/hiện nút bấm dựa theo quyền truy cập của người dùng với component `<Can permission="..." />`.
+
+2. **⚡ Phân Trang & Lọc Dữ Liệu Từ Server (Server-Side Pagination & Search)**:
+   - 100% các bảng dữ liệu (Users, Roles, Departments, Media) đều thực hiện truy vấn trực tiếp từ MySQL Database (`page`, `limit`, `search`, `sortBy`).
+
+3. **🛠️ Trình Sinh Mã CRUD Tự Động (Automated CRUD Generator)**:
+   - CLI tạo nhanh Module Backend trọn gói (Controller, Service, Module, DTOs, Policy) chỉ với 1 lệnh bấm.
+
+4. **🌐 100% Đa Ngôn Ngữ (i18n Mandatory)**:
+   - Đội ngũ phát triển và người dùng dễ dàng chuyển đổi ngôn ngữ Việt - Anh tức thì ở cả Client và Server.
+
+5. **🎨 Giao Diện Thích Ứng & Dark Mode**:
+   - Tùy chỉnh màu sắc thương hiệu, giao diện tối/sáng linh hoạt và tối ưu trải nghiệm trên mọi kích thước màn hình (Mobile, Tablet, Desktop).
+
+---
+
+## 🛠️ Hướng Dẫn Cài Đặt & Chạy Dự Án
+
+### 1. Yêu Cầu Tiền Đề (Prerequisites)
+- **Node.js**: `>= 20.x`
+- **npm**: `>= 10.x`
+- **MySQL Database**: Server MySQL 8.0+
+- **Redis Server**: `>= 6.x` (Dùng cho Caching & BullMQ Queue)
+
+### 2. Cài Đặt Dependencies
+
+Tại thư mục gốc dự án:
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm install
 ```
 
-## Run tests
+### 3. Cấu Hinh Biến Môi Trường (Environment Variables)
 
-```bash
-# unit tests
-$ npm run test
+Tạo file `.env` tại thư mục `backend/`:
+```env
+PORT=3000
+DATABASE_URL="mysql://root:password@localhost:3306/ecomcx_erp"
 
-# e2e tests
-$ npm run test:e2e
+JWT_SECRET="your_jwt_secret_key"
+JWT_EXPIRATION="15m"
+REFRESH_TOKEN_SECRET="your_refresh_secret_key"
+REFRESH_TOKEN_EXPIRATION="7d"
 
-# test coverage
-$ npm run test:cov
+REDIS_HOST="localhost"
+REDIS_PORT=6379
 ```
 
-## Deployment
+### 4. Khởi Tạo Cơ Sở Dữ Liệu (Database Migration & Seeding)
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
+Di chuyển vào thư mục `backend` và chạy migration:
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+cd backend
+
+# Khởi tạo bảng dữ liệu MySQL
+npx prisma migrate dev --name init
+
+# Gieo dữ liệu mẫu (Seeder)
+npm run db:seed
+
+# Đồng bộ danh sách quyền hạn nguyên tử vào DB
+npm run sync:permissions
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### 5. Chạy Ứng Dụng (Development Mode)
 
-## Resources
+Chạy đồng thời cả Backend (NestJS) và Frontend (React Admin) tại root:
+```bash
+npm run dev:all
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+Hoặc chạy từng ứng dụng riêng biệt:
+```bash
+# Chạy Backend (Port 3000)
+npm run dev:backend
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+# Chạy Frontend Admin (Port 5173)
+npm run dev:admin
+```
 
-## Support
+---
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## 📜 Danh Sách Lệnh CLI (CLI Reference)
 
-## Stay in touch
+### 🌐 Lệnh Root Monorepo
+| Lệnh | Mô tả |
+| :--- | :--- |
+| `npm run dev:all` | Chạy song song dev server Backend và Admin Frontend |
+| `npm run dev:backend` | Chạy dev server NestJS Backend |
+| `npm run dev:admin` | Chạy dev server React Admin Frontend |
+| `npm run build:all` | Biên dịch toàn bộ dự án (Backend & Admin) |
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+### 🖥️ Lệnh Backend (`cd backend`)
+| Lệnh | Mô tả |
+| :--- | :--- |
+| `npm run sync:permissions` | Tự động đồng bộ các Policy permissions mới vào DB |
+| `npm run make:crud -- --name=<module>` | Tự động sinh mã CRUD module mới |
+| `npm run remove:crud -- --name=<module>` | Xóa module CRUD đã sinh |
+| `npm run prisma:migrate` | Chạy migration Prisma schema |
+| `npm run db:seed` | Nạp dữ liệu mẫu ban đầu |
 
-## License
+---
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
-# nestjs-react
+## 📄 API Documentation
+
+Sau khi khởi chạy Backend thành công, bạn có thể truy cập tài liệu Swagger API Docs tại:
+👉 **[http://localhost:3000/api/docs](http://localhost:3000/api/docs)**
+
+---
+
+## 🛡️ License
+
+Dự án thuộc bản quyền hệ thống **EcomCX Core ERP**. All Rights Reserved.
