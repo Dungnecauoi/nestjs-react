@@ -66,7 +66,8 @@ export default function UsersModule() {
     enabled: isAuthenticated,
   });
 
-  const isDepartmentsEnabled = users.some((u) => u.departments && u.departments.length > 0);
+  // Respect system setting: hide department column if enableDepartments === false
+  const isDepartmentsEnabled = localStorage.getItem('enableDepartments') !== 'false';
 
   const handleApproveUser = async (userId: string) => {
     try {

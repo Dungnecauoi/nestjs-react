@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Table, Tag, Button, Modal, Form, Input, Select, Space, Card, Popconfirm, Tooltip, message } from 'antd';
@@ -13,8 +13,8 @@ import {
   LockOutlined,
 } from '@ant-design/icons';
 import { rolesApi } from '../../api/modules/roles.api';
+import { permissionsApi, PermissionItem } from '../../api/modules/permissions.api';
 import { Role } from '../../types/auth.types';
-import { CLEAN_PERMISSIONS_OPTIONS } from '../users';
 import { Can } from '../../components/common/Can';
 import { useAuthStore } from '../../store/useAuthStore';
 
@@ -22,9 +22,11 @@ export default function RolesModule() {
   const { t } = useTranslation();
   const [createForm] = Form.useForm();
   const [editForm] = Form.useForm();
+  const [permForm] = Form.useForm();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isPermModalOpen, setIsPermModalOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
 
   const { isAuthenticated } = useAuthStore();
@@ -34,6 +36,31 @@ export default function RolesModule() {
     queryFn: rolesApi.getRoles,
     enabled: isAuthenticated,
   });
+
+  const { data: allPermissions = [] } = useQuery({
+    queryKey: ['permissions'],
+    queryFn: permissionsApi.getPermissions,
+    enabled: isAuthenticated,
+  });
+
+  // Defensive array mapping + grouping by module for select dropdown
+  const permissionOptions = useMemo(() => {
+    const permList = Array.isArray(allPermissions) ? allPermissions : [];
+    const groupedMap = permList.reduce((acc, p) => {
+      const mod = (p.module || 'system').toUpperCase();
+      if (!acc[mod]) acc[mod] = [];
+      acc[mod].push({
+        label: `${p.name} (${p.code})`,
+        value: p.id,
+      });
+      return acc;
+    }, {} as Record<string, { label: string; value: string }[]>);
+
+    return Object.keys(groupedMap).map((modKey) => ({
+      label: `MODULE: ${modKey}`,
+      options: groupedMap[modKey],
+    }));
+  }, [allPermissions]);
 
   const handleCreateRole = async (values: any) => {
     try {
@@ -59,6 +86,18 @@ export default function RolesModule() {
     }
   };
 
+  const handleAssignPermissions = async (values: { permissionIds: string[] }) => {
+    if (!selectedRole) return;
+    try {
+      await rolesApi.assignPermissionsToRole(selectedRole.id, values.permissionIds || []);
+      message.success('Cập nhật quyền hạn cho vai trò thành công!');
+      setIsPermModalOpen(false);
+      refetch();
+    } catch {
+      message.error('Không thể phân quyền cho vai trò!');
+    }
+  };
+
   const handleDeleteRole = async (roleId: string) => {
     try {
       await rolesApi.deleteRole(roleId);
@@ -71,12 +110,26 @@ export default function RolesModule() {
 
   const handleOpenEditModal = (role: Role) => {
     setSelectedRole(role);
+    const rolePermissionIds = (role.permissions || []).map((p: any) => p.permissionId || p.permission?.id || p.id);
     editForm.setFieldsValue({
       code: role.code,
       name: role.name,
       description: role.description,
+      permissionIds: rolePermissionIds,
     });
     setIsEditModalOpen(true);
+  };
+
+  const handleOpenPermModal = (role: Role) => {
+    setSelectedRole(role);
+    const currentPermIds = (role.permissions || [])
+      .map((p: any) => p.permissionId || p.permission?.id || (typeof p === 'string' ? p : p.id))
+      .filter(Boolean);
+
+    permForm.setFieldsValue({
+      permissionIds: currentPermIds,
+    });
+    setIsPermModalOpen(true);
   };
 
   const columns: ColumnsType<Role> = [
@@ -84,7 +137,7 @@ export default function RolesModule() {
       title: t('roles.code', 'Mã Role'),
       dataIndex: 'code',
       key: 'code',
-      width: 180,
+      width: 160,
       render: (code: string) => (
         <Tag color="blue" icon={<SafetyCertificateOutlined />} style={{ fontWeight: 700, padding: '2px 8px', borderRadius: '6px' }}>
           {code}
@@ -102,6 +155,7 @@ export default function RolesModule() {
       title: t('roles.description', 'Mô Tả Vai Trò'),
       dataIndex: 'description',
       key: 'description',
+      width: 220,
       render: (desc: string) => desc || <span style={{ color: '#94a3b8' }}>Chưa có mô tả</span>,
     },
     {
@@ -113,11 +167,12 @@ export default function RolesModule() {
           <Space wrap size={[4, 4]}>
             {perms.length > 0 ? (
               perms.map((p: any, i: number) => {
-                const code = p.permission?.code || p;
-                const label = CLEAN_PERMISSIONS_OPTIONS.find((opt) => opt.value === code)?.label || code;
+                const permObj = p.permission || p;
+                const code = permObj.code || permObj;
+                const name = permObj.name || code;
                 return (
                   <Tag key={i} color="purple" icon={<KeyOutlined />} style={{ borderRadius: '6px', fontWeight: 600, padding: '2px 8px' }}>
-                    {label}
+                    {name} ({code})
                   </Tag>
                 );
               })
@@ -133,10 +188,23 @@ export default function RolesModule() {
     {
       title: t('table.actions', 'Thao Tác'),
       key: 'actions',
-      width: 140,
+      width: 170,
       fixed: 'right',
       render: (_: any, record: Role) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
+          <Can permission="role:write">
+            <Tooltip title="Phân Quyền Cho Role">
+              <Button
+                size="small"
+                type="primary"
+                ghost
+                icon={<LockOutlined style={{ fontSize: 13 }} />}
+                style={{ borderRadius: 6 }}
+                onClick={() => handleOpenPermModal(record)}
+              />
+            </Tooltip>
+          </Can>
+
           <Can permission="role:write">
             <Tooltip title={t('table.edit', 'Chỉnh Sửa')}>
               <Button
@@ -210,7 +278,7 @@ export default function RolesModule() {
           rowKey="id"
           loading={isLoading}
           pagination={{ pageSize: 10, showSizeChanger: true }}
-          scroll={{ x: 800 }}
+          scroll={{ x: 900 }}
         />
       </Card>
 
@@ -222,7 +290,7 @@ export default function RolesModule() {
         onOk={() => createForm.submit()}
         okText={t('users.save', 'Lưu Cấu Hình')}
         cancelText={t('users.cancel', 'Hủy')}
-        width={480}
+        width={560}
       >
         <Form form={createForm} layout="vertical" onFinish={handleCreateRole} style={{ marginTop: 16 }}>
           <Form.Item name="code" label="Mã Role (Role Code)" rules={[{ required: true, message: 'Vui lòng nhập mã role!' }]}>
@@ -234,7 +302,17 @@ export default function RolesModule() {
           </Form.Item>
 
           <Form.Item name="description" label="Mô Tả">
-            <Input.TextArea placeholder="Mô tả quyền hạn của vai trò này" rows={3} style={{ borderRadius: 6 }} />
+            <Input.TextArea placeholder="Mô tả quyền hạn của vai trò này" rows={2} style={{ borderRadius: 6 }} />
+          </Form.Item>
+
+          <Form.Item name="permissionIds" label="Gán Quyền Hạn Ban Đầu">
+            <Select
+              mode="multiple"
+              allowClear
+              placeholder="Chọn các quyền hạn gán cho vai trò này..."
+              options={permissionOptions}
+              style={{ width: '100%', borderRadius: 6 }}
+            />
           </Form.Item>
         </Form>
       </Modal>
@@ -247,7 +325,7 @@ export default function RolesModule() {
         onOk={() => editForm.submit()}
         okText={t('users.save', 'Lưu Cấu Hình')}
         cancelText={t('users.cancel', 'Hủy')}
-        width={480}
+        width={560}
       >
         <Form form={editForm} layout="vertical" onFinish={handleEditRole} style={{ marginTop: 16 }}>
           <Form.Item name="code" label="Mã Role">
@@ -259,7 +337,44 @@ export default function RolesModule() {
           </Form.Item>
 
           <Form.Item name="description" label="Mô Tả">
-            <Input.TextArea rows={3} style={{ borderRadius: 6 }} />
+            <Input.TextArea rows={2} style={{ borderRadius: 6 }} />
+          </Form.Item>
+
+          <Form.Item name="permissionIds" label="Quyền Hạn Áp Dụng">
+            <Select
+              mode="multiple"
+              allowClear
+              placeholder="Chọn danh sách quyền hạn..."
+              options={permissionOptions}
+              style={{ width: '100%', borderRadius: 6 }}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Assign Permissions Modal */}
+      <Modal
+        title={`Phân Quyền Hạn Cho Role: ${selectedRole?.name || ''} (${selectedRole?.code || ''})`}
+        open={isPermModalOpen}
+        onCancel={() => setIsPermModalOpen(false)}
+        onOk={() => permForm.submit()}
+        okText="Cập Nhật Phân Quyền"
+        cancelText="Hủy Bỏ"
+        width={640}
+      >
+        <Form form={permForm} layout="vertical" onFinish={handleAssignPermissions} style={{ marginTop: 16 }}>
+          <p style={{ color: '#64748b', fontSize: 13, marginBottom: 16 }}>
+            Chọn các quyền hạn nguyên tử <code>domain:action</code> mà vai trò này được phép thực thi trong hệ thống.
+          </p>
+          <Form.Item name="permissionIds" label="Ma Trận Quyền Hạn (Permission Matrix)">
+            <Select
+              mode="multiple"
+              allowClear
+              placeholder="Chọn quyền hạn để gán cho vai trò..."
+              options={permissionOptions}
+              style={{ width: '100%', borderRadius: 6 }}
+              maxTagCount="responsive"
+            />
           </Form.Item>
         </Form>
       </Modal>

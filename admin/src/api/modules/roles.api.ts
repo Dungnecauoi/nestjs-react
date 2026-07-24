@@ -11,36 +11,31 @@ export const rolesApi = {
       }
       return [];
     } catch {
-      return [
-        {
-          id: '1',
-          code: 'ADMIN',
-          name: 'Quản Trị Viên Tối Cao (Admin)',
-          description: 'Quản trị viên với toàn bộ quyền hạn hệ thống',
-        },
-        {
-          id: '2',
-          code: 'MANAGER',
-          name: 'Quản Lý Nhân Sự (Manager)',
-          description: 'Quản lý trực tiếp danh sách nhân viên và phòng ban',
-        },
-        {
-          id: '3',
-          code: 'STAFF',
-          name: 'Nhân Viên (Staff)',
-          description: 'Thành viên sử dụng cơ bản',
-        },
-      ];
+      return [];
     }
   },
 
-  createRole: async (payload: Partial<Role>) => {
+  getRoleById: async (id: string): Promise<Role | null> => {
+    try {
+      const res = await api.get<ApiResponse<Role>>(`/roles/${id}`);
+      return res.data.data || null;
+    } catch {
+      return null;
+    }
+  },
+
+  createRole: async (payload: { code: string; name: string; description?: string; permissionIds?: string[] }) => {
     const res = await api.post('/roles', payload);
     return res.data?.data || res.data;
   },
 
-  updateRole: async (id: string, payload: Partial<Role>) => {
-    const res = await api.patch(`/roles/${id}`, payload);
+  updateRole: async (id: string, payload: { code?: string; name?: string; description?: string; permissionIds?: string[] }) => {
+    const res = await api.put(`/roles/${id}`, payload);
+    return res.data?.data || res.data;
+  },
+
+  assignPermissionsToRole: async (id: string, permissionIds: string[]) => {
+    const res = await api.post(`/roles/${id}/permissions`, { permissionIds });
     return res.data?.data || res.data;
   },
 

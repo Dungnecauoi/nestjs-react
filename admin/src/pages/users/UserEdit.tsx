@@ -330,14 +330,16 @@ export default function UserEdit() {
                   />
                 </Form.Item>
 
-                <Form.Item name="departmentIds" label={t('users.selectDepartments', 'Chọn Phòng Ban Trực Thuộc')}>
-                  <Select
-                    mode="multiple"
-                    placeholder="Chọn phòng ban..."
-                    options={departmentOptions}
-                    style={{ borderRadius: 8 }}
-                  />
-                </Form.Item>
+                {localStorage.getItem('enableDepartments') !== 'false' && (
+                  <Form.Item name="departmentIds" label={t('users.selectDepartments', 'Chọn Phòng Ban Trực Thuộc')}>
+                    <Select
+                      mode="multiple"
+                      placeholder="Chọn phòng ban..."
+                      options={departmentOptions}
+                      style={{ borderRadius: 8 }}
+                    />
+                  </Form.Item>
+                )}
 
                 <Divider style={{ margin: '12px 0' }} />
 

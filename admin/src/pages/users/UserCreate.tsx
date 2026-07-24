@@ -67,6 +67,8 @@ export default function UserCreate() {
     }
   };
 
+  const isDepartmentsEnabled = localStorage.getItem('enableDepartments') !== 'false';
+
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Top Action Header */}
@@ -284,14 +286,16 @@ export default function UserCreate() {
                   />
                 </Form.Item>
 
-                <Form.Item name="departmentIds" label={t('users.selectDepartments', 'Chọn Phòng Ban Trực Thuộc')}>
-                  <Select
-                    mode="multiple"
-                    placeholder="Chọn phòng ban..."
-                    options={departmentOptions}
-                    style={{ borderRadius: 8 }}
-                  />
-                </Form.Item>
+                {isDepartmentsEnabled && (
+                  <Form.Item name="departmentIds" label={t('users.selectDepartments', 'Chọn Phòng Ban Trực Thuộc')}>
+                    <Select
+                      mode="multiple"
+                      placeholder="Chọn phòng ban..."
+                      options={departmentOptions}
+                      style={{ borderRadius: 8 }}
+                    />
+                  </Form.Item>
+                )}
 
                 <Divider style={{ margin: '12px 0' }} />
 
