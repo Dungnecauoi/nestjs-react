@@ -8,7 +8,7 @@ export const SETTING_PERMISSIONS_POLICY: PermissionPolicyItem[] = [
     description: 'Quyền xem các cài đặt hệ thống',
   },
   {
-    code: 'setting:write',
+    code: 'setting:update',
     name: 'Cập Nhật Cấu Hình Hệ Thống',
     module: 'setting',
     description: 'Quyền thay đổi và lưu các tham số cài đặt hệ thống',

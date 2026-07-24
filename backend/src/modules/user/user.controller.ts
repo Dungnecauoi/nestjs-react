@@ -39,7 +39,7 @@ export class UserController {
   }
 
   @Patch(':id')
-  @RequirePermissions('user:write')
+  @RequirePermissions('user:update')
   @ApiOperation({ summary: 'Cập nhật thông tin User' })
   update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
     return this.userService.update(id, dto);
@@ -53,28 +53,28 @@ export class UserController {
   }
 
   @Patch(':id/approve')
-  @RequirePermissions('user:write')
+  @RequirePermissions('user:update')
   @ApiOperation({ summary: 'Phê duyệt Kích hoạt User' })
   approve(@Param('id') id: string) {
     return this.userService.approve(id);
   }
 
   @Post(':id/roles')
-  @RequirePermissions('role:write')
+  @RequirePermissions('role:update')
   @ApiOperation({ summary: 'Gán mảng Vai trò (Roles) cho User từ UI' })
   assignRoles(@Param('id') id: string, @Body() dto: AssignUserRolesDto) {
     return this.userService.assignRoles(id, dto);
   }
 
   @Post(':id/permissions')
-  @RequirePermissions('role:write')
+  @RequirePermissions('role:update')
   @ApiOperation({ summary: 'Gán mảng Quyền hạn (Permissions) TRỰC TIẾP cho User từ UI' })
   assignDirectPermissions(@Param('id') id: string, @Body() dto: AssignUserPermissionsDto) {
     return this.userService.assignDirectPermissions(id, dto);
   }
 
   @Post(':id/departments')
-  @RequirePermissions('department:write')
+  @RequirePermissions('department:update')
   @ApiOperation({ summary: 'Gán User vào mảng Phòng ban / Team từ UI' })
   assignDepartments(@Param('id') id: string, @Body() dto: AssignUserDepartmentsDto) {
     return this.userService.assignDepartments(id, dto);

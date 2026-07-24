@@ -76,7 +76,7 @@ export class MediaController {
   }
 
   @Patch(':id')
-  @RequirePermissions('media:write')
+  @RequirePermissions('media:update')
   @ApiOperation({ summary: 'Cập nhật thông tin Alt Text, Title, Caption của Media' })
   async updateMedia(
     @Param('id') id: string,

@@ -113,7 +113,7 @@ export default function DepartmentsModule() {
       fixed: 'right',
       render: (_: any, record: Department) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
-          <Can permission="department:write">
+          <Can permission="department:update">
             <Tooltip title={t('table.edit', 'Chỉnh Sửa')}>
               <Button
                 size="small"

@@ -192,7 +192,7 @@ export default function RolesModule() {
       fixed: 'right',
       render: (_: any, record: Role) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
-          <Can permission="role:write">
+          <Can permission="role:update">
             <Tooltip title="Phân Quyền Cho Role">
               <Button
                 size="small"
@@ -205,7 +205,7 @@ export default function RolesModule() {
             </Tooltip>
           </Can>
 
-          <Can permission="role:write">
+          <Can permission="role:update">
             <Tooltip title={t('table.edit', 'Chỉnh Sửa')}>
               <Button
                 size="small"
@@ -256,7 +256,7 @@ export default function RolesModule() {
               {t('users.refresh', 'Làm Mới')}
             </Button>
 
-            <Can permission="role:write">
+            <Can permission="role:create">
               <Button
                 type="primary"
                 icon={<PlusOutlined />}

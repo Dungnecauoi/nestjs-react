@@ -25,19 +25,25 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { ROUTES } from '../../routes/routes.config';
 
 export const CLEAN_PERMISSIONS_OPTIONS = [
-  { value: 'user:read', label: 'Xem Người Dùng (user:read)' },
   { value: 'user:create', label: 'Tạo Người Dùng Mới (user:create)' },
-  { value: 'user:write', label: 'Sửa Người Dùng (user:write)' },
+  { value: 'user:read', label: 'Xem Người Dùng (user:read)' },
+  { value: 'user:update', label: 'Cập Nhật Người Dùng (user:update)' },
   { value: 'user:delete', label: 'Xóa Người Dùng (user:delete)' },
+  { value: 'user:import', label: 'Nhập Dữ Liệu User (user:import)' },
+  { value: 'user:export', label: 'Xuất Dữ Liệu User (user:export)' },
+  { value: 'role:create', label: 'Tạo Vai Trò (role:create)' },
   { value: 'role:read', label: 'Xem Vai Trò (role:read)' },
-  { value: 'role:write', label: 'Tạo & Sửa Vai Trò (role:write)' },
+  { value: 'role:update', label: 'Cập Nhật Vai Trò (role:update)' },
   { value: 'role:delete', label: 'Xóa Vai Trò (role:delete)' },
+  { value: 'department:create', label: 'Tạo Phòng Ban (department:create)' },
   { value: 'department:read', label: 'Xem Phòng Ban (department:read)' },
-  { value: 'department:write', label: 'Tạo & Sửa Phòng Ban (department:write)' },
+  { value: 'department:update', label: 'Cập Nhật Phòng Ban (department:update)' },
   { value: 'department:delete', label: 'Xóa Phòng Ban (department:delete)' },
-  { value: 'media:read', label: 'Xem Thư Viện Media (media:read)' },
+  { value: 'department:import', label: 'Nhập Phòng Ban (department:import)' },
+  { value: 'department:export', label: 'Xuất Phòng Ban (department:export)' },
   { value: 'media:create', label: 'Tải Lên Media (media:create)' },
-  { value: 'media:write', label: 'Sửa Chi Tiết Media (media:write)' },
+  { value: 'media:read', label: 'Xem Thư Viện Media (media:read)' },
+  { value: 'media:update', label: 'Cập Nhật Media (media:update)' },
   { value: 'media:delete', label: 'Xóa Media (media:delete)' },
 ];
 
@@ -303,7 +309,7 @@ export default function UsersModule() {
             {t('users.assignRole', 'Gán Role')}
           </Button>
 
-          <Can permission="user:write">
+          <Can permission="user:update">
             <Tooltip title={t('table.edit', 'Chỉnh Sửa (Trang Đầy Đủ)')}>
               <Button
                 size="small"

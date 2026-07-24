@@ -15,42 +15,42 @@ export class RoleController {
   constructor(private readonly roleService: RoleService) {}
 
   @Get()
-  @RequirePermissions('role:manage')
+  @RequirePermissions('role:read')
   @ApiOperation({ summary: 'Lấy danh sách Role kèm Quyền hạn' })
   findAll() {
     return this.roleService.findAll();
   }
 
   @Get(':id')
-  @RequirePermissions('role:manage')
+  @RequirePermissions('role:read')
   @ApiOperation({ summary: 'Lấy chi tiết Role' })
   findOne(@Param('id') id: string) {
     return this.roleService.findOne(id);
   }
 
   @Post()
-  @RequirePermissions('role:manage')
+  @RequirePermissions('role:create')
   @ApiOperation({ summary: 'Tạo mới Role' })
   create(@Body() dto: CreateRoleDto) {
     return this.roleService.create(dto);
   }
 
   @Put(':id')
-  @RequirePermissions('role:manage')
+  @RequirePermissions('role:update')
   @ApiOperation({ summary: 'Cập nhật Role' })
   update(@Param('id') id: string, @Body() dto: Partial<CreateRoleDto>) {
     return this.roleService.update(id, dto);
   }
 
   @Post(':id/permissions')
-  @RequirePermissions('role:manage')
+  @RequirePermissions('role:update')
   @ApiOperation({ summary: 'Gán danh sách Quyền hạn (Permissions) vào Role từ giao diện UI' })
   assignPermissions(@Param('id') id: string, @Body() dto: AssignPermissionsToRoleDto) {
     return this.roleService.assignPermissions(id, dto);
   }
 
   @Delete(':id')
-  @RequirePermissions('role:manage')
+  @RequirePermissions('role:delete')
   @ApiOperation({ summary: 'Xóa Role' })
   remove(@Param('id') id: string) {
     return this.roleService.remove(id);
