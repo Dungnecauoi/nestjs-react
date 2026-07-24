@@ -1,12 +1,12 @@
-# 🚀 EcomCX Core ERP System (NestJS + React Monorepo)
+# EcomCX Core ERP System (NestJS + React Monorepo)
 
 Hệ thống quản trị doanh nghiệp **EcomCX Core ERP** chuẩn Enterprise, được thiết kế theo mô hình Monorepo hiện đại với hiệu năng cao, bảo mật đa tầng, và khả năng mở rộng linh hoạt.
 
 ---
 
-## 📌 Công Nghệ Sử Dụng (Tech Stack)
+## Công Nghệ Sử Dụng (Tech Stack)
 
-### 🖥️ Backend Framework & Services (`/backend`)
+### Backend Framework & Services (`/backend`)
 - **Core Framework**: [NestJS 11](https://nestjs.com/) (TypeScript)
 - **Database ORM**: [Prisma ORM](https://www.prisma.io/) (MySQL Database)
 - **Authentication & Security**:
@@ -21,7 +21,7 @@ Hệ thống quản trị doanh nghiệp **EcomCX Core ERP** chuẩn Enterprise,
 - **Documentation & i18n**: NestJS Swagger (`/api/docs`), `nestjs-i18n` (Việt / Anh)
 - **Real-time & Media**: Socket.IO, AWS S3 Client / Local File Storage
 
-### 🎨 Frontend Admin App (`/admin`)
+### Frontend Admin App (`/admin`)
 - **Core Framework**: [React 19](https://react.dev/) + [Vite](https://vitejs.dev/) (TypeScript)
 - **UI Components & Icons**: [Ant Design v5](https://ant.design/), `@ant-design/icons`, [Lucide React](https://lucide.dev/)
 - **State Management & Async Data**:
@@ -32,7 +32,7 @@ Hệ thống quản trị doanh nghiệp **EcomCX Core ERP** chuẩn Enterprise,
 
 ---
 
-## 📁 Cấu Trúc Dự Án (Project Structure)
+## Cấu Trúc Dự Án (Project Structure)
 
 ```text
 nestjs-react/
@@ -62,28 +62,28 @@ nestjs-react/
 
 ---
 
-## 🔥 Tính Năng & Kiến Trúc Nổi Bật
+## Tính Năng & Kiến Trúc Nổi Bật
 
-1. **🔐 Hệ Thống Phân Quyền (Atomic Action Permissions)**:
+1. **Hệ Thống Phân Quyền (Atomic Action Permissions)**:
    - Phân quyền chi tiết dạng `domain:action` (ví dụ: `user:read`, `user:create`, `role:write`, `media:create`).
    - Tự động quét và đồng bộ danh sách quyền mới vào cơ sở dữ liệu qua lệnh `npm run sync:permissions`.
    - UI tự động ẩn/hiện nút bấm dựa theo quyền truy cập của người dùng với component `<Can permission="..." />`.
 
-2. **⚡ Phân Trang & Lọc Dữ Liệu Từ Server (Server-Side Pagination & Search)**:
+2. **Phân Trang & Lọc Dữ Liệu Từ Server (Server-Side Pagination & Search)**:
    - 100% các bảng dữ liệu (Users, Roles, Departments, Media) đều thực hiện truy vấn trực tiếp từ MySQL Database (`page`, `limit`, `search`, `sortBy`).
 
-3. **🛠️ Trình Sinh Mã CRUD Tự Động (Automated CRUD Generator)**:
+3. **Trình Sinh Mã CRUD Tự Động (Automated CRUD Generator)**:
    - CLI tạo nhanh Module Backend trọn gói (Controller, Service, Module, DTOs, Policy) chỉ với 1 lệnh bấm.
 
-4. **🌐 100% Đa Ngôn Ngữ (i18n Mandatory)**:
+4. **100% Đa Ngôn Ngữ (i18n Mandatory)**:
    - Đội ngũ phát triển và người dùng dễ dàng chuyển đổi ngôn ngữ Việt - Anh tức thì ở cả Client và Server.
 
-5. **🎨 Giao Diện Thích Ứng & Dark Mode**:
+5. **Giao Diện Thích Ứng & Dark Mode**:
    - Tùy chỉnh màu sắc thương hiệu, giao diện tối/sáng linh hoạt và tối ưu trải nghiệm trên mọi kích thước màn hình (Mobile, Tablet, Desktop).
 
 ---
 
-## 🛠️ Hướng Dẫn Cài Đặt & Chạy Dự Án
+## Hướng Dẫn Cài Đặt & Chạy Dự Án
 
 ### 1. Yêu Cầu Tiền Đề (Prerequisites)
 - **Node.js**: `>= 20.x`
@@ -148,9 +148,9 @@ npm run dev:admin
 
 ---
 
-## 📜 Danh Sách Lệnh CLI (CLI Reference)
+## Danh Sách Lệnh CLI (CLI Reference)
 
-### 🌐 Lệnh Root Monorepo
+### Lệnh Root Monorepo
 | Lệnh | Mô tả |
 | :--- | :--- |
 | `npm run dev:all` | Chạy song song dev server Backend và Admin Frontend |
@@ -158,7 +158,7 @@ npm run dev:admin
 | `npm run dev:admin` | Chạy dev server React Admin Frontend |
 | `npm run build:all` | Biên dịch toàn bộ dự án (Backend & Admin) |
 
-### 🖥️ Lệnh Backend (`cd backend`)
+### Lệnh Backend (`cd backend`)
 | Lệnh | Mô tả |
 | :--- | :--- |
 | `npm run sync:permissions` | Tự động đồng bộ các Policy permissions mới vào DB |
@@ -169,13 +169,13 @@ npm run dev:admin
 
 ---
 
-## 📄 API Documentation
+## API Documentation
 
 Sau khi khởi chạy Backend thành công, bạn có thể truy cập tài liệu Swagger API Docs tại:
-👉 **[http://localhost:3000/api/docs](http://localhost:3000/api/docs)**
+**[http://localhost:3000/api/docs](http://localhost:3000/api/docs)**
 
 ---
 
-## 🛡️ License
+## License
 
 Dự án thuộc bản quyền hệ thống **EcomCX Core ERP**. All Rights Reserved.
