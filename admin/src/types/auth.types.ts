@@ -109,3 +109,30 @@ export interface PaginatedNotificationsResponse {
   };
 }
 
+// Audit Log Model Interface
+export interface AuditLogItem {
+  id: string;
+  userId?: string | null;
+  userEmail?: string | null;
+  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT';
+  module: string;
+  entityId?: string | null;
+  beforeState?: string | null;
+  afterState?: string | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  createdAt: string;
+  user?: Partial<User>;
+}
+
+export interface PaginatedAuditLogsResponse {
+  data: AuditLogItem[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+

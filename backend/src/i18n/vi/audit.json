@@ -1,0 +1,5 @@
+{
+  "NOT_FOUND": "Không tìm thấy bản ghi nhật ký thao tác",
+  "DELETE_SUCCESS": "Đã xóa bản ghi nhật ký thao tác thành công",
+  "CLEAR_SUCCESS": "Đã xóa toàn bộ nhật ký thao tác thành công"
+}

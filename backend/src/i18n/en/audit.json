@@ -1,0 +1,5 @@
+{
+  "NOT_FOUND": "Audit log entry not found",
+  "DELETE_SUCCESS": "Audit log entry deleted successfully",
+  "CLEAR_SUCCESS": "All audit logs cleared successfully"
+}

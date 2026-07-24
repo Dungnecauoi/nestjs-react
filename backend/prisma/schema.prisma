@@ -51,6 +51,7 @@ model User {
   departments UserDepartment[]
   sessions    UserSession[]
   notifications Notification[]
+  auditLogs   AuditLog[]
 
   @@map("users")
 }
@@ -201,6 +202,26 @@ model Notification {
 
   @@map("notifications")
 }
+
+// 12. Model Nhật Ký Thao Tác Hệ Thống (Audit Trail & History Diff)
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?  @map("user_id")
+  userEmail   String?  @map("user_email")
+  action      String   // 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT'
+  module      String   // 'user', 'role', 'department', 'media', 'setting'
+  entityId    String?  @map("entity_id")
+  beforeState String?  @db.Text @map("before_state") // JSON state trước khi sửa
+  afterState  String?  @db.Text @map("after_state")  // JSON state sau khi sửa
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}
+
 
 
 

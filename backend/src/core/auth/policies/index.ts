@@ -5,6 +5,7 @@ import { DEPARTMENT_PERMISSIONS_POLICY } from './department.policy';
 import { MEDIA_PERMISSIONS_POLICY } from './media.policy';
 import { SETTING_PERMISSIONS_POLICY } from './setting.policy';
 import { NOTIFICATION_PERMISSIONS_POLICY } from './notification.policy';
+import { AUDIT_PERMISSIONS_POLICY } from './audit.policy';
 
 export type { PermissionPolicyItem };
 
@@ -15,6 +16,7 @@ export const ALL_SYSTEM_POLICIES: PermissionPolicyItem[] = [
   ...MEDIA_PERMISSIONS_POLICY,
   ...SETTING_PERMISSIONS_POLICY,
   ...NOTIFICATION_PERMISSIONS_POLICY,
+  ...AUDIT_PERMISSIONS_POLICY,
 ];
 
 export {
@@ -24,5 +26,7 @@ export {
   MEDIA_PERMISSIONS_POLICY,
   SETTING_PERMISSIONS_POLICY,
   NOTIFICATION_PERMISSIONS_POLICY,
+  AUDIT_PERMISSIONS_POLICY,
 };
+
 

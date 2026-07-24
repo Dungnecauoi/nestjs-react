@@ -1,7 +1,9 @@
-# compiled output
-/dist
-/node_modules
-/build
+# compiled output & dependencies
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+
 
 # Logs
 logs

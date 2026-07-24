@@ -65,6 +65,11 @@ export const ROUTES: Record<string, RouteConfigItem> = {
     name: 'Thông Báo Hệ Thống',
     permission: 'notification:read',
   },
+  ADMIN_AUDIT_LOGS: {
+    path: '/admin/audit-logs',
+    name: 'Nhật Ký Thao Tác',
+    permission: 'audit:read',
+  },
   ADMIN_PROFILE: {
     path: '/admin/profile',
     name: 'Hồ Sơ Cá Nhân',
