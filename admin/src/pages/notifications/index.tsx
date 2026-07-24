@@ -170,7 +170,7 @@ export const NotificationsPage: React.FC = () => {
       render: (_, record) => (
         <Space style={{ display: 'flex', flexWrap: 'nowrap', gap: 6 }}>
           {!record.isRead && (
-            <Can permission="notification:write">
+            <Can permission="notification:update">
               <Tooltip title={t('notifications.markReadSuccess')}>
                 <Button
                   type="text"
@@ -211,7 +211,7 @@ export const NotificationsPage: React.FC = () => {
           </div>
 
           <Space size="middle">
-            <Can permission="notification:write">
+            <Can permission="notification:update">
               <Button
                 type="primary"
                 icon={<PlusOutlined />}

@@ -10,7 +10,6 @@ import {
   SettingOutlined,
   LogoutOutlined,
   GlobalOutlined,
-  BellOutlined,
 } from '@ant-design/icons';
 import { useTheme } from '../../context/ThemeContext';
 import { ROUTES } from '../../routes/routes.config';
@@ -40,26 +39,45 @@ export const Header: React.FC<HeaderProps> = ({
   const userEmail = user?.email || '';
   const userInitial = userName ? userName.charAt(0).toUpperCase() : '?';
 
-  // Compute Breadcrumb Title
+  // Compute Breadcrumb Title using i18n t(...) keys
   const getBreadcrumbTitle = (pathname: string) => {
-    switch (pathname) {
-      case ROUTES.DASHBOARD.path:
-        return 'Tổng Quan System';
-      case ROUTES.ADMIN_USERS.path:
-        return 'Quản Lý Người Dùng';
-      case ROUTES.ADMIN_ROLES.path:
-        return 'Vai Trò & Phân Quyền';
-      case ROUTES.ADMIN_DEPARTMENTS.path:
-        return 'Cơ Cấu Phòng Ban';
-      case ROUTES.ADMIN_MEDIA.path:
-        return 'Thư Viện Media';
-      case ROUTES.ADMIN_PROFILE.path:
-        return 'Hồ Sơ Cá Nhân';
-      case ROUTES.ADMIN_SETTINGS.path:
-        return 'Cấu Hình Hệ Thống';
-      default:
-        return 'Trang Quản Trị';
+    if (pathname.startsWith(ROUTES.ADMIN_USERS_CREATE.path)) {
+      return t('nav.userCreate', 'Thêm Mới Người Dùng');
     }
+    if (pathname.includes('/edit') && pathname.startsWith('/admin/users')) {
+      return t('nav.userEdit', 'Chỉnh Sửa Người Dùng');
+    }
+    if (pathname.startsWith(ROUTES.ADMIN_USERS.path)) {
+      return t('nav.users', 'Người Dùng');
+    }
+    if (pathname.startsWith(ROUTES.ADMIN_ROLES.path)) {
+      return t('nav.roles', 'Vai Trò');
+    }
+    if (pathname.startsWith(ROUTES.ADMIN_DEPARTMENTS.path)) {
+      return t('nav.departments', 'Phòng Ban');
+    }
+    if (pathname.startsWith(ROUTES.ADMIN_MEDIA.path)) {
+      return t('nav.media', 'Media');
+    }
+    if (pathname.startsWith(ROUTES.ADMIN_SETTINGS.path)) {
+      return t('nav.settings', 'Cấu Hình');
+    }
+    if (pathname.startsWith(ROUTES.ADMIN_TRANSLATIONS.path)) {
+      return t('nav.translations', 'Bản Dịch');
+    }
+    if (pathname.startsWith(ROUTES.ADMIN_NOTIFICATIONS.path)) {
+      return t('nav.notifications', 'Thông Báo');
+    }
+    if (pathname.startsWith(ROUTES.ADMIN_AUDIT_LOGS.path)) {
+      return t('nav.auditLogs', 'Nhật Ký');
+    }
+    if (pathname.startsWith(ROUTES.ADMIN_PROFILE.path)) {
+      return t('nav.profile', 'Hồ Sơ Cá Nhân');
+    }
+    if (pathname.startsWith(ROUTES.DASHBOARD.path)) {
+      return t('nav.dashboard', 'Tổng Quan');
+    }
+    return t('header.adminPage', 'Trang Quản Trị');
   };
 
   const handleLanguageChange = (lang: string) => {
@@ -75,13 +93,13 @@ export const Header: React.FC<HeaderProps> = ({
     {
       key: 'profile',
       icon: <UserOutlined />,
-      label: 'Hồ Sơ Cá Nhân',
+      label: t('header.profile', 'Hồ Sơ Cá Nhân'),
       onClick: () => navigate(ROUTES.ADMIN_PROFILE.path),
     },
     {
       key: 'roles',
       icon: <SettingOutlined />,
-      label: 'Quyền Hạn Của Tôi',
+      label: t('header.myPermissions', 'Quyền Hạn Của Tôi'),
       onClick: () => navigate(ROUTES.ADMIN_ROLES.path),
     },
     {
@@ -91,7 +109,7 @@ export const Header: React.FC<HeaderProps> = ({
       key: 'logout',
       icon: <LogoutOutlined />,
       danger: true,
-      label: 'Đăng Xuất',
+      label: t('header.logout', 'Đăng Xuất'),
       onClick: handleLogout,
     },
   ];
@@ -135,7 +153,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         <Breadcrumb
           items={[
-            { title: 'ERP Enterprise' },
+            { title: t('header.systemBreadcrumb', 'ERP Enterprise') },
             { title: getBreadcrumbTitle(location.pathname) },
           ]}
         />
@@ -150,28 +168,44 @@ export const Header: React.FC<HeaderProps> = ({
           </Button>
         </Dropdown>
 
-        {/* Real-time Notifications Bell */}
+        {/* Real-time Notification Bell */}
         <NotificationBell />
 
-        {/* User Dropdown */}
+        {/* User Profile Dropdown */}
         <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-          <Space style={{ cursor: 'pointer' }}>
-            {user?.avatar ? (
-              <Avatar src={user.avatar} size="default" />
-            ) : (
-              <Avatar style={{ backgroundColor: '#09090b', fontWeight: 'bold' }}>
-                {userInitial}
-              </Avatar>
-            )}
-            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-              <Text strong style={{ fontSize: 12 }}>{userName}</Text>
-              <Text type="secondary" style={{ fontSize: 10 }}>{userEmail}</Text>
+          <Button
+            type="text"
+            style={{
+              height: 'auto',
+              padding: '4px 8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <Avatar
+              style={{
+                backgroundColor: isDark ? '#3f3f46' : '#1890ff',
+                color: '#ffffff',
+                fontWeight: 600,
+              }}
+              size="small"
+            >
+              {userInitial}
+            </Avatar>
+            <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column' }}>
+              <Text style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.2 }}>
+                {userName || 'User'}
+              </Text>
+              {userEmail && (
+                <Text type="secondary" style={{ fontSize: 11, lineHeight: 1 }}>
+                  {userEmail}
+                </Text>
+              )}
             </div>
-          </Space>
+          </Button>
         </Dropdown>
       </Space>
     </AntHeader>
   );
 };
-
-export default Header;

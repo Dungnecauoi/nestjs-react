@@ -38,7 +38,7 @@ export const ROUTES: Record<string, RouteConfigItem> = {
   ADMIN_USERS_EDIT: {
     path: '/admin/users/:id/edit',
     name: 'Chỉnh Sửa Người Dùng',
-    permission: 'user:write',
+    permission: 'user:update',
   },
   ADMIN_ROLES: {
     path: '/admin/roles',
@@ -60,6 +60,11 @@ export const ROUTES: Record<string, RouteConfigItem> = {
     name: 'Cấu Hình Hệ Thống',
     permission: 'setting:read',
   },
+  ADMIN_TRANSLATIONS: {
+    path: '/admin/translations',
+    name: 'Quản Lý Bản Dịch',
+    permission: 'translation:read',
+  },
   ADMIN_NOTIFICATIONS: {
     path: '/admin/notifications',
     name: 'Thông Báo Hệ Thống',
@@ -75,4 +80,3 @@ export const ROUTES: Record<string, RouteConfigItem> = {
     name: 'Hồ Sơ Cá Nhân',
   },
 };
-

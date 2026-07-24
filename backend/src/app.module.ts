@@ -11,6 +11,7 @@ import { PermissionModule } from './modules/permission/permission.module';
 import { MediaModule } from './modules/media/media.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { TranslationModule } from './modules/translation/translation.module';
 import { AuditInterceptor } from './core/interceptors/audit.interceptor';
 
 @Module({
@@ -24,6 +25,7 @@ import { AuditInterceptor } from './core/interceptors/audit.interceptor';
     MediaModule,
     NotificationModule,
     AuditModule,
+    TranslationModule,
   ],
   controllers: [AppController],
   providers: [
@@ -35,5 +37,3 @@ import { AuditInterceptor } from './core/interceptors/audit.interceptor';
   ],
 })
 export class AppModule {}
-
-

@@ -124,5 +124,23 @@
       "name": "Delete Audit Logs",
       "desc": "Permission to delete old audit logs from the system"
     }
+  },
+  "translation": {
+    "read": {
+      "name": "View Translations List",
+      "desc": "Permission to view i18n translation files and keys"
+    },
+    "create": {
+      "name": "Add New Language",
+      "desc": "Permission to initialize and clone new language translation package"
+    },
+    "update": {
+      "name": "Update Translations",
+      "desc": "Permission to edit and save i18n translation files"
+    },
+    "delete": {
+      "name": "Delete Language / Key",
+      "desc": "Permission to delete language package or translation keys"
+    }
   }
 }

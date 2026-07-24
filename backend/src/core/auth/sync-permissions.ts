@@ -55,6 +55,20 @@ export async function syncPermissionsToDatabase() {
     console.log(` ✅ Synced Permission: [${permission.code}] - ${permission.name}`);
   }
 
+  // 4. Cleanup old obsolete permissions from MySQL Database (e.g. user:write, role:write, etc.)
+  const validCodes = ALL_SYSTEM_POLICIES.map((p) => p.code);
+  const deleted = await prisma.permission.deleteMany({
+    where: {
+      code: {
+        notIn: validCodes,
+      },
+    },
+  });
+
+  if (deleted.count > 0) {
+    console.log(` 🧹 Cleaned up ${deleted.count} obsolete permission(s) from MySQL Database!`);
+  }
+
   console.log(`🎉 Successfully Synced ${syncedCount} Atomic Action Permissions to Database and Super Admin Role!`);
 }
 

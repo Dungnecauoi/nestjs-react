@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Layout, Menu, Typography } from 'antd';
@@ -10,9 +10,12 @@ import {
   ApartmentOutlined,
   FolderOpenOutlined,
   SettingOutlined,
-  IdcardOutlined,
+  GlobalOutlined,
   ThunderboltFilled,
   BellOutlined,
+  HistoryOutlined,
+  TeamOutlined,
+  AppstoreOutlined,
 } from '@ant-design/icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -38,11 +41,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed }) => {
 
   const userPermissions = user?.permissions || [];
 
-  const [isDepartmentsEnabled, setIsDepartmentsEnabled] = React.useState(
+  const [isDepartmentsEnabled, setIsDepartmentsEnabled] = useState(
     () => localStorage.getItem('enableDepartments') !== 'false'
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleOptionsUpdate = () => {
       setIsDepartmentsEnabled(localStorage.getItem('enableDepartments') !== 'false');
     };
@@ -54,23 +57,50 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed }) => {
     };
   }, []);
 
-  const rawMenuItems = [
-    {
-      key: ROUTES.DASHBOARD.path,
-      icon: <DashboardOutlined />,
-      label: t('nav.dashboard'),
-      permission: ROUTES.DASHBOARD.permission,
-    },
+  // Determine active SubMenu based on current route
+  const getInitialOpenKeys = () => {
+    const path = location.pathname;
+    if (path.startsWith('/admin/users') || path.startsWith('/admin/roles') || path.startsWith('/admin/departments')) {
+      return ['sub-access-control'];
+    }
+    if (path.startsWith('/admin/media')) {
+      return ['sub-resources'];
+    }
+    if (
+      path.startsWith('/admin/settings') ||
+      path.startsWith('/admin/translations') ||
+      path.startsWith('/admin/notifications') ||
+      path.startsWith('/admin/audit-logs')
+    ) {
+      return ['sub-system'];
+    }
+    return [];
+  };
+
+  const [openKeys, setOpenKeys] = useState<string[]>(getInitialOpenKeys);
+
+  useEffect(() => {
+    if (!isCollapsed) {
+      setOpenKeys((prevKeys) => {
+        const routeKeys = getInitialOpenKeys();
+        const combined = Array.from(new Set([...prevKeys, ...routeKeys]));
+        return combined;
+      });
+    }
+  }, [location.pathname, isCollapsed]);
+
+  // 1. Access Control SubMenu Items
+  const accessControlChildren = [
     {
       key: ROUTES.ADMIN_USERS.path,
       icon: <UserOutlined />,
-      label: t('nav.users'),
+      label: t('nav.users', 'Người Dùng'),
       permission: ROUTES.ADMIN_USERS.permission,
     },
     {
       key: ROUTES.ADMIN_ROLES.path,
       icon: <SafetyCertificateOutlined />,
-      label: t('nav.roles'),
+      label: t('nav.roles', 'Vai Trò'),
       permission: ROUTES.ADMIN_ROLES.permission,
     },
     ...(isDepartmentsEnabled
@@ -78,44 +108,99 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed }) => {
           {
             key: ROUTES.ADMIN_DEPARTMENTS.path,
             icon: <ApartmentOutlined />,
-            label: t('nav.departments'),
+            label: t('nav.departments', 'Phòng Ban'),
             permission: ROUTES.ADMIN_DEPARTMENTS.permission,
           },
         ]
       : []),
+  ].filter((item) => hasPermission(userPermissions, item.permission));
+
+  // 2. Resources SubMenu Items
+  const resourcesChildren = [
     {
       key: ROUTES.ADMIN_MEDIA.path,
       icon: <FolderOpenOutlined />,
-      label: t('nav.media'),
+      label: t('nav.media', 'Media'),
       permission: ROUTES.ADMIN_MEDIA.permission,
     },
-    {
-      key: ROUTES.ADMIN_PROFILE.path,
-      icon: <IdcardOutlined />,
-      label: t('nav.profile'),
-      permission: ROUTES.ADMIN_PROFILE.permission,
-    },
+  ].filter((item) => hasPermission(userPermissions, item.permission));
+
+  // 3. System Settings & Configuration SubMenu Items
+  const systemChildren = [
     {
       key: ROUTES.ADMIN_SETTINGS.path,
       icon: <SettingOutlined />,
-      label: t('nav.settings'),
+      label: t('nav.settings', 'Cấu Hình'),
       permission: ROUTES.ADMIN_SETTINGS.permission,
+    },
+    {
+      key: ROUTES.ADMIN_TRANSLATIONS.path,
+      icon: <GlobalOutlined />,
+      label: t('nav.translations', 'Bản Dịch'),
+      permission: ROUTES.ADMIN_TRANSLATIONS.permission,
     },
     {
       key: ROUTES.ADMIN_NOTIFICATIONS.path,
       icon: <BellOutlined />,
-      label: t('nav.notifications'),
+      label: t('nav.notifications', 'Thông Báo'),
       permission: ROUTES.ADMIN_NOTIFICATIONS.permission,
     },
-  ];
+    {
+      key: ROUTES.ADMIN_AUDIT_LOGS.path,
+      icon: <HistoryOutlined />,
+      label: t('nav.auditLogs', 'Nhật Ký'),
+      permission: ROUTES.ADMIN_AUDIT_LOGS.permission,
+    },
+  ].filter((item) => hasPermission(userPermissions, item.permission));
 
-  // Filter menu items based on user permissions
-  const menuItems: MenuProps['items'] = rawMenuItems
-    .filter((item) => hasPermission(userPermissions, item.permission))
-    .map(({ permission, ...rest }) => rest);
+  // Build SubMenu Accordion Items
+  const menuItems: MenuProps['items'] = [
+    // 1. Dashboard Single Item
+    hasPermission(userPermissions, ROUTES.DASHBOARD.permission)
+      ? {
+          key: ROUTES.DASHBOARD.path,
+          icon: <DashboardOutlined />,
+          label: t('nav.dashboard', 'Tổng Quan'),
+        }
+      : null,
+
+    // 2. Access Control SubMenu
+    accessControlChildren.length > 0
+      ? {
+          key: 'sub-access-control',
+          icon: <TeamOutlined />,
+          label: t('nav.accessControlSubmenu', 'Nhân Sự & Quyền'),
+          children: accessControlChildren.map(({ permission, ...rest }) => rest),
+        }
+      : null,
+
+    // 3. Resources SubMenu
+    resourcesChildren.length > 0
+      ? {
+          key: 'sub-resources',
+          icon: <AppstoreOutlined />,
+          label: t('nav.resourcesSubmenu', 'Tài Nguyên'),
+          children: resourcesChildren.map(({ permission, ...rest }) => rest),
+        }
+      : null,
+
+    // 4. System Settings SubMenu (Includes Settings, Translations, Notifications & Audit Logs)
+    systemChildren.length > 0
+      ? {
+          key: 'sub-system',
+          icon: <SettingOutlined />,
+          label: t('nav.systemSubmenu', 'Hệ Thống & Cấu Hình'),
+          children: systemChildren.map(({ permission, ...rest }) => rest),
+        }
+      : null,
+  ].filter(Boolean) as MenuProps['items'];
 
   const handleMenuClick: MenuProps['onClick'] = (e) => {
     navigate(e.key);
+  };
+
+  const handleOpenChange = (keys: string[]) => {
+    setOpenKeys(keys);
   };
 
   const getSelectedKeys = () => {
@@ -134,6 +219,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed }) => {
     }
     if (path.startsWith(ROUTES.ADMIN_SETTINGS.path)) {
       return [ROUTES.ADMIN_SETTINGS.path];
+    }
+    if (path.startsWith(ROUTES.ADMIN_TRANSLATIONS.path)) {
+      return [ROUTES.ADMIN_TRANSLATIONS.path];
+    }
+    if (path.startsWith(ROUTES.ADMIN_NOTIFICATIONS.path)) {
+      return [ROUTES.ADMIN_NOTIFICATIONS.path];
+    }
+    if (path.startsWith(ROUTES.ADMIN_AUDIT_LOGS.path)) {
+      return [ROUTES.ADMIN_AUDIT_LOGS.path];
     }
     return [path];
   };
@@ -195,10 +289,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed }) => {
         )}
       </div>
 
-      {/* Navigation Menu */}
+      {/* Navigation Menu (SubMenu Accordion) */}
       <Menu
         mode="inline"
         selectedKeys={getSelectedKeys()}
+        openKeys={isCollapsed ? undefined : openKeys}
+        onOpenChange={handleOpenChange}
         items={menuItems}
         onClick={handleMenuClick}
         style={{ borderRight: 0, padding: '8px 0' }}

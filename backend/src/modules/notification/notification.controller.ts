@@ -34,7 +34,7 @@ export class NotificationController {
   }
 
   @Patch(':id/read')
-  @RequirePermissions('notification:write')
+  @RequirePermissions('notification:update')
   @ApiOperation({ summary: 'Đánh dấu 1 thông báo là đã đọc' })
   async markAsRead(
     @Param('id') id: string,
@@ -45,14 +45,14 @@ export class NotificationController {
   }
 
   @Patch('read-all')
-  @RequirePermissions('notification:write')
+  @RequirePermissions('notification:update')
   @ApiOperation({ summary: 'Đánh dấu tất cả thông báo là đã đọc' })
   async markAllAsRead(@CurrentUser() user: any) {
     return this.notificationService.markAllAsRead(user.id);
   }
 
   @Post('test')
-  @RequirePermissions('notification:write')
+  @RequirePermissions('notification:update')
   @ApiOperation({ summary: 'Gửi thông báo thử nghiệm (Realtime Test Endpoint)' })
   async sendTestNotification(
     @Body() dto: CreateNotificationDto,

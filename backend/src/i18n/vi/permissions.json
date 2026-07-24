@@ -124,5 +124,23 @@
       "name": "Xóa Nhật Ký Thao Tác",
       "desc": "Quyền xóa các bản ghi nhật ký thao tác cũ khỏi hệ thống"
     }
+  },
+  "translation": {
+    "read": {
+      "name": "Xem Danh Sách Bản Dịch",
+      "desc": "Quyền xem danh sách tệp dịch đa ngôn ngữ i18n"
+    },
+    "create": {
+      "name": "Thêm Ngôn Ngữ Mới",
+      "desc": "Quyền khởi tạo và sao chép gói từ điển ngôn ngữ mới"
+    },
+    "update": {
+      "name": "Cập Nhật Bản Dịch",
+      "desc": "Quyền chỉnh sửa và lưu các tệp từ điển i18n"
+    },
+    "delete": {
+      "name": "Xóa Ngôn Ngữ / Key Dịch",
+      "desc": "Quyền xóa gói ngôn ngữ hoặc mã key dịch khỏi hệ thống"
+    }
   }
 }
