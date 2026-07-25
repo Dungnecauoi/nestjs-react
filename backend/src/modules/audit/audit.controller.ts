@@ -5,7 +5,6 @@ import {
   Param,
   Query,
   UseGuards,
-  Post,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuditService } from './audit.service';
@@ -45,12 +44,5 @@ export class AuditController {
   @ApiOperation({ summary: 'Xóa 1 bản ghi nhật ký' })
   async remove(@Param('id') id: string, @I18nLang() lang: string) {
     return this.auditService.remove(id, lang);
-  }
-
-  @Post('clear')
-  @RequirePermissions('audit:delete')
-  @ApiOperation({ summary: 'Xóa toàn bộ nhật ký hệ thống' })
-  async clearAll() {
-    return this.auditService.clearAll();
   }
 }

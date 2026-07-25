@@ -11,6 +11,7 @@ import compression from 'compression';
 import { CustomLoggerService } from './core/logger/logger.service';
 import { HttpExceptionFilter } from './core/exceptions/http-exception.filter';
 import { TransformInterceptor } from './core/interceptors/transform.interceptor';
+import { RedisIoAdapter } from './core/websocket/redis-io.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -55,6 +56,14 @@ async function bootstrap() {
     origin: corsAllowedOrigins.length > 0 ? corsAllowedOrigins : true,
     credentials: true,
   });
+
+  // BROADCAST_CONNECTION=redis mới bật adapter Redis cho Socket.IO (cần khi chạy nhiều instance
+  // pm2 cluster để notification realtime tới đúng mọi worker). Mặc định giữ adapter in-memory.
+  if (process.env.BROADCAST_CONNECTION === 'redis') {
+    const redisIoAdapter = new RedisIoAdapter(app);
+    await redisIoAdapter.connectToRedis();
+    app.useWebSocketAdapter(redisIoAdapter);
+  }
 
   // 4. Static File Serving (Laravel Storage Link & Public Assets Equivalent)
   app.useStaticAssets(join(__dirname, '..', 'public'), {

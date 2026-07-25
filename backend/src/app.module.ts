@@ -3,7 +3,6 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CoreModule } from './core/core.module';
-import { EmployeeModule } from './modules/employee/employee.module';
 import { RoleModule } from './modules/role/role.module';
 import { UserModule } from './modules/user/user.module';
 import { DepartmentModule } from './modules/department/department.module';
@@ -17,7 +16,6 @@ import { AuditInterceptor } from './core/interceptors/audit.interceptor';
 @Module({
   imports: [
     CoreModule,
-    EmployeeModule,
     RoleModule,
     UserModule,
     DepartmentModule,

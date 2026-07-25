@@ -65,8 +65,15 @@ export class RoleController {
 
   @Delete(':id')
   @RequirePermissions('role:delete')
-  @ApiOperation({ summary: 'Xóa Role' })
+  @ApiOperation({ summary: 'Xóa Role (Soft Delete)' })
   remove(@Param('id') id: string) {
     return this.roleService.remove(id);
+  }
+
+  @Post(':id/restore')
+  @RequirePermissions('role:delete')
+  @ApiOperation({ summary: 'Khôi phục Role đã xóa (Soft Delete)' })
+  restore(@Param('id') id: string) {
+    return this.roleService.restore(id);
   }
 }

@@ -171,11 +171,4 @@ export class AuditService {
 
     return this.prisma.auditLog.delete({ where: { id } });
   }
-
-  /**
-   * Dọn dẹp toàn bộ log nhật ký hệ thống
-   */
-  async clearAll() {
-    return this.prisma.auditLog.deleteMany({});
-  }
 }

@@ -3,6 +3,7 @@ import { PrismaService } from '../../core/database/prisma.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { QueryNotificationDto } from './dto/query-notification.dto';
 import { NotificationGateway } from './notification.gateway';
+import { MailService } from '../../core/mail/mail.service';
 import { OnEvent } from '@nestjs/event-emitter';
 import { I18nService } from 'nestjs-i18n';
 
@@ -11,11 +12,13 @@ export class NotificationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly gateway: NotificationGateway,
+    private readonly mailService: MailService,
     private readonly i18n: I18nService,
   ) {}
 
   /**
-   * Tạo thông báo mới và phát trực tiếp qua WebSocket Gateway Realtime
+   * Tạo thông báo mới, phát trực tiếp qua WebSocket Gateway Realtime, và gửi email fallback
+   * nếu thông báo nhắm tới 1 user cụ thể (không gửi email cho thông báo broadcast toàn hệ thống).
    */
   async create(createDto: CreateNotificationDto, lang: string = 'vi') {
     const notification = await this.prisma.notification.create({
@@ -30,6 +33,17 @@ export class NotificationService {
 
     // Push realtime qua WebSocket
     this.gateway.sendNotificationToUser(notification.userId, notification);
+
+    // Email fallback cho user offline/không mở tab admin
+    if (notification.userId) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: notification.userId },
+        select: { email: true },
+      });
+      if (user?.email) {
+        await this.mailService.send(user.email, notification.title, notification.content);
+      }
+    }
 
     return notification;
   }

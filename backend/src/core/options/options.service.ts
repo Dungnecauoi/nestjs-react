@@ -1,9 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from '@nestjs/cache-manager';
 import { PrismaService } from '../database/prisma.service';
+
+const ALL_OPTIONS_CACHE_KEY = 'options:all';
 
 @Injectable()
 export class OptionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+  ) {}
 
   async getOption(optionName: string, defaultValue: any = null) {
     const record = await this.prisma.option.findUnique({
@@ -29,14 +36,22 @@ export class OptionsService {
         ? JSON.stringify(optionValue)
         : String(optionValue);
 
-    return this.prisma.option.upsert({
+    const result = await this.prisma.option.upsert({
       where: { optionName },
       update: { optionValue: valueStr, autoload },
       create: { optionName, optionValue: valueStr, autoload },
     });
+
+    await this.cacheManager.del(ALL_OPTIONS_CACHE_KEY);
+    return result;
   }
 
   async getAllOptions() {
+    const cached = await this.cacheManager.get<Record<string, any>>(ALL_OPTIONS_CACHE_KEY);
+    if (cached) {
+      return cached;
+    }
+
     const records = await this.prisma.option.findMany({
       where: { autoload: true },
     });
@@ -51,6 +66,8 @@ export class OptionsService {
         }
       }
     }
+
+    await this.cacheManager.set(ALL_OPTIONS_CACHE_KEY, result);
     return result;
   }
 

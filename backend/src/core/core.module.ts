@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { CacheModule } from '@nestjs/cache-manager';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
@@ -82,6 +83,17 @@ import { MailModule } from './mail/mail.module';
     // 4. Events & Scheduler Modules
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
+
+    // 4.1 In-Memory Cache (CACHE_STORE=redis chưa wire được: package cache-manager-ioredis-yet
+    // hiện cài trong package.json dùng API Store cũ, không tương thích với cache-manager v7 /
+    // @nestjs/cache-manager v3 đang dùng (yêu cầu Keyv adapter, vd @keyv/redis). Cần thêm
+    // @keyv/redis nếu muốn bật cache phân tán qua Redis thật.)
+    CacheModule.registerAsync({
+      isGlobal: true,
+      useFactory: () => ({
+        ttl: 60 * 1000, // 60s mặc định, có thể override theo từng cache.set()
+      }),
+    }),
 
     // 5. Core Sub-modules
     LoggerModule,

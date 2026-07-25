@@ -9,13 +9,14 @@ export class MediaService {
 
   async findAll() {
     return this.prisma.media.findMany({
+      where: { deletedAt: null },
       orderBy: { createdAt: 'desc' },
     });
   }
 
   async findOne(id: string) {
     const item = await this.prisma.media.findUnique({
-      where: { id },
+      where: { id, deletedAt: null },
     });
     if (!item) {
       throw new NotFoundException(`Không tìm thấy tập tin media với ID: ${id}`);
@@ -92,23 +93,22 @@ export class MediaService {
   }
 
   async removeMedia(id: string) {
-    const item = await this.findOne(id);
-
-    // Remove physical file from disk
-    const relativePath = item.filepath.startsWith('/')
-      ? item.filepath.substring(1)
-      : item.filepath;
-    const fullPath = path.join(process.cwd(), relativePath);
-    if (fs.existsSync(fullPath)) {
-      try {
-        fs.unlinkSync(fullPath);
-      } catch (err) {
-        console.error('Lỗi khi xóa file vật lý:', err);
-      }
-    }
-
-    return this.prisma.media.delete({
+    await this.findOne(id);
+    // Soft delete: giữ nguyên file vật lý trên đĩa để restore() vẫn dùng lại được.
+    return this.prisma.media.update({
       where: { id },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  async restore(id: string) {
+    const item = await this.prisma.media.findUnique({ where: { id } });
+    if (!item || !item.deletedAt) {
+      throw new NotFoundException(`Không tìm thấy tập tin media đã xóa với ID: ${id}`);
+    }
+    return this.prisma.media.update({
+      where: { id },
+      data: { deletedAt: null },
     });
   }
 }

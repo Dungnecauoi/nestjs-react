@@ -43,6 +43,7 @@ export class RoleService {
   async findAll() {
     const lang = I18nContext.current()?.lang || 'vi';
     const roles = await this.prisma.role.findMany({
+      where: { deletedAt: null },
       include: {
         permissions: {
           include: {
@@ -58,7 +59,7 @@ export class RoleService {
   async findOne(id: string) {
     const lang = I18nContext.current()?.lang || 'vi';
     const role = await this.prisma.role.findUnique({
-      where: { id },
+      where: { id, deletedAt: null },
       include: {
         permissions: {
           include: {
@@ -79,7 +80,7 @@ export class RoleService {
 
   async create(dto: CreateRoleDto) {
     const existing = await this.prisma.role.findUnique({
-      where: { code: dto.code },
+      where: { code: dto.code, deletedAt: null },
     });
     if (existing) {
       throw new BadRequestException(`Role code "${dto.code}" đã tồn tại!`);
@@ -155,8 +156,26 @@ export class RoleService {
 
   async remove(id: string) {
     await this.findOne(id);
-    await this.prisma.role.delete({ where: { id } });
+    await this.prisma.role.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
     const lang = I18nContext.current()?.lang;
     return { message: this.i18n.t('messages.DELETE_SUCCESS', { lang }) };
+  }
+
+  async restore(id: string) {
+    const lang = I18nContext.current()?.lang;
+    const role = await this.prisma.role.findUnique({ where: { id } });
+    if (!role || !role.deletedAt) {
+      throw new NotFoundException(
+        this.i18n.t('messages.NOT_FOUND', { lang, args: { id } }),
+      );
+    }
+    await this.prisma.role.update({
+      where: { id },
+      data: { deletedAt: null },
+    });
+    return this.findOne(id);
   }
 }

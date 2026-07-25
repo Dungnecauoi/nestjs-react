@@ -138,8 +138,15 @@ export class MediaController {
 
   @Delete(':id')
   @RequirePermissions('media:delete')
-  @ApiOperation({ summary: 'Xóa vĩnh viễn tập tin Media khỏi đĩa và Database' })
+  @ApiOperation({ summary: 'Xóa tập tin Media (Soft Delete)' })
   async removeMedia(@Param('id') id: string) {
     return this.mediaService.removeMedia(id);
+  }
+
+  @Post(':id/restore')
+  @RequirePermissions('media:delete')
+  @ApiOperation({ summary: 'Khôi phục tập tin Media đã xóa (Soft Delete)' })
+  async restoreMedia(@Param('id') id: string) {
+    return this.mediaService.restore(id);
   }
 }

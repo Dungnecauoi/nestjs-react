@@ -74,10 +74,46 @@ export class DepartmentService {
 
   async update(id: string, dto: Partial<CreateDepartmentDto>) {
     await this.findOne(id);
+
+    if (dto.parentId) {
+      await this.assertNoCycle(id, dto.parentId);
+    }
+
     return this.prisma.department.update({
       where: { id },
       data: dto,
     });
+  }
+
+  /**
+   * Chặn gán parentId tạo vòng lặp phân cấp: tự làm cha của chính mình,
+   * hoặc gán 1 department con/cháu của chính nó làm cha.
+   */
+  private async assertNoCycle(departmentId: string, newParentId: string) {
+    if (departmentId === newParentId) {
+      throw new BadRequestException(
+        'Không thể gán phòng ban làm cha của chính nó!',
+      );
+    }
+
+    let currentId: string | null = newParentId;
+    const visited = new Set<string>([departmentId]);
+
+    while (currentId) {
+      if (visited.has(currentId)) {
+        throw new BadRequestException(
+          'Không thể gán phòng ban con làm cha — tạo vòng lặp phân cấp!',
+        );
+      }
+      visited.add(currentId);
+
+      const parent: { parentId: string | null } | null =
+        await this.prisma.department.findUnique({
+          where: { id: currentId },
+          select: { parentId: true },
+        });
+      currentId = parent?.parentId ?? null;
+    }
   }
 
   async remove(id: string) {
