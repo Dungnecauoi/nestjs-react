@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, Form, Input, Switch, Button, Row, Col, Select, Tabs, Radio, InputNumber, Upload, Space, Divider, Spin, Modal, QRCode, Tag, Alert, message } from 'antd';
-import { SaveOutlined, CheckOutlined, SettingOutlined, PictureOutlined, ReadOutlined, EditOutlined, UploadOutlined, SafetyCertificateOutlined, QrcodeOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Switch, Button, Row, Col, Select, Tabs, Radio, InputNumber, Upload, Space, Divider, Spin, message } from 'antd';
+import { SaveOutlined, CheckOutlined, SettingOutlined, PictureOutlined, ReadOutlined, EditOutlined, UploadOutlined } from '@ant-design/icons';
 import { optionsApi } from '../../api/modules/options.api';
+import { queryClient } from '../../lib/query-client';
+import { SYSTEM_OPTIONS_QUERY_KEY } from '../../hooks/useSystemOptions';
 
 export default function SettingsModule() {
   const { t, i18n } = useTranslation();
@@ -12,32 +14,19 @@ export default function SettingsModule() {
   const [saved, setSaved] = useState(false);
   const [homepageDisplayType, setHomepageDisplayType] = useState<'latest' | 'static'>('latest');
 
-  // 2FA State & Modal
-  const [is2FAModalOpen, setIs2FAModalOpen] = useState(false);
-  const [is2FAActive, setIs2FAActive] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
-  const [otpError, setOtpError] = useState<string | null>(null);
-
-  const totpSecret = 'JBSWY3DPEHPK3PXP';
-  const totpUri = `otpauth://totp/ECOMCX%20ERP:admin@ecomcx.com?secret=${totpSecret}&issuer=ECOMCX%20ERP`;
-
   // Load all settings live from NestJS Options API
   useEffect(() => {
     const loadSettings = async () => {
       setLoading(true);
       try {
         const options = await optionsApi.getOptions();
-        const has2FA = options.enable2FA !== false;
-        setIs2FAActive(has2FA);
 
         form.setFieldsValue({
           // General Settings
           siteTitle: options.siteTitle || 'ECOMCX Enterprise ERP Core',
           siteTagline: options.siteTagline || 'Nền Tảng Quản Trị Doanh Nghiệp Tối Ưu',
           adminEmail: options.adminEmail || 'admin@ecomcx.com',
-          allowRegistration: options.allowRegistration !== false,
           enableDepartments: options.enableDepartments !== false,
-          enable2FA: has2FA,
           defaultUserRole: options.defaultUserRole || 'STAFF',
           siteLanguage: options.siteLanguage || i18n.language || 'vi',
           timezone: options.timezone || 'Asia/Ho_Chi_Minh',
@@ -75,33 +64,16 @@ export default function SettingsModule() {
     loadSettings();
   }, [form, i18n.language]);
 
-  const handleVerify2FA = () => {
-    if (!otpCode || otpCode.length < 6) {
-      setOtpError('Vui lòng nhập đúng 6 chữ số OTP từ ứng dụng điện thoại!');
-      return;
-    }
-    setIs2FAActive(true);
-    form.setFieldValue('enable2FA', true);
-    setIs2FAModalOpen(false);
-    setOtpCode('');
-    setOtpError(null);
-    message.success('Đã xác minh mã OTP và kích hoạt 2FA thành công!');
-  };
-
   const handleSave = async (values: any) => {
     setSaving(true);
     try {
       await optionsApi.saveOptions(values);
 
-      localStorage.setItem('allow_registration', String(values.allowRegistration));
-      localStorage.setItem('enableDepartments', String(values.enableDepartments));
-
       if (values.siteLanguage && values.siteLanguage !== i18n.language) {
         i18n.changeLanguage(values.siteLanguage);
       }
 
-      window.dispatchEvent(new Event('options_updated'));
-      window.dispatchEvent(new Event('storage'));
+      await queryClient.invalidateQueries({ queryKey: SYSTEM_OPTIONS_QUERY_KEY });
 
       setSaved(true);
       message.success(t('settings.savedSuccessDatabase'));
@@ -149,17 +121,6 @@ export default function SettingsModule() {
 
         <Col xs={24} md={12}>
           <Form.Item
-            name="allowRegistration"
-            label={t('settings.allowRegistration')}
-            valuePropName="checked"
-            extra={t('settings.allowRegistrationHelp')}
-          >
-            <Switch />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24} md={12}>
-          <Form.Item
             name="enableDepartments"
             label={t('settings.enableDepartments')}
             valuePropName="checked"
@@ -174,30 +135,9 @@ export default function SettingsModule() {
             name="enable2FA"
             label={t('settings.enable2FA')}
             valuePropName="checked"
-            extra={
-              <Space direction="vertical" style={{ width: '100%', marginTop: 4 }}>
-                <span>{t('settings.enable2FAHelp')}</span>
-                <Space>
-                  {is2FAActive ? (
-                    <Tag color="green" icon={<CheckCircleOutlined />}>
-                      {t('settings.status2FAActive')}
-                    </Tag>
-                  ) : (
-                    <Tag color="orange">{t('settings.status2FADisabled')}</Tag>
-                  )}
-                  <Button
-                    size="small"
-                    type="primary"
-                    icon={<QrcodeOutlined />}
-                    onClick={() => setIs2FAModalOpen(true)}
-                  >
-                    {t('settings.setup2FAButton')}
-                  </Button>
-                </Space>
-              </Space>
-            }
+            extra={t('settings.enable2FAHelp')}
           >
-            <Switch onChange={(checked) => setIs2FAActive(checked)} />
+            <Switch />
           </Form.Item>
         </Col>
 
@@ -510,61 +450,6 @@ export default function SettingsModule() {
           <Tabs defaultActiveKey="1" items={tabItems} type="card" size="large" />
         </Form>
       </div>
-
-      {/* 2FA Setup Modal with Ant Design QRCode */}
-      <Modal
-        title={
-          <Space>
-            <SafetyCertificateOutlined style={{ color: '#059669' }} />
-            {t('settings.modal2FATitle')}
-          </Space>
-        }
-        open={is2FAModalOpen}
-        onCancel={() => setIs2FAModalOpen(false)}
-        footer={null}
-        width={480}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, paddingTop: 12 }}>
-          <Alert
-            message={t('settings.scanQRCodeInstruction')}
-            type="info"
-            showIcon
-            style={{ width: '100%', fontSize: 12 }}
-          />
-
-          <QRCode value={totpUri} size={180} style={{ padding: 12, borderRadius: 12 }} />
-
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 12, color: '#64748b' }}>Secret Key Thủ Công:</div>
-            <code style={{ fontSize: 16, fontWeight: 800, color: '#4f46e5', letterSpacing: 1 }}>{totpSecret}</code>
-          </div>
-
-          <Divider style={{ margin: '8px 0' }} />
-
-          <div style={{ width: '100%' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>{t('settings.enterOTPInstruction')}</div>
-            {otpError && <Alert message={otpError} type="error" showIcon style={{ marginBottom: 12 }} />}
-            <Input
-              maxLength={6}
-              placeholder="123456"
-              value={otpCode}
-              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-              style={{ textAlign: 'center', fontSize: 20, letterSpacing: 6, fontWeight: 800, height: 44 }}
-            />
-          </div>
-
-          <Button
-            type="primary"
-            block
-            size="large"
-            icon={<CheckCircleOutlined />}
-            onClick={handleVerify2FA}
-            style={{ backgroundColor: '#059669', height: 40, fontWeight: 700 }}
-          >
-            {t('settings.verify2FAButton')}
-          </Button>
-        </div>
-      </Modal>
     </Spin>
   );
 }

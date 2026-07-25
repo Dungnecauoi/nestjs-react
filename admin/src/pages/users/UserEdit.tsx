@@ -30,8 +30,10 @@ import {
 import dayjs from 'dayjs';
 import { usersApi } from '../../api/modules/users.api';
 import { departmentsApi } from '../../api/modules/departments.api';
+import { rolesApi } from '../../api/modules/roles.api';
+import { permissionsApi } from '../../api/modules/permissions.api';
 import { ROUTES } from '../../routes/routes.config';
-import { CLEAN_ROLES_OPTIONS, CLEAN_PERMISSIONS_OPTIONS } from './index';
+import { useSystemOptions } from '../../hooks/useSystemOptions';
 
 export default function UserEdit() {
   const { t } = useTranslation();
@@ -46,10 +48,26 @@ export default function UserEdit() {
     queryFn: departmentsApi.getDepartments,
   });
 
+  const { data: roles = [] } = useQuery({
+    queryKey: ['roles'],
+    queryFn: rolesApi.getRoles,
+  });
+
+  const { data: permissions = [] } = useQuery({
+    queryKey: ['permissions'],
+    queryFn: permissionsApi.getPermissions,
+  });
+
+  const { data: systemOptions } = useSystemOptions();
+  const isDepartmentsEnabled = systemOptions?.enableDepartments !== false;
+
   const departmentOptions = departments.map((d) => ({
     value: d.id,
     label: `${d.name} (${d.code})`,
   }));
+
+  const roleOptions = roles.map((r) => ({ value: r.code, label: `${r.name} (${r.code})` }));
+  const permissionOptions = permissions.map((p) => ({ value: p.code, label: `${p.name} (${p.code})` }));
 
   useEffect(() => {
     if (!id) return;
@@ -316,7 +334,7 @@ export default function UserEdit() {
                   <Select
                     mode="multiple"
                     placeholder="Chọn các vai trò..."
-                    options={CLEAN_ROLES_OPTIONS}
+                    options={roleOptions}
                     style={{ borderRadius: 8 }}
                   />
                 </Form.Item>
@@ -325,12 +343,12 @@ export default function UserEdit() {
                   <Select
                     mode="multiple"
                     placeholder="Chọn quyền trực tiếp..."
-                    options={CLEAN_PERMISSIONS_OPTIONS}
+                    options={permissionOptions}
                     style={{ borderRadius: 8 }}
                   />
                 </Form.Item>
 
-                {localStorage.getItem('enableDepartments') !== 'false' && (
+                {isDepartmentsEnabled && (
                   <Form.Item name="departmentIds" label={t('users.selectDepartments', 'Chọn Phòng Ban Trực Thuộc')}>
                     <Select
                       mode="multiple"

@@ -504,6 +504,61 @@ export class AuthService {
     }
   }
 
+  /**
+   * Liệt kê các phiên đăng nhập (thiết bị) đang hoạt động của chính user hiện tại.
+   * Không trả tokenHash. Đánh dấu isCurrent nếu khớp refreshToken đang dùng.
+   */
+  async listSessions(userId: string, currentRefreshToken?: string) {
+    const sessions = await this.prisma.userSession.findMany({
+      where: { userId, isRevoked: false, expiresAt: { gt: new Date() } },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    const result: Array<{
+      id: string;
+      userAgent: string | null;
+      ipAddress: string | null;
+      createdAt: Date;
+      updatedAt: Date;
+      isCurrent: boolean;
+    }> = [];
+    for (const session of sessions) {
+      let isCurrent = false;
+      if (currentRefreshToken) {
+        isCurrent = await bcrypt.compare(currentRefreshToken, session.tokenHash);
+      }
+      result.push({
+        id: session.id,
+        userAgent: session.userAgent,
+        ipAddress: session.ipAddress,
+        createdAt: session.createdAt,
+        updatedAt: session.updatedAt,
+        isCurrent,
+      });
+    }
+    return result;
+  }
+
+  /**
+   * Thu hồi 1 phiên đăng nhập, chỉ cho phép thu hồi phiên thuộc về chính user hiện tại.
+   */
+  async revokeSessionById(userId: string, sessionId: string) {
+    const lang = I18nContext.current()?.lang;
+    const session = await this.prisma.userSession.findUnique({ where: { id: sessionId } });
+
+    if (!session || session.userId !== userId) {
+      const message = this.i18n.t('auth.UNAUTHORIZED', { lang });
+      throw new CustomApiException(ErrorCode.AUTH_UNAUTHORIZED, message, HttpStatus.FORBIDDEN);
+    }
+
+    await this.prisma.userSession.update({
+      where: { id: sessionId },
+      data: { isRevoked: true },
+    });
+
+    return { success: true };
+  }
+
   private async generateTokens(payload: any) {
     const jwtSecret = this.configService.get<string>('auth.jwtSecret');
     const jwtExpiresIn =

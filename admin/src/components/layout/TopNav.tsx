@@ -14,6 +14,7 @@ import {
   SlidersOutlined,
 } from '@ant-design/icons';
 import { useTheme } from '../../context/ThemeContext';
+import { useSystemOptions } from '../../hooks/useSystemOptions';
 
 const { Header: AntHeader } = Layout;
 const { Text } = Typography;
@@ -27,7 +28,8 @@ export const TopNav: React.FC<TopNavProps> = ({ onOpenConfigurator }) => {
   const location = useLocation();
   const { isDark } = useTheme();
 
-  const isDepartmentsEnabled = localStorage.getItem('enableDepartments') !== 'false';
+  const { data: systemOptions } = useSystemOptions();
+  const isDepartmentsEnabled = systemOptions?.enableDepartments !== false;
 
   const menuItems: MenuProps['items'] = [
     {

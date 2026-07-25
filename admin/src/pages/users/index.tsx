@@ -19,41 +19,13 @@ import {
   PhoneOutlined,
 } from '@ant-design/icons';
 import { usersApi } from '../../api/modules/users.api';
+import { rolesApi } from '../../api/modules/roles.api';
+import { permissionsApi } from '../../api/modules/permissions.api';
 import { User } from '../../types/auth.types';
 import { Can } from '../../components/common/Can';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useSystemOptions } from '../../hooks/useSystemOptions';
 import { ROUTES } from '../../routes/routes.config';
-
-export const CLEAN_PERMISSIONS_OPTIONS = [
-  { value: 'user:create', label: 'Tạo Người Dùng Mới (user:create)' },
-  { value: 'user:read', label: 'Xem Người Dùng (user:read)' },
-  { value: 'user:update', label: 'Cập Nhật Người Dùng (user:update)' },
-  { value: 'user:delete', label: 'Xóa Người Dùng (user:delete)' },
-  { value: 'user:import', label: 'Nhập Dữ Liệu User (user:import)' },
-  { value: 'user:export', label: 'Xuất Dữ Liệu User (user:export)' },
-  { value: 'role:create', label: 'Tạo Vai Trò (role:create)' },
-  { value: 'role:read', label: 'Xem Vai Trò (role:read)' },
-  { value: 'role:update', label: 'Cập Nhật Vai Trò (role:update)' },
-  { value: 'role:delete', label: 'Xóa Vai Trò (role:delete)' },
-  { value: 'department:create', label: 'Tạo Phòng Ban (department:create)' },
-  { value: 'department:read', label: 'Xem Phòng Ban (department:read)' },
-  { value: 'department:update', label: 'Cập Nhật Phòng Ban (department:update)' },
-  { value: 'department:delete', label: 'Xóa Phòng Ban (department:delete)' },
-  { value: 'department:import', label: 'Nhập Phòng Ban (department:import)' },
-  { value: 'department:export', label: 'Xuất Phòng Ban (department:export)' },
-  { value: 'media:create', label: 'Tải Lên Media (media:create)' },
-  { value: 'media:read', label: 'Xem Thư Viện Media (media:read)' },
-  { value: 'media:update', label: 'Cập Nhật Media (media:update)' },
-  { value: 'media:delete', label: 'Xóa Media (media:delete)' },
-];
-
-export const CLEAN_ROLES_OPTIONS = [
-  { value: 'super-admin', label: 'Super Admin' },
-  { value: 'admin', label: 'Quản Trị Viên' },
-  { value: 'manager', label: 'Quản Lý Phòng Ban' },
-  { value: 'accountant', label: 'Kế Toán Trưởng' },
-  { value: 'staff', label: 'Nhân Viên' },
-];
 
 export default function UsersModule() {
   const { t } = useTranslation();
@@ -72,8 +44,22 @@ export default function UsersModule() {
     enabled: isAuthenticated,
   });
 
+  const { data: roles = [] } = useQuery({
+    queryKey: ['roles'],
+    queryFn: rolesApi.getRoles,
+  });
+
+  const { data: permissions = [] } = useQuery({
+    queryKey: ['permissions'],
+    queryFn: permissionsApi.getPermissions,
+  });
+
+  const roleOptions = roles.map((r) => ({ value: r.code, label: `${r.name} (${r.code})` }));
+  const permissionOptions = permissions.map((p) => ({ value: p.code, label: `${p.name} (${p.code})` }));
+
   // Respect system setting: hide department column if enableDepartments === false
-  const isDepartmentsEnabled = localStorage.getItem('enableDepartments') !== 'false';
+  const { data: systemOptions } = useSystemOptions();
+  const isDepartmentsEnabled = systemOptions?.enableDepartments !== false;
 
   const handleApproveUser = async (userId: string) => {
     try {
@@ -210,7 +196,7 @@ export default function UsersModule() {
           {roles && roles.length > 0 ? (
             roles.map((r, i) => {
               const code = r.role?.code || r;
-              const label = CLEAN_ROLES_OPTIONS.find((opt) => opt.value === code)?.label || code;
+              const label = roleOptions.find((opt) => opt.value === code)?.label || code;
               return (
                 <Tag
                   key={i}
@@ -237,7 +223,7 @@ export default function UsersModule() {
           {permissions && permissions.length > 0 ? (
             permissions.map((p, i) => {
               const code = p.permission?.code || p;
-              const label = CLEAN_PERMISSIONS_OPTIONS.find((opt) => opt.value === code)?.label || code;
+              const label = permissionOptions.find((opt) => opt.value === code)?.label || code;
               return (
                 <Tag
                   key={i}
@@ -410,11 +396,11 @@ export default function UsersModule() {
       >
         <Form form={assignForm} layout="vertical" onFinish={handleSaveAssignments} style={{ marginTop: 16 }}>
           <Form.Item name="roles" label={t('users.selectRoles', 'Chọn Vai Trò')}>
-            <Select mode="multiple" placeholder="Chọn Roles" options={CLEAN_ROLES_OPTIONS} style={{ borderRadius: 6 }} />
+            <Select mode="multiple" placeholder="Chọn Roles" options={roleOptions} style={{ borderRadius: 6 }} />
           </Form.Item>
 
           <Form.Item name="permissions" label={t('users.selectPermissions', 'Chọn Quyền Hạn Hợp Lệ')}>
-            <Select mode="multiple" placeholder="Chọn Quyền Trực Tiếp" options={CLEAN_PERMISSIONS_OPTIONS} style={{ borderRadius: 6 }} />
+            <Select mode="multiple" placeholder="Chọn Quyền Trực Tiếp" options={permissionOptions} style={{ borderRadius: 6 }} />
           </Form.Item>
         </Form>
       </Modal>

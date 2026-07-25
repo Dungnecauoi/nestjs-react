@@ -21,6 +21,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuthStore } from '../../store/useAuthStore';
 import { hasPermission } from '../../utils/permission';
 import { ROUTES } from '../../routes/routes.config';
+import { useSystemOptions } from '../../hooks/useSystemOptions';
 
 const { Sider } = Layout;
 const { Text } = Typography;
@@ -41,21 +42,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed }) => {
 
   const userPermissions = user?.permissions || [];
 
-  const [isDepartmentsEnabled, setIsDepartmentsEnabled] = useState(
-    () => localStorage.getItem('enableDepartments') !== 'false'
-  );
-
-  useEffect(() => {
-    const handleOptionsUpdate = () => {
-      setIsDepartmentsEnabled(localStorage.getItem('enableDepartments') !== 'false');
-    };
-    window.addEventListener('options_updated', handleOptionsUpdate);
-    window.addEventListener('storage', handleOptionsUpdate);
-    return () => {
-      window.removeEventListener('options_updated', handleOptionsUpdate);
-      window.removeEventListener('storage', handleOptionsUpdate);
-    };
-  }, []);
+  const { data: systemOptions } = useSystemOptions();
+  const isDepartmentsEnabled = systemOptions?.enableDepartments !== false;
 
   // Determine active SubMenu based on current route
   const getInitialOpenKeys = () => {

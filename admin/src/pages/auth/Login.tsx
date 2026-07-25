@@ -129,10 +129,6 @@ export default function Login() {
         <Form
           layout="vertical"
           onFinish={onFinish}
-          initialValues={{
-            email: 'admin@ecomcx.com',
-            password: '123456',
-          }}
           requiredMark={false}
         >
           <Form.Item
@@ -154,6 +150,12 @@ export default function Login() {
             <Input.Password prefix={<LockOutlined style={{ color: '#94a3b8' }} />} placeholder="••••••••" />
           </Form.Item>
 
+          <div style={{ textAlign: 'right', marginTop: -8, marginBottom: 8, fontSize: 12 }}>
+            <Link to={ROUTES.FORGOT_PASSWORD.path} style={{ fontWeight: 600 }}>
+              Quên mật khẩu?
+            </Link>
+          </div>
+
           <Form.Item style={{ marginTop: 24 }}>
             <Button
               type="primary"
@@ -167,13 +169,6 @@ export default function Login() {
             </Button>
           </Form.Item>
         </Form>
-
-        <div style={{ textAlign: 'center', marginTop: 16, fontSize: 12 }}>
-          <Text type="secondary">{t('auth.noAccount')} </Text>
-          <Link to={ROUTES.REGISTER.path} style={{ fontWeight: 700 }}>
-            Tạo tài khoản mới
-          </Link>
-        </div>
       </Card>
 
       {/* 2-Step OTP Verification Login Interception Modal */}

@@ -11,9 +11,19 @@ export const ROUTES: Record<string, RouteConfigItem> = {
     name: 'Đăng Nhập',
     isPublic: true,
   },
-  REGISTER: {
-    path: '/admin/register',
-    name: 'Đăng Ký',
+  FORGOT_PASSWORD: {
+    path: '/admin/forgot-password',
+    name: 'Quên Mật Khẩu',
+    isPublic: true,
+  },
+  RESET_PASSWORD: {
+    path: '/admin/reset-password',
+    name: 'Đặt Lại Mật Khẩu',
+    isPublic: true,
+  },
+  VERIFY_EMAIL: {
+    path: '/admin/verify-email',
+    name: 'Xác Minh Email',
     isPublic: true,
   },
   FORBIDDEN: {

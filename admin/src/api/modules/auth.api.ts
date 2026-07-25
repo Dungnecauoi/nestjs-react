@@ -13,23 +13,38 @@ export const authApi = {
     return res.data?.data || res.data;
   },
 
-  generate2FASecret: async (email: string = 'admin@ecomcx.com') => {
-    const res = await api.post('/auth/2fa/generate', { email });
+  generate2FASecret: async () => {
+    const res = await api.post('/auth/2fa/generate');
     return res.data?.data || res.data;
   },
 
-  turnOn2FA: async (email: string = 'admin@ecomcx.com', otpCode: string) => {
-    const res = await api.post('/auth/2fa/turn-on', { email, otpCode });
+  turnOn2FA: async (otpCode: string) => {
+    const res = await api.post('/auth/2fa/turn-on', { otpCode });
     return res.data?.data || res.data;
   },
 
-  turnOff2FA: async (email: string = 'admin@ecomcx.com') => {
-    const res = await api.post('/auth/2fa/turn-off', { email });
+  turnOff2FA: async (otpCode: string) => {
+    const res = await api.post('/auth/2fa/turn-off', { otpCode });
     return res.data?.data || res.data;
   },
 
   getProfile: async (): Promise<User> => {
     const res = await api.get<ApiResponse<User>>('/auth/profile');
     return res.data.data;
+  },
+
+  forgotPassword: async (email: string) => {
+    const res = await api.post('/auth/forgot-password', { email });
+    return res.data?.data || res.data;
+  },
+
+  resetPassword: async (token: string, newPassword: string) => {
+    const res = await api.post('/auth/reset-password', { token, newPassword });
+    return res.data?.data || res.data;
+  },
+
+  verifyEmail: async (token: string) => {
+    const res = await api.post('/auth/verify-email', { token });
+    return res.data?.data || res.data;
   },
 };

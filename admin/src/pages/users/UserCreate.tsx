@@ -30,8 +30,10 @@ import {
 } from '@ant-design/icons';
 import { usersApi } from '../../api/modules/users.api';
 import { departmentsApi } from '../../api/modules/departments.api';
+import { rolesApi } from '../../api/modules/roles.api';
+import { permissionsApi } from '../../api/modules/permissions.api';
 import { ROUTES } from '../../routes/routes.config';
-import { CLEAN_ROLES_OPTIONS, CLEAN_PERMISSIONS_OPTIONS } from './index';
+import { useSystemOptions } from '../../hooks/useSystemOptions';
 
 export default function UserCreate() {
   const { t } = useTranslation();
@@ -44,10 +46,23 @@ export default function UserCreate() {
     queryFn: departmentsApi.getDepartments,
   });
 
+  const { data: roles = [] } = useQuery({
+    queryKey: ['roles'],
+    queryFn: rolesApi.getRoles,
+  });
+
+  const { data: permissions = [] } = useQuery({
+    queryKey: ['permissions'],
+    queryFn: permissionsApi.getPermissions,
+  });
+
   const departmentOptions = departments.map((d) => ({
     value: d.id,
     label: `${d.name} (${d.code})`,
   }));
+
+  const roleOptions = roles.map((r) => ({ value: r.code, label: `${r.name} (${r.code})` }));
+  const permissionOptions = permissions.map((p) => ({ value: p.code, label: `${p.name} (${p.code})` }));
 
   const handleSubmit = async (values: any) => {
     setLoading(true);
@@ -67,7 +82,8 @@ export default function UserCreate() {
     }
   };
 
-  const isDepartmentsEnabled = localStorage.getItem('enableDepartments') !== 'false';
+  const { data: systemOptions } = useSystemOptions();
+  const isDepartmentsEnabled = systemOptions?.enableDepartments !== false;
 
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -272,7 +288,7 @@ export default function UserCreate() {
                   <Select
                     mode="multiple"
                     placeholder="Chọn các vai trò..."
-                    options={CLEAN_ROLES_OPTIONS}
+                    options={roleOptions}
                     style={{ borderRadius: 8 }}
                   />
                 </Form.Item>
@@ -281,7 +297,7 @@ export default function UserCreate() {
                   <Select
                     mode="multiple"
                     placeholder="Chọn quyền trực tiếp..."
-                    options={CLEAN_PERMISSIONS_OPTIONS}
+                    options={permissionOptions}
                     style={{ borderRadius: 8 }}
                   />
                 </Form.Item>

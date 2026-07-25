@@ -1,40 +1,88 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, Row, Col, Statistic, Table, Tag, Space, Typography } from 'antd';
+import { useQuery } from '@tanstack/react-query';
+import { Card, Row, Col, Statistic, Table, Tag, Typography } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import {
   UserOutlined,
   ApartmentOutlined,
-  SafetyCertificateOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   ThunderboltFilled,
 } from '@ant-design/icons';
+import { useSystemOptions } from '../../hooks/useSystemOptions';
+import { usersApi } from '../../api/modules/users.api';
+import { departmentsApi } from '../../api/modules/departments.api';
+import { auditApi } from '../../api/modules/audit.api';
+import { AuditLogItem } from '../../types/auth.types';
 
 const { Title, Text } = Typography;
 
+function renderActionTag(action: string) {
+  switch (action) {
+    case 'CREATE':
+      return <Tag color="success">CREATE</Tag>;
+    case 'UPDATE':
+      return <Tag color="processing">UPDATE</Tag>;
+    case 'DELETE':
+      return <Tag color="error">DELETE</Tag>;
+    case 'LOGIN':
+      return <Tag color="cyan">LOGIN</Tag>;
+    case 'LOGOUT':
+      return <Tag color="default">LOGOUT</Tag>;
+    default:
+      return <Tag color="blue">{action}</Tag>;
+  }
+}
+
 export default function DashboardModule() {
   const { t } = useTranslation();
-  const isDepartmentsEnabled = localStorage.getItem('enableDepartments') !== 'false';
+  const { data: systemOptions } = useSystemOptions();
+  const isDepartmentsEnabled = systemOptions?.enableDepartments !== false;
 
-  const recentActivities = [
-    { key: '1', user: 'Super Admin', action: 'Lưu Cấu Hình Hệ Thống', time: '5 phút trước', status: 'SUCCESS' },
-    { key: '2', user: 'Quản Lý HR', action: 'Phê Duyệt Tài Khoản Đăng Ký', time: '25 phút trước', status: 'SUCCESS' },
-    { key: '3', user: 'Developer Core', action: 'Tạo Vai Trò & Gán Quyền Hạn', time: '2 giờ trước', status: 'SUCCESS' },
-  ];
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: usersApi.getUsers,
+  });
 
-  const columns = [
-    { title: 'Người Thực Hiện', dataIndex: 'user', key: 'user', render: (text: string) => <Text strong>{text}</Text> },
-    { title: 'Hành Động', dataIndex: 'action', key: 'action' },
-    { title: 'Thời Gian', dataIndex: 'time', key: 'time', render: (text: string) => <Text type="secondary">{text}</Text> },
+  const { data: departments = [] } = useQuery({
+    queryKey: ['departments'],
+    queryFn: departmentsApi.getDepartments,
+  });
+
+  const { data: recentAudit } = useQuery({
+    queryKey: ['audit-logs', 'dashboard-recent'],
+    queryFn: () => auditApi.getAuditLogs({ page: 1, limit: 5 }),
+  });
+
+  const totalUsers = users.length;
+  const activeUsers = users.filter((u) => u.isActive).length;
+  const pendingUsers = users.filter((u) => !u.isActive).length;
+
+  const columns: ColumnsType<AuditLogItem> = [
     {
-      title: 'Trạng Thái',
-      dataIndex: 'status',
-      key: 'status',
-      render: () => (
-        <Tag color="green" icon={<CheckCircleOutlined />}>
-          Thành công
-        </Tag>
-      ),
+      title: 'Người Thực Hiện',
+      dataIndex: 'userEmail',
+      key: 'userEmail',
+      render: (email: string) => <Text strong>{email || 'Hệ thống'}</Text>,
+    },
+    {
+      title: 'Hành Động',
+      dataIndex: 'action',
+      key: 'action',
+      render: (action: string) => renderActionTag(action),
+    },
+    {
+      title: 'Module',
+      dataIndex: 'module',
+      key: 'module',
+      render: (module: string) => <Tag color="geekblue">{module}</Tag>,
+    },
+    {
+      title: 'Thời Gian',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (date: string) => <Text type="secondary">{new Date(date).toLocaleString('vi-VN')}</Text>,
     },
   ];
 
@@ -75,7 +123,7 @@ export default function DashboardModule() {
           <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
             <Statistic
               title={t('dashboard.totalUsers', 'Tổng Số Người Dùng')}
-              value={128}
+              value={totalUsers}
               prefix={<UserOutlined style={{ color: '#4f46e5', marginRight: 8 }} />}
             />
           </Card>
@@ -85,7 +133,7 @@ export default function DashboardModule() {
           <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
             <Statistic
               title={t('dashboard.activeUsers', 'Tài Khoản Hoạt Động')}
-              value={112}
+              value={activeUsers}
               prefix={<CheckCircleOutlined style={{ color: '#059669', marginRight: 8 }} />}
             />
           </Card>
@@ -95,7 +143,7 @@ export default function DashboardModule() {
           <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
             <Statistic
               title={t('dashboard.pendingUsers', 'Chờ Admin Phê Duyệt')}
-              value={16}
+              value={pendingUsers}
               prefix={<ClockCircleOutlined style={{ color: '#d97706', marginRight: 8 }} />}
             />
           </Card>
@@ -106,7 +154,7 @@ export default function DashboardModule() {
             <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
               <Statistic
                 title={t('dashboard.totalDepts', 'Cơ Cấu Phòng Ban')}
-                value={8}
+                value={departments.length}
                 prefix={<ApartmentOutlined style={{ color: '#0284c7', marginRight: 8 }} />}
               />
             </Card>
@@ -116,7 +164,13 @@ export default function DashboardModule() {
 
       {/* Recent Activities Section */}
       <Card title={t('dashboard.recentActivities', 'Nhật Ký Thao Tác Hệ Thống')} bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
-        <Table columns={columns} dataSource={recentActivities} pagination={false} size="small" />
+        <Table
+          rowKey="id"
+          columns={columns}
+          dataSource={recentAudit?.data || []}
+          pagination={false}
+          size="small"
+        />
       </Card>
     </div>
   );

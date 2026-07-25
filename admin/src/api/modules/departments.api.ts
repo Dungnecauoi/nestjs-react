@@ -10,28 +10,7 @@ export const departmentsApi = {
       }
       return [];
     } catch {
-      return [
-        {
-          id: '1',
-          code: 'BGD',
-          name: 'Ban Giám Đốc (BGD)',
-          description: 'Hội đồng quản trị và điều hành doanh nghiệp',
-        },
-        {
-          id: '2',
-          code: 'HR',
-          name: 'Phòng Nhân Sự (HR)',
-          description: 'Tuyển dụng, đào tạo và quản lý nhân sự',
-          parentId: '1',
-        },
-        {
-          id: '3',
-          code: 'TECH',
-          name: 'Phòng Công Nghệ (IT/Tech)',
-          description: 'Phát triển phần mềm và hạ tầng hệ thống',
-          parentId: '1',
-        },
-      ];
+      return [];
     }
   },
 

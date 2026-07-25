@@ -4,7 +4,9 @@ import { AdminLayout, AuthLayout, BlankLayout } from '../layouts';
 
 // Modular Feature Pages
 import Login from '../pages/auth/Login';
-import Register from '../pages/auth/Register';
+import ForgotPassword from '../pages/auth/ForgotPassword';
+import ResetPassword from '../pages/auth/ResetPassword';
+import VerifyEmail from '../pages/auth/VerifyEmail';
 import DashboardModule from '../pages/dashboard';
 import UsersModule from '../pages/users';
 import UserCreate from '../pages/users/UserCreate';
@@ -29,7 +31,9 @@ export const AppRoutes: React.FC = () => {
       <Route element={<AuthLayout />}>
         <Route path={ROUTES.LOGIN.path} element={<Login />} />
         <Route path="/login" element={<Navigate to={ROUTES.LOGIN.path} replace />} />
-        <Route path={ROUTES.REGISTER.path} element={<Register />} />
+        <Route path={ROUTES.FORGOT_PASSWORD.path} element={<ForgotPassword />} />
+        <Route path={ROUTES.RESET_PASSWORD.path} element={<ResetPassword />} />
+        <Route path={ROUTES.VERIFY_EMAIL.path} element={<VerifyEmail />} />
       </Route>
 
       {/* 2. Protected Admin App Routes (AdminLayout) */}

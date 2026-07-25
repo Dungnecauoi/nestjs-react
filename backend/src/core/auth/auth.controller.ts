@@ -2,7 +2,9 @@ import {
   Controller,
   Post,
   Get,
+  Delete,
   Body,
+  Param,
   UseGuards,
   Res,
   Req,
@@ -241,5 +243,22 @@ export class AuthController {
       message: 'Lấy thông tin tài khoản thành công',
       data: user,
     };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('sessions')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Liệt kê các phiên đăng nhập (thiết bị) đang hoạt động của tài khoản hiện tại' })
+  async listSessions(@CurrentUser() user: any, @Req() req: Request) {
+    const currentRefreshToken = req.cookies?.[this.getCookieName()];
+    return this.authService.listSessions(user.id ?? user.sub, currentRefreshToken);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('sessions/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Thu hồi 1 phiên đăng nhập của chính tài khoản hiện tại' })
+  async revokeSession(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.authService.revokeSessionById(user.id ?? user.sub, id);
   }
 }
