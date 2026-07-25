@@ -14,4 +14,9 @@ export default registerAs('mail', () => ({
       : process.env.MAIL_PASSWORD,
   fromAddress: process.env.MAIL_FROM_ADDRESS || 'info@example.com',
   fromName: process.env.MAIL_FROM_NAME || 'NestJS App',
+  googleOauth: {
+    clientId: process.env.GOOGLE_OAUTH_CLIENT_ID || '',
+    clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET || '',
+    redirectUri: process.env.GOOGLE_OAUTH_REDIRECT_URI || '',
+  },
 }));

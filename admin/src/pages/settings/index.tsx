@@ -1,10 +1,365 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, Form, Input, Switch, Button, Row, Col, Select, Tabs, Radio, InputNumber, Upload, Space, Divider, Spin, message } from 'antd';
-import { SaveOutlined, CheckOutlined, SettingOutlined, PictureOutlined, ReadOutlined, EditOutlined, UploadOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Switch, Button, Row, Col, Select, Tabs, Radio, InputNumber, Upload, Space, Divider, Spin, Alert, message } from 'antd';
+import { SaveOutlined, CheckOutlined, SettingOutlined, PictureOutlined, ReadOutlined, EditOutlined, UploadOutlined, MailOutlined, GoogleOutlined, SendOutlined } from '@ant-design/icons';
 import { optionsApi } from '../../api/modules/options.api';
+import { mailConfigApi, MailConfigResponse, MailConfigSaveDto, MailDriverName } from '../../api/modules/mail-config.api';
 import { queryClient } from '../../lib/query-client';
 import { SYSTEM_OPTIONS_QUERY_KEY } from '../../hooks/useSystemOptions';
+
+type SmtpProviderPreset = 'gmail' | 'outlook' | 'yahoo' | 'custom';
+
+const SMTP_PROVIDER_PRESETS: Record<Exclude<SmtpProviderPreset, 'custom'>, { host: string; port: number }> = {
+  gmail: { host: 'smtp.gmail.com', port: 587 },
+  outlook: { host: 'smtp.office365.com', port: 587 },
+  yahoo: { host: 'smtp.mail.yahoo.com', port: 587 },
+};
+
+function MailConfigTabContent() {
+  const [mailForm] = Form.useForm();
+  const [driver, setDriver] = useState<MailDriverName>('log');
+  const [smtpProvider, setSmtpProvider] = useState<SmtpProviderPreset>('gmail');
+  const [config, setConfig] = useState<MailConfigResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [connectingGmail, setConnectingGmail] = useState(false);
+  const [testEmail, setTestEmail] = useState('');
+
+  const loadConfig = async () => {
+    setLoading(true);
+    try {
+      const data = await mailConfigApi.getMailConfig();
+      setConfig(data);
+      setDriver(data.driver);
+      mailForm.setFieldsValue({
+        driver: data.driver,
+        fromAddress: data.fromAddress,
+        fromName: data.fromName,
+        smtpHost: data.smtp?.host,
+        smtpPort: data.smtp?.port,
+        smtpUsername: data.smtp?.username,
+        sesRegion: data.ses?.region || 'us-east-1',
+        mailgunDomain: data.mailgun?.domain,
+      });
+    } catch (err) {
+      console.error('Lỗi khi nạp cấu hình mail:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadConfig();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleProviderChange = (value: SmtpProviderPreset) => {
+    setSmtpProvider(value);
+    if (value !== 'custom') {
+      mailForm.setFieldsValue(SMTP_PROVIDER_PRESETS[value]);
+    }
+  };
+
+  const handleSave = async (values: any) => {
+    setSaving(true);
+    try {
+      const dto: MailConfigSaveDto = {
+        driver: values.driver,
+        fromAddress: values.fromAddress,
+        fromName: values.fromName,
+      };
+
+      if (values.driver === 'smtp') {
+        dto.smtp = {
+          host: values.smtpHost,
+          port: values.smtpPort,
+          username: values.smtpUsername,
+          password: values.smtpPassword || undefined,
+        };
+      } else if (values.driver === 'resend') {
+        dto.resend = { apiKey: values.resendApiKey || undefined };
+      } else if (values.driver === 'ses') {
+        dto.ses = {
+          accessKeyId: values.sesAccessKeyId || undefined,
+          secretAccessKey: values.sesSecretAccessKey || undefined,
+          region: values.sesRegion,
+        };
+      } else if (values.driver === 'mailgun') {
+        dto.mailgun = {
+          apiKey: values.mailgunApiKey || undefined,
+          domain: values.mailgunDomain,
+        };
+      } else if (values.driver === 'sendgrid') {
+        dto.sendgrid = { apiKey: values.sendgridApiKey || undefined };
+      }
+
+      const updated = await mailConfigApi.saveMailConfig(dto);
+      setConfig(updated);
+      message.success('Đã lưu cấu hình gửi mail thành công!');
+    } catch (err: any) {
+      message.error(err.response?.data?.message || 'Không thể lưu cấu hình gửi mail!');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleTestSend = async () => {
+    if (!testEmail) {
+      message.warning('Vui lòng nhập email nhận thử nghiệm!');
+      return;
+    }
+    setTesting(true);
+    try {
+      await mailConfigApi.sendTestEmail(testEmail);
+      message.success(`Đã gửi email thử nghiệm tới ${testEmail}!`);
+    } catch (err: any) {
+      message.error(err.response?.data?.message || 'Gửi email thử nghiệm thất bại!');
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const handleConnectGmail = async () => {
+    setConnectingGmail(true);
+    try {
+      const url = await mailConfigApi.getGmailConnectUrl();
+      window.location.href = url;
+    } catch (err: any) {
+      message.error(err.response?.data?.message || 'Không thể lấy URL kết nối Google!');
+      setConnectingGmail(false);
+    }
+  };
+
+  const handleDisconnectGmail = async () => {
+    try {
+      const updated = await mailConfigApi.disconnectGmail();
+      setConfig(updated);
+      setDriver(updated.driver);
+      mailForm.setFieldValue('driver', updated.driver);
+      message.success('Đã ngắt kết nối Gmail!');
+    } catch {
+      message.error('Không thể ngắt kết nối Gmail!');
+    }
+  };
+
+  return (
+    <Spin spinning={loading}>
+      <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
+        <Form
+          form={mailForm}
+          layout="vertical"
+          onFinish={handleSave}
+          initialValues={{ driver: 'log', sesRegion: 'us-east-1' }}
+        >
+          <Form.Item
+            name="driver"
+            label="Nhà Cung Cấp Gửi Mail (Driver)"
+            rules={[{ required: true }]}
+          >
+            <Select
+              onChange={(value) => setDriver(value)}
+              options={[
+                { value: 'log', label: 'Ghi Log (Development — không gửi mail thật)' },
+                { value: 'smtp', label: 'SMTP (App Password)' },
+                { value: 'gmail_oauth', label: 'Gmail — Kết Nối Google (Khuyến Nghị)' },
+                { value: 'resend', label: 'Resend' },
+                { value: 'ses', label: 'Amazon SES' },
+                { value: 'mailgun', label: 'Mailgun' },
+                { value: 'sendgrid', label: 'SendGrid' },
+              ]}
+            />
+          </Form.Item>
+
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
+              <Form.Item name="fromAddress" label="Email Người Gửi (From Address)">
+                <Input placeholder="no-reply@yourdomain.com" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item name="fromName" label="Tên Người Gửi (From Name)">
+                <Input placeholder="ECOMCX ERP" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          {driver === 'smtp' && (
+            <>
+              <Divider style={{ margin: '8px 0 16px 0' }} />
+              <Form.Item label="Nhà Cung Cấp SMTP">
+                <Select
+                  value={smtpProvider}
+                  onChange={handleProviderChange}
+                  options={[
+                    { value: 'gmail', label: 'Gmail' },
+                    { value: 'outlook', label: 'Outlook / Office365' },
+                    { value: 'yahoo', label: 'Yahoo Mail' },
+                    { value: 'custom', label: 'Custom SMTP Server' },
+                  ]}
+                />
+              </Form.Item>
+              <Row gutter={16}>
+                <Col xs={24} md={12}>
+                  <Form.Item name="smtpHost" label="SMTP Host" rules={[{ required: true }]}>
+                    <Input disabled={smtpProvider !== 'custom'} placeholder="smtp.gmail.com" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item name="smtpPort" label="SMTP Port" rules={[{ required: true }]}>
+                    <InputNumber style={{ width: '100%' }} disabled={smtpProvider !== 'custom'} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item name="smtpUsername" label="Email / Username">
+                    <Input placeholder="you@gmail.com" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item
+                    name="smtpPassword"
+                    label="Mật Khẩu Ứng Dụng (App Password)"
+                    extra={
+                      config?.smtp?.configured
+                        ? 'Đã lưu — để trống nếu không muốn đổi'
+                        : 'Gmail: tạo tại myaccount.google.com/apppasswords (bật xác minh 2 bước trước)'
+                    }
+                  >
+                    <Input.Password placeholder={config?.smtp?.configured ? '••••••••' : ''} />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
+
+          {driver === 'gmail_oauth' && (
+            <>
+              <Divider style={{ margin: '8px 0 16px 0' }} />
+              {config?.gmailOauth?.configured ? (
+                <Alert
+                  type="success"
+                  showIcon
+                  message={`Đã kết nối: ${config.gmailOauth.email}`}
+                  description="Hệ thống sẽ gửi mail qua Gmail API bằng tài khoản đã kết nối, không cần mật khẩu."
+                  action={
+                    <Button danger size="small" onClick={handleDisconnectGmail}>
+                      Ngắt Kết Nối
+                    </Button>
+                  }
+                />
+              ) : (
+                <Button
+                  icon={<GoogleOutlined />}
+                  loading={connectingGmail}
+                  onClick={handleConnectGmail}
+                  style={{ fontWeight: 700 }}
+                >
+                  Kết Nối Với Google
+                </Button>
+              )}
+            </>
+          )}
+
+          {driver === 'resend' && (
+            <>
+              <Divider style={{ margin: '8px 0 16px 0' }} />
+              <Form.Item
+                name="resendApiKey"
+                label="Resend API Key"
+                extra={config?.resend?.configured ? 'Đã lưu — để trống nếu không muốn đổi' : 'Lấy tại resend.com/api-keys'}
+              >
+                <Input.Password placeholder={config?.resend?.configured ? '••••••••' : 're_xxxxxxxxxxxx'} />
+              </Form.Item>
+            </>
+          )}
+
+          {driver === 'ses' && (
+            <>
+              <Divider style={{ margin: '8px 0 16px 0' }} />
+              <Row gutter={16}>
+                <Col xs={24} md={8}>
+                  <Form.Item
+                    name="sesAccessKeyId"
+                    label="AWS Access Key ID"
+                    extra={config?.ses?.configured ? 'Đã lưu — để trống nếu không muốn đổi' : undefined}
+                  >
+                    <Input.Password />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={8}>
+                  <Form.Item name="sesSecretAccessKey" label="AWS Secret Access Key">
+                    <Input.Password />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={8}>
+                  <Form.Item name="sesRegion" label="AWS Region" rules={[{ required: true }]}>
+                    <Input placeholder="us-east-1" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
+
+          {driver === 'mailgun' && (
+            <>
+              <Divider style={{ margin: '8px 0 16px 0' }} />
+              <Row gutter={16}>
+                <Col xs={24} md={12}>
+                  <Form.Item
+                    name="mailgunApiKey"
+                    label="Mailgun API Key"
+                    extra={config?.mailgun?.configured ? 'Đã lưu — để trống nếu không muốn đổi' : undefined}
+                  >
+                    <Input.Password />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item name="mailgunDomain" label="Mailgun Domain" rules={[{ required: true }]}>
+                    <Input placeholder="mg.yourdomain.com" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
+
+          {driver === 'sendgrid' && (
+            <>
+              <Divider style={{ margin: '8px 0 16px 0' }} />
+              <Form.Item
+                name="sendgridApiKey"
+                label="SendGrid API Key"
+                extra={config?.sendgrid?.configured ? 'Đã lưu — để trống nếu không muốn đổi' : undefined}
+              >
+                <Input.Password placeholder={config?.sendgrid?.configured ? '••••••••' : 'SG.xxxxxxxxxxxx'} />
+              </Form.Item>
+            </>
+          )}
+
+          <Divider style={{ margin: '16px 0' }} />
+          <Button type="primary" htmlType="submit" loading={saving} icon={<SaveOutlined />} style={{ fontWeight: 700 }}>
+            Lưu Cấu Hình Email
+          </Button>
+        </Form>
+
+        <Divider style={{ margin: '24px 0 16px 0' }} />
+
+        <div>
+          <div style={{ fontWeight: 700, marginBottom: 8, fontSize: 13 }}>Gửi Email Thử Nghiệm</div>
+          <Space.Compact style={{ width: '100%', maxWidth: 440 }}>
+            <Input
+              placeholder="nhap-email-nhan@example.com"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+            />
+            <Button type="primary" icon={<SendOutlined />} loading={testing} onClick={handleTestSend}>
+              Gửi Thử
+            </Button>
+          </Space.Compact>
+        </div>
+      </Card>
+    </Spin>
+  );
+}
 
 export default function SettingsModule() {
   const { t, i18n } = useTranslation();
@@ -416,6 +771,16 @@ export default function SettingsModule() {
         </Space>
       ),
       children: writingTabContent,
+    },
+    {
+      key: '5',
+      label: (
+        <Space>
+          <MailOutlined />
+          Cấu Hình Email
+        </Space>
+      ),
+      children: <MailConfigTabContent />,
     },
   ];
 

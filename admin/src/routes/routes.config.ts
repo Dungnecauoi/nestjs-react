@@ -70,6 +70,11 @@ export const ROUTES: Record<string, RouteConfigItem> = {
     name: 'Cấu Hình Hệ Thống',
     permission: 'setting:read',
   },
+  ADMIN_SETTINGS_GMAIL_CALLBACK: {
+    path: '/admin/settings/gmail-oauth-callback',
+    name: 'Kết Nối Gmail',
+    permission: 'setting:update',
+  },
   ADMIN_TRANSLATIONS: {
     path: '/admin/translations',
     name: 'Quản Lý Bản Dịch',

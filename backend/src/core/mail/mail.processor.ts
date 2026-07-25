@@ -4,6 +4,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import * as nodemailer from 'nodemailer';
 import { CustomLoggerService } from '../logger/logger.service';
+import { MailConfigService } from './mail-config.service';
 
 interface MailJobData {
   to: string;
@@ -19,6 +20,7 @@ export class MailProcessor extends WorkerHost {
   constructor(
     private readonly configService: ConfigService,
     private readonly logger: CustomLoggerService,
+    private readonly mailConfigService: MailConfigService,
   ) {
     super();
     this.transporter = nodemailer.createTransport({
@@ -34,6 +36,19 @@ export class MailProcessor extends WorkerHost {
   }
 
   async process(job: Job<MailJobData>): Promise<void> {
+    // Ưu tiên driver cấu hình qua UI (DB) nếu có, giữ transporter .env làm fallback
+    const resolved = await this.mailConfigService.getEffectiveDriver();
+    if (resolved) {
+      await resolved.driver.send({
+        to: job.data.to,
+        subject: job.data.subject,
+        html: job.data.html,
+        from: resolved.from,
+      });
+      this.logger.log(`Đã gửi mail tới ${job.data.to} (job ${job.id})`, 'MailProcessor');
+      return;
+    }
+
     const fromName = this.configService.get<string>('mail.fromName');
     const fromAddress = this.configService.get<string>('mail.fromAddress');
 

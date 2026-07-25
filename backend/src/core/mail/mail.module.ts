@@ -3,6 +3,8 @@ import { BullModule } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
 import { MailService } from './mail.service';
 import { MailProcessor } from './mail.processor';
+import { MailConfigService } from './mail-config.service';
+import { GmailOAuthService } from './gmail-oauth.service';
 
 // QUEUE_CONNECTION=redis mới bật hàng đợi thật (BullMQ cần Redis). Mặc định (sync) giữ nguyên
 // hành vi gửi mail đồng bộ/log như cũ, không yêu cầu Redis phải chạy.
@@ -27,7 +29,12 @@ const queueImports = useQueue
 @Global()
 @Module({
   imports: [...queueImports],
-  providers: [MailService, ...(useQueue ? [MailProcessor] : [])],
-  exports: [MailService],
+  providers: [
+    MailService,
+    MailConfigService,
+    GmailOAuthService,
+    ...(useQueue ? [MailProcessor] : []),
+  ],
+  exports: [MailService, MailConfigService, GmailOAuthService],
 })
 export class MailModule {}

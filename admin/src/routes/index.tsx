@@ -16,6 +16,7 @@ import RolesModule from '../pages/roles';
 import DepartmentsModule from '../pages/departments';
 import MediaModule from '../pages/media';
 import SettingsModule from '../pages/settings';
+import GmailOAuthCallback from '../pages/settings/GmailOAuthCallback';
 import TranslationsModule from '../pages/translations';
 import NotificationsPage from '../pages/notifications';
 import AuditLogsPage from '../pages/audit-logs';
@@ -69,6 +70,10 @@ export const AppRoutes: React.FC = () => {
 
           <Route element={<ProtectedRoute requiredPermission={ROUTES.ADMIN_SETTINGS.permission} />}>
             <Route path={ROUTES.ADMIN_SETTINGS.path} element={<SettingsModule />} />
+          </Route>
+
+          <Route element={<ProtectedRoute requiredPermission={ROUTES.ADMIN_SETTINGS_GMAIL_CALLBACK.permission} />}>
+            <Route path={ROUTES.ADMIN_SETTINGS_GMAIL_CALLBACK.path} element={<GmailOAuthCallback />} />
           </Route>
 
           <Route element={<ProtectedRoute requiredPermission={ROUTES.ADMIN_TRANSLATIONS.permission} />}>

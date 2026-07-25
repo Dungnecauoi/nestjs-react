@@ -4,6 +4,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import type { Queue } from 'bullmq';
 import * as nodemailer from 'nodemailer';
 import { CustomLoggerService } from '../logger/logger.service';
+import { MailConfigService } from './mail-config.service';
 
 @Injectable()
 export class MailService {
@@ -12,6 +13,7 @@ export class MailService {
   constructor(
     private readonly configService: ConfigService,
     private readonly logger: CustomLoggerService,
+    private readonly mailConfigService: MailConfigService,
     @Optional() @InjectQueue('mail') private readonly mailQueue?: Queue,
   ) {
     const mailer = this.configService.get<string>('mail.mailer');
@@ -32,6 +34,18 @@ export class MailService {
   }
 
   async send(to: string, subject: string, html: string): Promise<void> {
+    // Ưu tiên driver cấu hình qua giao diện Settings (lưu trong DB) nếu có.
+    const resolved = await this.mailConfigService.getEffectiveDriver();
+    if (resolved) {
+      if (this.mailQueue) {
+        await this.mailQueue.add('send-mail', { to, subject, html });
+        return;
+      }
+      await resolved.driver.send({ to, subject, html, from: resolved.from });
+      return;
+    }
+
+    // Chưa cấu hình driver qua UI -> fallback hành vi cũ dựa vào .env
     const mailer = this.configService.get<string>('mail.mailer');
 
     if (!mailer || mailer === 'log') {
