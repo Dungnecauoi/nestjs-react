@@ -165,29 +165,19 @@ export default function RolesModule() {
       render: (desc: string) => desc || <span style={{ color: '#94a3b8' }}>Chưa có mô tả</span>,
     },
     {
-      title: t('roles.permissions', 'Danh Sách Quyền Hạn'),
+      title: t('roles.permissions', 'Quyền Hạn'),
       key: 'permissions',
+      width: 160,
       render: (record: Role) => {
-        const perms = record.permissions || [];
+        const count = record.permissions ? record.permissions.length : 0;
         return (
-          <Space wrap size={[4, 4]}>
-            {perms.length > 0 ? (
-              perms.map((p: any, i: number) => {
-                const permObj = p.permission || p;
-                const code = permObj.code || permObj;
-                const name = permObj.name || code;
-                return (
-                  <Tag key={i} color="purple" icon={<KeyOutlined />} style={{ borderRadius: '6px', fontWeight: 600, padding: '2px 8px' }}>
-                    {name} ({code})
-                  </Tag>
-                );
-              })
-            ) : (
-              <Tag color="default" style={{ borderRadius: '6px' }}>
-                Chưa gán quyền
-              </Tag>
-            )}
-          </Space>
+          <Tag
+            color={count > 0 ? 'purple' : 'default'}
+            icon={<KeyOutlined />}
+            style={{ borderRadius: '6px', fontWeight: 700, padding: '2px 8px' }}
+          >
+            {count > 0 ? `${count} Quyền` : 'Chưa gán quyền'}
+          </Tag>
         );
       },
     },
