@@ -14,6 +14,7 @@ import { departmentsApi } from '../../api/modules/departments.api';
 import { Department } from '../../types/auth.types';
 import { Can } from '../../components/common/Can';
 import { useAuthStore } from '../../store/useAuthStore';
+import { ResponsiveTable } from '../../components/common/ResponsiveTable';
 
 export default function DepartmentsModule() {
   const { t } = useTranslation();
@@ -189,79 +190,24 @@ export default function DepartmentsModule() {
         </div>
       </Card>
 
-      {/* Departments Adaptive View: Mobile Cards vs Desktop Table */}
-      {isMobile ? (
-        <List
-          loading={isLoading}
-          dataSource={departments}
-          pagination={{
-            current: page,
-            pageSize: pageSize,
-            total: total,
-            onChange: (p, ps) => {
-              setPage(p);
-              setPageSize(ps);
-            },
-          }}
-          renderItem={(record) => (
-            <Card
-              key={record.id}
-              style={{ marginBottom: 12, borderRadius: 10, boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}
-              bodyStyle={{ padding: 12 }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <Space align="center">
-                  <Tag color="cyan" style={{ fontWeight: 700, padding: '2px 8px', borderRadius: 6 }}>
-                    {record.code}
-                  </Tag>
-                  <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{record.name}</span>
-                </Space>
-
-                <Space size={4}>
-                  <Can permission="department:update">
-                    <Tooltip title={t('table.edit', 'Chỉnh Sửa')}>
-                      <Button size="small" icon={<EditOutlined />} onClick={() => handleOpenEditModal(record)} />
-                    </Tooltip>
-                  </Can>
-                  <Can permission="department:delete">
-                    <Popconfirm title={t('table.confirmDelete', 'Bạn có chắc chắn muốn xóa không?')} onConfirm={() => handleDeleteDepartment(record.id)}>
-                      <Tooltip title={t('table.delete', 'Xóa')}>
-                        <Button size="small" danger icon={<DeleteOutlined />} />
-                      </Tooltip>
-                    </Popconfirm>
-                  </Can>
-                </Space>
-              </div>
-
-              {record.description && (
-                <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
-                  {record.description}
-                </div>
-              )}
-            </Card>
-          )}
-        />
-      ) : (
-        <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', borderRadius: 12, overflow: 'hidden' }}>
-          <Table
-            columns={columns}
-            dataSource={departments}
-            rowKey="id"
-            loading={isLoading}
-            scroll={{ x: 800 }}
-            pagination={{
-              current: page,
-              pageSize: pageSize,
-              total: total,
-              showSizeChanger: true,
-              onChange: (p, ps) => {
-                setPage(p);
-                setPageSize(ps);
-              },
-            }}
-          />
-        </Card>
-      )}
+      {/* Reusable Enterprise Auto-Adaptive Table */}
+      <ResponsiveTable
+        columns={columns}
+        dataSource={departments}
+        rowKey="id"
+        loading={isLoading}
+        scroll={{ x: 800 }}
+        pagination={{
+          current: page,
+          pageSize: pageSize,
+          total: total,
+          showSizeChanger: true,
+          onChange: (p: number, ps: number) => {
+            setPage(p);
+            setPageSize(ps);
+          },
+        }}
+      />
 
       {/* Create Department Modal */}
       <Modal

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Table, Tag, Button, Modal, Form, Input, Space, Card, Popconfirm, Tooltip, message, Alert } from 'antd';
+import { Table, Tag, Button, Modal, Form, Input, Space, Card, Popconfirm, Tooltip, message, Alert, Grid, List } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   KeyOutlined,
@@ -15,6 +15,7 @@ import {
 import { apiKeysApi, ApiKeyItem, CreateApiKeyResponse } from '../../api/modules/apiKeys.api';
 import { Can } from '../../components/common/Can';
 import { useAuthStore } from '../../store/useAuthStore';
+import { ResponsiveTable } from '../../components/common/ResponsiveTable';
 
 export default function ApiKeysModule() {
   const { t } = useTranslation();
@@ -22,8 +23,9 @@ export default function ApiKeysModule() {
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createdSecretResult, setCreatedSecretResult] = useState<CreateApiKeyResponse | null>(null);
-
   const { isAuthenticated } = useAuthStore();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
 
   const { data: apiKeys = [], isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['api-keys'],
@@ -186,9 +188,8 @@ export default function ApiKeysModule() {
         </div>
       </Card>
 
-      <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', borderRadius: 12, overflow: 'hidden' }}>
-        <Table columns={columns} dataSource={apiKeys} rowKey="id" loading={isLoading} pagination={{ pageSize: 10 }} scroll={{ x: 850 }} />
-      </Card>
+      {/* Reusable Enterprise Auto-Adaptive Table */}
+      <ResponsiveTable columns={columns} dataSource={apiKeys} rowKey="id" loading={isLoading} pagination={{ pageSize: 10 }} scroll={{ x: 850 }} />
 
       {/* Modal Tạo API Key */}
       <Modal

@@ -16,6 +16,8 @@ import {
   Row,
   Col,
   Descriptions,
+  Grid,
+  List,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -31,7 +33,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { auditApi } from '../../api/modules/audit.api';
 import { AuditLogItem } from '../../types/auth.types';
 import { Can } from '../../components/common/Can';
+import { useAuthStore } from '../../store/useAuthStore';
 import { useTheme } from '../../context/ThemeContext';
+import { ResponsiveTable } from '../../components/common/ResponsiveTable';
 
 const { Title, Text } = Typography;
 
@@ -305,7 +309,7 @@ export const AuditLogsPage: React.FC = () => {
           </Col>
         </Row>
 
-        <Table<AuditLogItem>
+        <ResponsiveTable<AuditLogItem>
           columns={columns}
           dataSource={auditLogsList}
           rowKey="id"
@@ -316,7 +320,7 @@ export const AuditLogsPage: React.FC = () => {
             pageSize: limit,
             total: total,
             showSizeChanger: true,
-            onChange: (p, l) => {
+            onChange: (p: number, l: number) => {
               setPage(p);
               setLimit(l);
             },

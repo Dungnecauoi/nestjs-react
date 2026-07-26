@@ -30,6 +30,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { useSystemOptions } from '../../hooks/useSystemOptions';
 import { ROUTES } from '../../routes/routes.config';
 import { notify } from '../../utils/notify';
+import { ResponsiveTable } from '../../components/common/ResponsiveTable';
 
 export default function UsersModule() {
   const { t } = useTranslation();
@@ -387,138 +388,24 @@ export default function UsersModule() {
         </div>
       </Card>
 
-      {/* Users Adaptive View: Mobile Cards vs Desktop Table */}
-      {isMobile ? (
-        <List
-          loading={isLoading}
-          dataSource={users}
-          pagination={{
-            current: page,
-            pageSize: pageSize,
-            total: total,
-            onChange: (p, ps) => {
-              setPage(p);
-              setPageSize(ps);
-            },
-          }}
-          renderItem={(record) => (
-            <Card
-              key={record.id}
-              style={{ marginBottom: 12, borderRadius: 10, boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}
-              bodyStyle={{ padding: 12 }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <Space align="center" size="small">
-                  {record.avatar ? (
-                    <Avatar src={record.avatar} size="default" />
-                  ) : (
-                    <Avatar style={{ backgroundColor: '#1e293b', fontWeight: 'bold' }}>
-                      {record.name?.charAt(0)?.toUpperCase() || 'U'}
-                    </Avatar>
-                  )}
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: '#0f172a' }}>{record.name}</div>
-                    <div style={{ fontSize: 11, color: '#64748b', fontFamily: 'monospace' }}>{record.email}</div>
-                  </div>
-                </Space>
-
-                <Tag
-                  color={record.isActive ? 'success' : 'warning'}
-                  icon={record.isActive ? <CheckCircleOutlined /> : <ClockCircleOutlined />}
-                  style={{ fontWeight: 700, borderRadius: 6, margin: 0 }}
-                >
-                  {record.isActive ? t('table.active', 'Hoạt Động') : t('table.pendingApproval', 'Chờ Phê Duyệt')}
-                </Tag>
-              </div>
-
-              {/* Roles & Departments */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
-                {record.roles && record.roles.length > 0 && (
-                  <Space wrap size={[4, 4]}>
-                    {record.roles.map((r: any, i: number) => (
-                      <Tag key={i} color="blue" icon={<SafetyCertificateOutlined />} style={{ borderRadius: 6, fontWeight: 600 }}>
-                        {r.role?.name || r.role?.code || r}
-                      </Tag>
-                    ))}
-                  </Space>
-                )}
-
-                {record.departments && record.departments.length > 0 && (
-                  <Space wrap size={[4, 4]}>
-                    {record.departments.map((d: any, i: number) => (
-                      <Tag key={i} color="cyan" icon={<ClusterOutlined />} style={{ borderRadius: 6, fontWeight: 600 }}>
-                        {d.department?.name || d.name || 'Phòng Ban'}
-                      </Tag>
-                    ))}
-                  </Space>
-                )}
-              </div>
-
-              {/* Actions Footer */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, paddingTop: 8, borderTop: '1px solid #f1f5f9' }}>
-                {!record.isActive && (
-                  <Button
-                    size="small"
-                    type="primary"
-                    style={{ backgroundColor: '#059669', borderColor: '#059669', borderRadius: 6, fontWeight: 600 }}
-                    onClick={() => handleApproveUser(record.id)}
-                  >
-                    {t('table.approve', 'Duyệt')}
-                  </Button>
-                )}
-
-                <Button
-                  size="small"
-                  type="default"
-                  style={{ borderRadius: 6, fontWeight: 600 }}
-                  onClick={() => handleOpenAssignModal(record)}
-                >
-                  {t('users.assignRole', 'Gán Role')}
-                </Button>
-
-                <Can permission="user:update">
-                  <Tooltip title={t('table.edit', 'Chỉnh Sửa')}>
-                    <Button
-                      size="small"
-                      icon={<EditOutlined style={{ fontSize: 13 }} />}
-                      style={{ borderRadius: 6 }}
-                      onClick={() => navigate(ROUTES.ADMIN_USERS_EDIT.path.replace(':id', record.id))}
-                    />
-                  </Tooltip>
-                </Can>
-
-                <Can permission="user:delete">
-                  <Popconfirm title={t('table.confirmDelete', 'Bạn có chắc chắn muốn xóa không?')} onConfirm={() => handleDeleteUser(record.id)}>
-                    <Tooltip title={t('table.delete', 'Xóa')}>
-                      <Button size="small" danger icon={<DeleteOutlined style={{ fontSize: 13 }} />} style={{ borderRadius: 6 }} />
-                    </Tooltip>
-                  </Popconfirm>
-                </Can>
-              </div>
-            </Card>
-          )}
-        />
-      ) : (
-        <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', borderRadius: 12, overflow: 'hidden' }}>
-          <Table
-            columns={columns}
-            dataSource={users}
-            rowKey="id"
-            loading={isLoading}
-            pagination={{
-              current: page,
-              pageSize: pageSize,
-              total: total,
-              showSizeChanger: true,
-              onChange: (p, ps) => {
-                setPage(p);
-                setPageSize(ps);
-              },
-            }}
-            scroll={{ x: 1100 }}
-          />
-        </Card>
-      )}
+      {/* Reusable Enterprise Auto-Adaptive Table */}
+      <ResponsiveTable
+        columns={columns}
+        dataSource={users}
+        rowKey="id"
+        loading={isLoading}
+        pagination={{
+          current: page,
+          pageSize: pageSize,
+          total: total,
+          showSizeChanger: true,
+          onChange: (p: number, ps: number) => {
+            setPage(p);
+            setPageSize(ps);
+          },
+        }}
+        scroll={{ x: 1100 }}
+      />
 
       {/* Assign Roles & Permissions Modal */}
       <Modal
