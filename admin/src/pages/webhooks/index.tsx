@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Table, Tag, Button, Modal, Form, Input, Select, Space, Card, Popconfirm, Tooltip, message } from 'antd';
+import { Table, Tag, Button, Modal, Form, Input, Select, Space, Card, Popconfirm, Tooltip, message, Grid, List } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   ApiOutlined,
@@ -23,6 +23,8 @@ export default function WebhooksModule() {
   const [createForm] = Form.useForm();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const { isAuthenticated } = useAuthStore();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
 
   const { data: webhooks = [], isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['webhooks'],
@@ -209,9 +211,75 @@ export default function WebhooksModule() {
         </div>
       </Card>
 
-      <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', borderRadius: 12, overflow: 'hidden' }}>
-        <Table columns={columns} dataSource={webhooks} rowKey="id" loading={isLoading} pagination={{ pageSize: 10 }} scroll={{ x: 900 }} />
-      </Card>
+      {/* Webhooks Adaptive View: Mobile Cards vs Desktop Table */}
+      {isMobile ? (
+        <List
+          loading={isLoading}
+          dataSource={webhooks}
+          pagination={{ pageSize: 10 }}
+          renderItem={(record) => (
+            <Card
+              key={record.id}
+              style={{ marginBottom: 12, borderRadius: 10, boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}
+              bodyStyle={{ padding: 12 }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Space align="center">
+                  <ApiOutlined style={{ color: '#059669' }} />
+                  <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{record.name}</span>
+                </Space>
+
+                <Tag color={record.isActive ? 'success' : 'error'} style={{ fontWeight: 700, borderRadius: 6, margin: 0 }}>
+                  {record.isActive ? t('table.active', 'Hoạt Động') : t('table.disabled', 'Đã Tắt')}
+                </Tag>
+              </div>
+
+              <div style={{ fontFamily: 'monospace', fontSize: 11, color: '#2563eb', wordBreak: 'break-all', marginBottom: 8 }}>
+                <GlobalOutlined style={{ color: '#94a3b8', marginRight: 4 }} />
+                {record.url}
+              </div>
+
+              {/* Secret Key & Actions Footer */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, borderTop: '1px solid #f1f5f9' }}>
+                {record.secret ? (
+                  <Space size="small">
+                    <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#059669', fontWeight: 700 }}>
+                      {record.secret.substring(0, 8)}...
+                    </span>
+                    <Button
+                      size="small"
+                      type="text"
+                      icon={<CopyOutlined />}
+                      onClick={() => {
+                        navigator.clipboard.writeText(record.secret!);
+                        notify.success('messages.COPY_SUCCESS', 'Đã sao chép Webhook Secret Key!');
+                      }}
+                    />
+                  </Space>
+                ) : (
+                  <span style={{ fontSize: 11, color: '#94a3b8' }}>No Secret</span>
+                )}
+
+                <Space size={4}>
+                  <Can permission="setting:update">
+                    <Tooltip title={t('webhooks.testPingHelp', 'Gửi Test Ping (Không ghi rác Audit Log)')}>
+                      <Button size="small" icon={<SendOutlined style={{ color: '#2563eb' }} />} onClick={() => handleTestPing(record.id)} />
+                    </Tooltip>
+
+                    <Popconfirm title={t('webhooks.deleteConfirm', 'Xóa Webhook endpoint này?')} onConfirm={() => handleDeleteWebhook(record.id)}>
+                      <Button size="small" danger icon={<DeleteOutlined />} />
+                    </Popconfirm>
+                  </Can>
+                </Space>
+              </div>
+            </Card>
+          )}
+        />
+      ) : (
+        <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', borderRadius: 12, overflow: 'hidden' }}>
+          <Table columns={columns} dataSource={webhooks} rowKey="id" loading={isLoading} pagination={{ pageSize: 10 }} scroll={{ x: 900 }} />
+        </Card>
+      )}
 
       {/* Modal Tạo Webhook */}
       <Modal

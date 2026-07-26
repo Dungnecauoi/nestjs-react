@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Layout } from 'antd';
+import { Layout, Grid } from 'antd';
 import { useTheme } from '../context/ThemeContext';
 import { Header } from '../components/layout/Header';
 import { TopNav } from '../components/layout/TopNav';
@@ -14,6 +14,10 @@ export const AdminLayout: React.FC = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isConfiguratorOpen, setIsConfiguratorOpen] = useState(false);
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+
+  const contentMarginLeft = isMobile || layoutPosition === 'horizontal' ? 0 : isCollapsed ? 80 : 240;
 
   return (
     <Layout style={{ minHeight: '100vh', backgroundColor: isDark ? '#09090b' : '#f8fafc' }}>
@@ -33,9 +37,10 @@ export const AdminLayout: React.FC = () => {
       {/* Main Container Wrapper */}
       <Layout
         style={{
-          marginLeft: layoutPosition === 'vertical' ? (isCollapsed ? 80 : 240) : 0,
+          marginLeft: contentMarginLeft,
           transition: 'margin-left 0.2s ease-in-out',
           backgroundColor: 'transparent',
+          minWidth: 0,
         }}
       >
         {/* Sticky Header */}
@@ -47,8 +52,8 @@ export const AdminLayout: React.FC = () => {
           />
         )}
 
-        {/* Dynamic Route Content Outlet (100% Fluid Native AntD Content) */}
-        <Content style={{ padding: '24px', minHeight: 280, width: '100%' }}>
+        {/* Dynamic Route Content Outlet (Fluid Native AntD Content) */}
+        <Content style={{ padding: isMobile ? '12px' : '24px', minHeight: 280, width: '100%', minWidth: 0 }}>
           <Outlet />
         </Content>
 

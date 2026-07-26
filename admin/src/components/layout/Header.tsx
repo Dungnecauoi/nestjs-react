@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Layout, Breadcrumb, Dropdown, Avatar, Button, Space, Typography } from 'antd';
+import { Layout, Breadcrumb, Dropdown, Avatar, Button, Space, Typography, Grid } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   MenuFoldOutlined,
@@ -10,6 +10,7 @@ import {
   SettingOutlined,
   LogoutOutlined,
   GlobalOutlined,
+  UnorderedListOutlined,
 } from '@ant-design/icons';
 import { useTheme } from '../../context/ThemeContext';
 import { ROUTES } from '../../routes/routes.config';
@@ -26,6 +27,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
+  onToggleMobileSidebar,
   onToggleDesktopSidebar,
   isSidebarCollapsed,
 }) => {
@@ -34,6 +36,8 @@ export const Header: React.FC<HeaderProps> = ({
   const navigate = useNavigate();
   const { isDark } = useTheme();
   const { user, logout } = useAuthStore();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
 
   const userName = user?.name || '';
   const userEmail = user?.email || '';
@@ -130,7 +134,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <AntHeader
       style={{
-        padding: '0 24px',
+        padding: isMobile ? '0 12px' : '0 24px',
         backgroundColor: isDark ? '#121215' : '#ffffff',
         borderBottom: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
         display: 'flex',
@@ -143,24 +147,34 @@ export const Header: React.FC<HeaderProps> = ({
       }}
     >
       {/* Left Trigger & Breadcrumb */}
-      <Space size="middle">
-        <Button
-          type="text"
-          icon={isSidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-          onClick={onToggleDesktopSidebar}
-          style={{ fontSize: '16px' }}
-        />
+      <Space size="small">
+        {isMobile ? (
+          <Button
+            type="text"
+            icon={<UnorderedListOutlined style={{ fontSize: '20px' }} />}
+            onClick={onToggleMobileSidebar}
+          />
+        ) : (
+          <Button
+            type="text"
+            icon={isSidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={onToggleDesktopSidebar}
+            style={{ fontSize: '16px' }}
+          />
+        )}
 
-        <Breadcrumb
-          items={[
-            { title: t('header.systemBreadcrumb', 'ERP Enterprise') },
-            { title: getBreadcrumbTitle(location.pathname) },
-          ]}
-        />
+        {!isMobile && (
+          <Breadcrumb
+            items={[
+              { title: t('header.systemBreadcrumb', 'ERP Enterprise') },
+              { title: getBreadcrumbTitle(location.pathname) },
+            ]}
+          />
+        )}
       </Space>
 
       {/* Right Controls: Notifications, Language, User Dropdown */}
-      <Space size="middle">
+      <Space size={isMobile ? 'small' : 'middle'}>
         {/* Language Selector */}
         <Dropdown menu={{ items: langMenuItems }} placement="bottomRight">
           <Button type="text" icon={<GlobalOutlined />}>
@@ -177,7 +191,7 @@ export const Header: React.FC<HeaderProps> = ({
             type="text"
             style={{
               height: 'auto',
-              padding: '4px 8px',
+              padding: isMobile ? '4px' : '4px 8px',
               display: 'flex',
               alignItems: 'center',
               gap: 8,
@@ -193,16 +207,18 @@ export const Header: React.FC<HeaderProps> = ({
             >
               {userInitial}
             </Avatar>
-            <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column' }}>
-              <Text style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.2 }}>
-                {userName || 'User'}
-              </Text>
-              {userEmail && (
-                <Text type="secondary" style={{ fontSize: 11, lineHeight: 1 }}>
-                  {userEmail}
+            {!isMobile && (
+              <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column' }}>
+                <Text style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.2 }}>
+                  {userName || 'User'}
                 </Text>
-              )}
-            </div>
+                {userEmail && (
+                  <Text type="secondary" style={{ fontSize: 11, lineHeight: 1 }}>
+                    {userEmail}
+                  </Text>
+                )}
+              </div>
+            )}
           </Button>
         </Dropdown>
       </Space>

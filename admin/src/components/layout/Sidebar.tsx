@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Layout, Menu, Typography } from 'antd';
+import { Layout, Menu, Typography, Drawer } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   DashboardOutlined,
@@ -37,7 +37,11 @@ interface SidebarProps {
   onToggleCollapse?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  isMobileOpen,
+  onCloseMobile,
+  isCollapsed,
+}) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -244,24 +248,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed }) => {
     return [path];
   };
 
-  return (
-    <Sider
-      trigger={null}
-      collapsible
-      collapsed={isCollapsed}
-      width={240}
-      theme={isDark ? 'dark' : 'light'}
-      style={{
-        borderRight: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
-        position: 'fixed',
-        left: 0,
-        top: 0,
-        bottom: 0,
-        zIndex: 40,
-        height: '100vh',
-        overflow: 'auto',
-      }}
-    >
+  const sidebarContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Brand Header */}
       <div
         style={{
@@ -289,7 +277,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed }) => {
         >
           <ThunderboltFilled />
         </div>
-        {!isCollapsed && (
+        {(!isCollapsed || isMobileOpen) && (
           <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
             <Text style={{ fontWeight: 800, fontSize: 14, display: 'block', lineHeight: 1.2 }}>
               ECOMCX ERP
@@ -305,12 +293,52 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed }) => {
       <Menu
         mode="inline"
         selectedKeys={getSelectedKeys()}
-        openKeys={isCollapsed ? undefined : openKeys}
+        openKeys={isCollapsed && !isMobileOpen ? undefined : openKeys}
         onOpenChange={handleOpenChange}
         items={menuItems}
-        onClick={handleMenuClick}
-        style={{ borderRight: 0, padding: '8px 0' }}
+        onClick={(e) => {
+          handleMenuClick(e);
+          if (onCloseMobile) onCloseMobile();
+        }}
+        style={{ borderRight: 0, padding: '8px 0', flex: 1 }}
       />
-    </Sider>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Mobile Drawer Navigation */}
+      <Drawer
+        placement="left"
+        open={isMobileOpen}
+        onClose={onCloseMobile}
+        bodyStyle={{ padding: 0, backgroundColor: isDark ? '#121215' : '#ffffff' }}
+        width={260}
+      >
+        {sidebarContent}
+      </Drawer>
+
+      {/* Desktop Sider */}
+      <Sider
+        trigger={null}
+        collapsible
+        collapsed={isCollapsed}
+        width={240}
+        theme={isDark ? 'dark' : 'light'}
+        className="hidden md:block"
+        style={{
+          borderRight: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          zIndex: 40,
+          height: '100vh',
+          overflow: 'auto',
+        }}
+      >
+        {sidebarContent}
+      </Sider>
+    </>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Table, Tag, Button, Modal, Form, Input, Space, Card, Popconfirm, Tooltip, message } from 'antd';
+import { Table, Tag, Button, Modal, Form, Input, Space, Card, Popconfirm, Tooltip, message, Grid, List } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   EditOutlined,
@@ -82,12 +82,16 @@ export default function DepartmentsModule() {
     setIsEditModalOpen(true);
   };
 
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+
   const columns: ColumnsType<Department> = [
     {
       title: t('departments.code', 'Mã Phòng Ban'),
       dataIndex: 'code',
       key: 'code',
-      width: 180,
+      width: 140,
+      fixed: isMobile ? false : 'left',
       render: (code: string) => (
         <Tag color="cyan" style={{ fontWeight: 700, padding: '2px 8px', borderRadius: '6px' }}>
           {code}
@@ -98,7 +102,7 @@ export default function DepartmentsModule() {
       title: t('departments.name', 'Tên Phòng Ban'),
       dataIndex: 'name',
       key: 'name',
-      width: 240,
+      width: 200,
       render: (name: string) => (
         <Space align="center">
           <ApartmentOutlined style={{ color: '#0284c7', fontSize: 16 }} />
@@ -110,13 +114,14 @@ export default function DepartmentsModule() {
       title: t('departments.description', 'Mô Tả Phòng Ban'),
       dataIndex: 'description',
       key: 'description',
+      width: 200,
       render: (desc: string) => desc || <span style={{ color: '#94a3b8' }}>Chưa có mô tả</span>,
     },
     {
       title: t('table.actions', 'Thao Tác'),
       key: 'actions',
-      width: 140,
-      fixed: 'right',
+      width: 110,
+      fixed: isMobile ? false : 'right',
       render: (_: any, record: Department) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
           <Can permission="department:update">
@@ -184,26 +189,79 @@ export default function DepartmentsModule() {
         </div>
       </Card>
 
-      {/* Departments Table */}
-      <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', borderRadius: 12, overflow: 'hidden' }}>
-        <Table
-          columns={columns}
-          dataSource={departments}
-          rowKey="id"
+      {/* Departments Adaptive View: Mobile Cards vs Desktop Table */}
+      {isMobile ? (
+        <List
           loading={isLoading}
+          dataSource={departments}
           pagination={{
             current: page,
             pageSize: pageSize,
             total: total,
-            showSizeChanger: true,
             onChange: (p, ps) => {
               setPage(p);
               setPageSize(ps);
             },
           }}
-          scroll={{ x: 700 }}
+          renderItem={(record) => (
+            <Card
+              key={record.id}
+              style={{ marginBottom: 12, borderRadius: 10, boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}
+              bodyStyle={{ padding: 12 }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Space align="center">
+                  <Tag color="cyan" style={{ fontWeight: 700, padding: '2px 8px', borderRadius: 6 }}>
+                    {record.code}
+                  </Tag>
+                  <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{record.name}</span>
+                </Space>
+
+                <Space size={4}>
+                  <Can permission="department:update">
+                    <Tooltip title={t('table.edit', 'Chỉnh Sửa')}>
+                      <Button size="small" icon={<EditOutlined />} onClick={() => handleOpenEditModal(record)} />
+                    </Tooltip>
+                  </Can>
+                  <Can permission="department:delete">
+                    <Popconfirm title={t('table.confirmDelete', 'Bạn có chắc chắn muốn xóa không?')} onConfirm={() => handleDeleteDepartment(record.id)}>
+                      <Tooltip title={t('table.delete', 'Xóa')}>
+                        <Button size="small" danger icon={<DeleteOutlined />} />
+                      </Tooltip>
+                    </Popconfirm>
+                  </Can>
+                </Space>
+              </div>
+
+              {record.description && (
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+                  {record.description}
+                </div>
+              )}
+            </Card>
+          )}
         />
-      </Card>
+      ) : (
+        <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', borderRadius: 12, overflow: 'hidden' }}>
+          <Table
+            columns={columns}
+            dataSource={departments}
+            rowKey="id"
+            loading={isLoading}
+            scroll={{ x: 800 }}
+            pagination={{
+              current: page,
+              pageSize: pageSize,
+              total: total,
+              showSizeChanger: true,
+              onChange: (p, ps) => {
+                setPage(p);
+                setPageSize(ps);
+              },
+            }}
+          />
+        </Card>
+      )}
 
       {/* Create Department Modal */}
       <Modal

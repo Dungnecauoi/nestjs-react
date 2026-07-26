@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Table, Tag, Button, Modal, Form, Input, Select, Space, Card, Popconfirm, Tooltip, message } from 'antd';
+import { Table, Tag, Button, Modal, Form, Input, Select, Space, Card, Popconfirm, Tooltip, message, Grid, List } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   EditOutlined,
@@ -139,12 +139,16 @@ export default function RolesModule() {
     setIsPermModalOpen(true);
   };
 
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
+
   const columns: ColumnsType<Role> = [
     {
       title: t('roles.code', 'Mã Role'),
       dataIndex: 'code',
       key: 'code',
-      width: 160,
+      width: 140,
+      fixed: isMobile ? false : 'left',
       render: (code: string) => (
         <Tag color="blue" icon={<SafetyCertificateOutlined />} style={{ fontWeight: 700, padding: '2px 8px', borderRadius: '6px' }}>
           {code}
@@ -155,20 +159,20 @@ export default function RolesModule() {
       title: t('roles.name', 'Tên Vai Trò'),
       dataIndex: 'name',
       key: 'name',
-      width: 200,
+      width: 180,
       render: (name: string) => <span style={{ fontWeight: 700, color: '#0f172a' }}>{name}</span>,
     },
     {
       title: t('roles.description', 'Mô Tả Vai Trò'),
       dataIndex: 'description',
       key: 'description',
-      width: 220,
+      width: 200,
       render: (desc: string) => desc || <span style={{ color: '#94a3b8' }}>Chưa có mô tả</span>,
     },
     {
       title: t('roles.permissions', 'Quyền Hạn'),
       key: 'permissions',
-      width: 160,
+      width: 140,
       render: (record: Role) => {
         const count = record.permissions ? record.permissions.length : 0;
         return (
@@ -185,8 +189,8 @@ export default function RolesModule() {
     {
       title: t('table.actions', 'Thao Tác'),
       key: 'actions',
-      width: 170,
-      fixed: 'right',
+      width: 130,
+      fixed: isMobile ? false : 'right',
       render: (_: any, record: Role) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
           <Can permission="role:update">
@@ -267,26 +271,99 @@ export default function RolesModule() {
         </div>
       </Card>
 
-      {/* Main Table */}
-      <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', borderRadius: 12, overflow: 'hidden' }}>
-        <Table
-          columns={columns}
-          dataSource={roles}
-          rowKey="id"
+      {/* Roles Adaptive View: Mobile Cards vs Desktop Table */}
+      {isMobile ? (
+        <List
           loading={isLoading}
+          dataSource={roles}
           pagination={{
             current: page,
             pageSize: pageSize,
             total: total,
-            showSizeChanger: true,
             onChange: (p, ps) => {
               setPage(p);
               setPageSize(ps);
             },
           }}
-          scroll={{ x: 900 }}
+          renderItem={(record) => {
+            const count = record.permissions ? record.permissions.length : 0;
+            return (
+              <Card
+                key={record.id}
+                style={{ marginBottom: 12, borderRadius: 10, boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}
+                bodyStyle={{ padding: 12 }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <Space align="center">
+                    <Tag color="blue" icon={<SafetyCertificateOutlined />} style={{ fontWeight: 700, padding: '2px 8px', borderRadius: 6 }}>
+                      {record.code}
+                    </Tag>
+                    <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{record.name}</span>
+                  </Space>
+
+                  <Space size={4}>
+                    <Can permission="role:update">
+                      <Tooltip title="Phân Quyền Cho Role">
+                        <Button
+                          size="small"
+                          type="primary"
+                          ghost
+                          icon={<LockOutlined style={{ fontSize: 13 }} />}
+                          onClick={() => handleOpenPermModal(record)}
+                        />
+                      </Tooltip>
+                    </Can>
+                    <Can permission="role:update">
+                      <Tooltip title={t('table.edit', 'Chỉnh Sửa')}>
+                        <Button size="small" icon={<EditOutlined style={{ fontSize: 13 }} />} onClick={() => handleOpenEditModal(record)} />
+                      </Tooltip>
+                    </Can>
+                    <Can permission="role:delete">
+                      <Popconfirm title={t('table.confirmDelete', 'Bạn có chắc chắn muốn xóa không?')} onConfirm={() => handleDeleteRole(record.id)}>
+                        <Tooltip title={t('table.delete', 'Xóa')}>
+                          <Button size="small" danger icon={<DeleteOutlined style={{ fontSize: 13 }} />} />
+                        </Tooltip>
+                      </Popconfirm>
+                    </Can>
+                  </Space>
+                </div>
+
+                {record.description && (
+                  <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>
+                    {record.description}
+                  </div>
+                )}
+
+                <div>
+                  <Tag color={count > 0 ? 'purple' : 'default'} icon={<KeyOutlined />} style={{ borderRadius: 6, fontWeight: 700 }}>
+                    {count > 0 ? `${count} Quyền` : 'Chưa gán quyền'}
+                  </Tag>
+                </div>
+              </Card>
+            );
+          }}
         />
-      </Card>
+      ) : (
+        <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', borderRadius: 12, overflow: 'hidden' }}>
+          <Table
+            columns={columns}
+            dataSource={roles}
+            rowKey="id"
+            loading={isLoading}
+            scroll={{ x: 900 }}
+            pagination={{
+              current: page,
+              pageSize: pageSize,
+              total: total,
+              showSizeChanger: true,
+              onChange: (p, ps) => {
+                setPage(p);
+                setPageSize(ps);
+              },
+            }}
+          />
+        </Card>
+      )}
 
       {/* Create Role Modal */}
       <Modal
