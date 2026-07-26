@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CacheModule } from '@nestjs/cache-manager';
 import { EventEmitterModule } from '@nestjs/event-emitter';
@@ -28,6 +28,7 @@ import { AuthModule } from './auth/auth.module';
 import { DatabaseModule } from './database/database.module';
 import { OptionsModule } from './options/options.module';
 import { MailModule } from './mail/mail.module';
+import { TransformInterceptor } from './interceptors/transform.interceptor';
 
 @Global()
 @Module({
@@ -105,6 +106,10 @@ import { MailModule } from './mail/mail.module';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TransformInterceptor,
     },
   ],
   exports: [

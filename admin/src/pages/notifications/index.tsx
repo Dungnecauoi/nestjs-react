@@ -160,7 +160,7 @@ export const NotificationsPage: React.FC = () => {
       dataIndex: 'createdAt',
       key: 'createdAt',
       width: 160,
-      render: (date: string) => new Date(date).toLocaleString(),
+      render: (date: string) => date,
     },
     {
       title: t('notifications.colActions'),

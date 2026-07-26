@@ -108,3 +108,11 @@ Mọi câu trả lời, đoạn code phát triển hoặc chỉnh sửa trong h�
 
 - **Đồng Bộ 100% Data Contract**: Mọi thành phần Giao diện Frontend (Form, Modal, Table, Types, APIs) BẮT BUỘC phải bám sát 100% theo đúng cấu trúc DTO, Model Prisma và Endpoints mà NestJS Backend định nghĩa.
 - **Nghiêm Cấm Tạo UI Bừa / Mock Data Rác**: KHÔNG ĐƯỢC tự ý sáng tác các trường dữ liệu giả (mock data), các nút bấm không có API tương ứng, hoặc viết lệch tên thuộc tính giữa Frontend và Backend. Mọi tính năng trên UI đều phải được hỗ trợ đầy đủ từ Backend API thực tế.
+
+---
+
+## 13. 📅 QUY TẮC ĐỊNH DẠNG NGÀY GIỜ (Date/Time/Timezone Formatting Mandate)
+
+- **Backend Format Toàn Quyền**: Mọi field ngày giờ mang tính **hiển thị/log** (`createdAt`, `updatedAt`, `readAt`, `expiresAt`...) BẮT BUỘC được format sẵn theo `dateFormat`/`timeFormat`/`timezone` đang cấu hình tại Settings trước khi trả về Frontend. Việc này xử lý tự động qua `TransformInterceptor` (`backend/src/core/interceptors/transform.interceptor.ts`) + `deepFormatDates` (`backend/src/common/utils/date-format.util.ts`) áp dụng cho **toàn bộ response** — module/endpoint mới KHÔNG cần tự xử lý format ngày giờ.
+- **Nghiêm Cấm Frontend Tự Format/Parse Lại**: Component Frontend KHÔNG ĐƯỢC gọi `new Date(x).toLocaleString(...)` hay bất kỳ hình thức parse lại nào lên field ngày giờ hiển thị nhận từ API — CHỈ render nguyên văn chuỗi Backend trả về.
+- **Ngoại Lệ Field Dữ Liệu Chỉnh Sửa Được**: Field ngày giờ dùng làm dữ liệu đưa vào `DatePicker`/Form để chỉnh sửa (vd `dateOfBirth`) Backend giữ nguyên ISO, không format — khai báo thêm vào mảng `excludeKeys`/`NON_DISPLAY_DATE_FIELDS` của `deepFormatDates` khi phát sinh field loại này ở model mới.

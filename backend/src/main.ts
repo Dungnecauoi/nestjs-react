@@ -10,7 +10,6 @@ import compression from 'compression';
 
 import { CustomLoggerService } from './core/logger/logger.service';
 import { HttpExceptionFilter } from './core/exceptions/http-exception.filter';
-import { TransformInterceptor } from './core/interceptors/transform.interceptor';
 import { RedisIoAdapter } from './core/websocket/redis-io.adapter';
 
 async function bootstrap() {
@@ -85,8 +84,8 @@ async function bootstrap() {
     }),
   );
 
-  // 6. Global Interceptor & Exception Filter
-  app.useGlobalInterceptors(new TransformInterceptor());
+  // 6. Global Exception Filter (TransformInterceptor đăng ký qua APP_INTERCEPTOR trong CoreModule
+  // để có DI — inject OptionsService format ngày giờ theo Settings)
   app.useGlobalFilters(new HttpExceptionFilter(logger));
 
   // 7. Swagger API Documentation (/api/docs)

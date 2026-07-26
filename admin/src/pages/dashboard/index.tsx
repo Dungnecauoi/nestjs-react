@@ -82,7 +82,7 @@ export default function DashboardModule() {
       title: 'Thời Gian',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (date: string) => <Text type="secondary">{new Date(date).toLocaleString('vi-VN')}</Text>,
+      render: (date: string) => <Text type="secondary">{date}</Text>,
     },
   ];
 

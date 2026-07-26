@@ -156,7 +156,7 @@ export const AuditLogsPage: React.FC = () => {
       dataIndex: 'createdAt',
       key: 'createdAt',
       width: 170,
-      render: (date: string) => new Date(date).toLocaleString(),
+      render: (date: string) => date,
     },
     {
       title: t('auditLogs.colActions'),
@@ -347,7 +347,7 @@ export const AuditLogsPage: React.FC = () => {
               <Descriptions.Item label="Người thực hiện">{activeDiffLog.userEmail}</Descriptions.Item>
               <Descriptions.Item label="Thao tác">{getActionTag(activeDiffLog.action)}</Descriptions.Item>
               <Descriptions.Item label="Module">{activeDiffLog.module}</Descriptions.Item>
-              <Descriptions.Item label="Thời gian">{new Date(activeDiffLog.createdAt).toLocaleString()}</Descriptions.Item>
+              <Descriptions.Item label="Thời gian">{activeDiffLog.createdAt}</Descriptions.Item>
               <Descriptions.Item label="IP Address" span={2}>{activeDiffLog.ipAddress || '127.0.0.1'}</Descriptions.Item>
             </Descriptions>
 

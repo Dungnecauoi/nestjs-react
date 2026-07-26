@@ -421,7 +421,7 @@ export default function MediaModule() {
       dataIndex: 'createdAt',
       key: 'createdAt',
       width: 170,
-      render: (date: string) => new Date(date).toLocaleString('vi-VN'),
+      render: (date: string) => date,
     },
     {
       title: t('table.actions', 'Thao Tác'),
@@ -650,7 +650,7 @@ export default function MediaModule() {
               <div><strong>{t('media.filename', 'Tên tập tin')}:</strong> {selectedMedia.filename}</div>
               <div><strong>{t('media.mimetype', 'Loại tập tin')}:</strong> {selectedMedia.mimetype}</div>
               <div><strong>{t('media.size', 'Dung lượng')}:</strong> {(selectedMedia.size / 1024).toFixed(1)} KB</div>
-              <div><strong>{t('media.createdAt', 'Ngày tải lên')}:</strong> {new Date(selectedMedia.createdAt).toLocaleString('vi-VN')}</div>
+              <div><strong>{t('media.createdAt', 'Ngày tải lên')}:</strong> {selectedMedia.createdAt}</div>
             </div>
 
             {/* Copy URL Field */}

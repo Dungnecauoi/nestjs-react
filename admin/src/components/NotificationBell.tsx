@@ -146,7 +146,7 @@ export const NotificationBell: React.FC = () => {
                       {item.content}
                     </Text>
                     <Text type="secondary" style={{ fontSize: 10, marginTop: 2 }}>
-                      {new Date(item.createdAt).toLocaleString()}
+                      {item.createdAt}
                     </Text>
                   </div>
                 }

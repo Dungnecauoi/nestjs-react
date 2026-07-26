@@ -69,7 +69,7 @@ export default function UserProfile() {
       dataIndex: 'createdAt',
       key: 'createdAt',
       width: 160,
-      render: (date: string) => <span style={{ fontSize: 12 }}>{new Date(date).toLocaleString('vi-VN')}</span>,
+      render: (date: string) => <span style={{ fontSize: 12 }}>{date}</span>,
     },
     {
       title: '',
@@ -249,7 +249,7 @@ export default function UserProfile() {
               </Descriptions.Item>
 
               <Descriptions.Item label="Đăng Nhập Gần Nhất">
-                {sessions[0]?.createdAt ? new Date(sessions[0].createdAt).toLocaleString('vi-VN') : '-'}
+                {sessions[0]?.createdAt || '-'}
               </Descriptions.Item>
             </Descriptions>
           </Card>
