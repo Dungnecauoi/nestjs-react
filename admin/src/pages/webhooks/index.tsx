@@ -16,6 +16,7 @@ import {
 import { webhooksApi, WebhookItem } from '../../api/modules/webhooks.api';
 import { Can } from '../../components/common/Can';
 import { useAuthStore } from '../../store/useAuthStore';
+import { notify } from '../../utils/notify';
 
 export default function WebhooksModule() {
   const { t } = useTranslation();
@@ -38,32 +39,32 @@ export default function WebhooksModule() {
   const handleCreateWebhook = async (values: any) => {
     try {
       await webhooksApi.createWebhook(values);
-      message.success(t('messages.SUCCESS', { defaultValue: 'Đã tạo Webhook Endpoint thành công!' }));
+      notify.success('messages.SUCCESS', 'Đã tạo Webhook Endpoint thành công!');
       createForm.resetFields();
       setIsCreateModalOpen(false);
       refetch();
-    } catch {
-      message.error(t('messages.ERROR', { defaultValue: 'Không thể tạo Webhook Endpoint!' }));
+    } catch (err) {
+      notify.error(err, 'Không thể tạo Webhook Endpoint!');
     }
   };
 
   const handleTestPing = async (id: string) => {
     try {
       const res = await webhooksApi.testPing(id);
-      message.success(res.message || 'Đã gửi Test Ping đến Webhook!');
+      notify.success(res.message || 'Đã gửi Test Ping đến Webhook!');
       refetch();
-    } catch {
-      message.error('Không thể kết nối đến Webhook URL!');
+    } catch (err) {
+      notify.error(err, 'Không thể kết nối đến Webhook URL!');
     }
   };
 
   const handleDeleteWebhook = async (id: string) => {
     try {
       await webhooksApi.deleteWebhook(id);
-      message.success(t('messages.DELETE_SUCCESS', { defaultValue: 'Đã xóa Webhook Endpoint!' }));
+      notify.success('messages.DELETE_SUCCESS', 'Đã xóa Webhook Endpoint!');
       refetch();
-    } catch {
-      message.error('Không thể xóa Webhook!');
+    } catch (err) {
+      notify.error(err, 'Không thể xóa Webhook!');
     }
   };
 
@@ -128,7 +129,7 @@ export default function WebhooksModule() {
                 icon={<CopyOutlined />}
                 onClick={() => {
                   navigator.clipboard.writeText(secret);
-                  message.success(t('messages.COPY_SUCCESS', { defaultValue: 'Đã sao chép Webhook Secret Key!' }));
+                  notify.success('messages.COPY_SUCCESS', 'Đã sao chép Webhook Secret Key!');
                 }}
               />
             </Tooltip>

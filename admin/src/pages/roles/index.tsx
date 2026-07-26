@@ -17,6 +17,7 @@ import { permissionsApi, PermissionItem } from '../../api/modules/permissions.ap
 import { Role } from '../../types/auth.types';
 import { Can } from '../../components/common/Can';
 import { useAuthStore } from '../../store/useAuthStore';
+import { notify } from '../../utils/notify';
 
 export default function RolesModule() {
   const { t } = useTranslation();
@@ -71,12 +72,12 @@ export default function RolesModule() {
   const handleCreateRole = async (values: any) => {
     try {
       await rolesApi.createRole(values);
-      message.success('Tạo vai trò mới thành công!');
+      notify.success('roles.createSuccess', 'Tạo vai trò mới thành công!');
       setIsCreateModalOpen(false);
       createForm.resetFields();
       refetch();
-    } catch {
-      message.error('Không thể tạo vai trò mới!');
+    } catch (err) {
+      notify.error(err, 'Không thể tạo vai trò mới!');
     }
   };
 
@@ -84,11 +85,11 @@ export default function RolesModule() {
     if (!selectedRole) return;
     try {
       await rolesApi.updateRole(selectedRole.id, values);
-      message.success('Cập nhật vai trò thành công!');
+      notify.success('roles.updateSuccess', 'Cập nhật vai trò thành công!');
       setIsEditModalOpen(false);
       refetch();
-    } catch {
-      message.error('Không thể cập nhật vai trò!');
+    } catch (err) {
+      notify.error(err, 'Không thể cập nhật vai trò!');
     }
   };
 
@@ -96,21 +97,21 @@ export default function RolesModule() {
     if (!selectedRole) return;
     try {
       await rolesApi.assignPermissionsToRole(selectedRole.id, values.permissionIds || []);
-      message.success('Cập nhật quyền hạn cho vai trò thành công!');
+      notify.success('roles.updateSuccess', 'Cập nhật quyền hạn cho vai trò thành công!');
       setIsPermModalOpen(false);
       refetch();
-    } catch {
-      message.error('Không thể phân quyền cho vai trò!');
+    } catch (err) {
+      notify.error(err, 'Không thể phân quyền cho vai trò!');
     }
   };
 
   const handleDeleteRole = async (roleId: string) => {
     try {
       await rolesApi.deleteRole(roleId);
-      message.success('Đã xóa vai trò thành công!');
+      notify.success('table.deleteSuccess', 'Đã xóa vai trò thành công!');
       refetch();
-    } catch {
-      message.error('Không thể xóa vai trò!');
+    } catch (err) {
+      notify.error(err, 'Không thể xóa vai trò!');
     }
   };
 

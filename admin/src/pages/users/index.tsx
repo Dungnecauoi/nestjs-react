@@ -29,6 +29,7 @@ import { Can } from '../../components/common/Can';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useSystemOptions } from '../../hooks/useSystemOptions';
 import { ROUTES } from '../../routes/routes.config';
+import { notify } from '../../utils/notify';
 
 export default function UsersModule() {
   const { t } = useTranslation();
@@ -71,20 +72,20 @@ export default function UsersModule() {
   const handleApproveUser = async (userId: string) => {
     try {
       await usersApi.approveUser(userId);
-      message.success(t('users.approveSuccess', 'Đã phê duyệt tài khoản thành công!'));
+      notify.success('users.approveSuccess', 'Đã phê duyệt tài khoản thành công!');
       refetch();
-    } catch {
-      message.error('Không thể phê duyệt tài khoản!');
+    } catch (err) {
+      notify.error(err, 'Không thể phê duyệt tài khoản!');
     }
   };
 
   const handleDeleteUser = async (userId: string) => {
     try {
       await usersApi.deleteUser(userId);
-      message.success(t('table.deleteSuccess', 'Đã xóa bản ghi thành công!'));
+      notify.success('table.deleteSuccess', 'Đã xóa bản ghi thành công!');
       refetch();
-    } catch {
-      message.error('Không thể xóa người dùng!');
+    } catch (err) {
+      notify.error(err, 'Không thể xóa người dùng!');
     }
   };
 
@@ -108,11 +109,11 @@ export default function UsersModule() {
       if (values.permissions) {
         await usersApi.assignPermissions(selectedUser.id, values.permissions);
       }
-      message.success('Đã gán Vai Trò & Quyền Hạn thành công!');
+      notify.success('users.assignSuccess', 'Đã gán Vai Trò & Quyền Hạn thành công!');
       setIsAssignModalOpen(false);
       refetch();
-    } catch {
-      message.error('Không thể gán Vai Trò!');
+    } catch (err) {
+      notify.error(err, 'Không thể gán Vai Trò!');
     }
   };
 
@@ -336,9 +337,9 @@ export default function UsersModule() {
               onClick={async () => {
                 try {
                   await importExportApi.exportUsersCsv();
-                  message.success('Đã tải xuống file CSV danh sách người dùng!');
-                } catch {
-                  message.error('Không thể xuất file CSV!');
+                  notify.success('users.exportSuccess', 'Đã tải xuống file CSV danh sách người dùng!');
+                } catch (err) {
+                  notify.error(err, 'Không thể xuất file CSV!');
                 }
               }}
               style={{ borderRadius: 8, fontWeight: 600 }}

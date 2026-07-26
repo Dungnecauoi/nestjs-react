@@ -7,6 +7,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { useAuthStore } from '../../store/useAuthStore';
 import { authApi } from '../../api/modules/auth.api';
 import { sessionsApi, SessionItem } from '../../api/modules/sessions.api';
+import { notify } from '../../utils/notify';
 
 export default function UserProfile() {
   const { t } = useTranslation();
@@ -36,11 +37,11 @@ export default function UserProfile() {
   const revokeMutation = useMutation({
     mutationFn: (id: string) => sessionsApi.revokeSession(id),
     onSuccess: () => {
-      message.success('Đã thu hồi phiên đăng nhập!');
+      notify.success('profile.revokeSuccess', 'Đã thu hồi phiên đăng nhập!');
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
     },
     onError: (err: any) => {
-      message.error(err.response?.data?.message || 'Không thể thu hồi phiên đăng nhập!');
+      notify.error(err, 'Không thể thu hồi phiên đăng nhập!');
     },
   });
 
@@ -110,7 +111,7 @@ export default function UserProfile() {
       const data = await authApi.generate2FASecret();
       setOtpAuthUrl(data.otpAuthUrl);
     } catch (err: any) {
-      message.error(err.response?.data?.message || 'Không thể tạo mã QR 2FA!');
+      notify.error(err, 'Không thể tạo mã QR 2FA!');
       setIs2FASetupModalOpen(false);
     } finally {
       setQrLoading(false);
@@ -136,7 +137,7 @@ export default function UserProfile() {
       if (user) setUser({ ...user, isTwoFactorEnabled: true });
       setIs2FASetupModalOpen(false);
       setOtpCode('');
-      message.success('Đã xác minh mã OTP và kích hoạt 2FA thành công!');
+      notify.success('profile.2faEnabled', 'Đã xác minh mã OTP và kích hoạt 2FA thành công!');
     } catch (err: any) {
       setOtpError(err.response?.data?.message || 'Mã OTP không chính xác hoặc đã hết hạn!');
     } finally {
@@ -157,7 +158,7 @@ export default function UserProfile() {
       if (user) setUser({ ...user, isTwoFactorEnabled: false });
       setIs2FADisableModalOpen(false);
       setOtpCode('');
-      message.success('Đã tắt xác thực 2FA!');
+      notify.success('profile.2faDisabled', 'Đã tắt xác thực 2FA!');
     } catch (err: any) {
       setOtpError(err.response?.data?.message || 'Mã OTP không chính xác!');
     } finally {

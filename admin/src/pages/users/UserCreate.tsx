@@ -33,6 +33,7 @@ import { departmentsApi } from '../../api/modules/departments.api';
 import { rolesApi } from '../../api/modules/roles.api';
 import { permissionsApi } from '../../api/modules/permissions.api';
 import { ROUTES } from '../../routes/routes.config';
+import { notify } from '../../utils/notify';
 
 export default function UserCreate() {
   const { t } = useTranslation();
@@ -74,10 +75,10 @@ export default function UserCreate() {
       };
 
       await usersApi.createUser(payload);
-      message.success(t('users.createSuccess', 'Đã tạo tài khoản người dùng mới thành công!'));
+      notify.success('users.createSuccess', 'Đã tạo tài khoản người dùng mới thành công!');
       navigate(ROUTES.ADMIN_USERS.path);
     } catch (err: any) {
-      message.error(err?.response?.data?.message || 'Không thể tạo tài khoản người dùng!');
+      notify.error(err, 'Không thể tạo tài khoản người dùng!');
     } finally {
       setLoading(false);
     }

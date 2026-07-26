@@ -33,6 +33,7 @@ import { departmentsApi } from '../../api/modules/departments.api';
 import { rolesApi } from '../../api/modules/roles.api';
 import { permissionsApi } from '../../api/modules/permissions.api';
 import { ROUTES } from '../../routes/routes.config';
+import { notify } from '../../utils/notify';
 
 export default function UserEdit() {
   const { t } = useTranslation();
@@ -94,8 +95,8 @@ export default function UserEdit() {
             departmentIds: existingDepts,
           });
         }
-      } catch {
-        message.error('Không thể tải thông tin người dùng!');
+      } catch (err) {
+        notify.error(err, 'Không thể tải thông tin người dùng!');
       } finally {
         setFetching(false);
       }
@@ -113,10 +114,10 @@ export default function UserEdit() {
       };
 
       await usersApi.updateUser(id, payload);
-      message.success(t('users.updateSuccess', 'Đã cập nhật thông tin người dùng thành công!'));
+      notify.success('users.updateSuccess', 'Đã cập nhật thông tin người dùng thành công!');
       navigate(ROUTES.ADMIN_USERS.path);
     } catch (err: any) {
-      message.error(err?.response?.data?.message || 'Không thể cập nhật người dùng!');
+      notify.error(err, 'Không thể cập nhật người dùng!');
     } finally {
       setLoading(false);
     }
