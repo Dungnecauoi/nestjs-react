@@ -5,6 +5,8 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { OptionsService } from '../options/options.service';
 import { IS_PUBLIC_KEY } from '../../common/decorators/public.decorator';
 import { CustomApiException } from '../../common/exceptions/custom-api.exception';
@@ -15,6 +17,8 @@ export class MaintenanceGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly optionsService: OptionsService,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -24,13 +28,15 @@ export class MaintenanceGuard implements CanActivate {
     ]);
 
     const req = context.switchToHttp().getRequest();
+    const url = (req.originalUrl || req.url || '').toLowerCase();
 
-    // Bypass login / auth / options routes so admin can log in and turn off maintenance mode
+    // Always bypass auth, maintenance, options, health and public routes
     if (
       isPublic ||
-      req.url?.includes('/api/auth') ||
-      req.url?.includes('/api/maintenance') ||
-      req.url?.includes('/api/options')
+      url.includes('/auth') ||
+      url.includes('/maintenance') ||
+      url.includes('/options') ||
+      url.includes('/health')
     ) {
       return true;
     }
@@ -40,10 +46,23 @@ export class MaintenanceGuard implements CanActivate {
       return true;
     }
 
-    // Bypass if user is super-admin
-    const user = req.user;
-    if (user && user.roles && (user.roles.includes('super-admin') || user.roles.includes('admin'))) {
-      return true;
+    // Bypass if user is super-admin or admin via JWT Token
+    try {
+      let token: string | undefined;
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+
+      if (token) {
+        const secret = this.configService.get<string>('auth.jwtSecret') || 'super_secret_key';
+        const decoded = this.jwtService.verify(token, { secret });
+        if (decoded && decoded.roles && (decoded.roles.includes('super-admin') || decoded.roles.includes('admin'))) {
+          return true;
+        }
+      }
+    } catch {
+      // Ignore token decode errors
     }
 
     throw new CustomApiException(

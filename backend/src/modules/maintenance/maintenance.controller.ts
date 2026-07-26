@@ -36,11 +36,11 @@ export class MaintenanceController {
   @Get('backup')
   @RequirePermissions('setting:update')
   @ApiOperation({ summary: 'Tải file sao lưu dữ liệu hệ thống (System Backup JSON)' })
-  async downloadBackup(@Res() res: Response) {
+  async downloadBackup(@Res({ passthrough: true }) res: Response) {
     const jsonString = await this.maintenanceService.generateSystemBackup();
     const filename = `backup_core_erp_${Date.now()}.json`;
-    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
-    return res.send(jsonString);
+    return jsonString;
   }
 }

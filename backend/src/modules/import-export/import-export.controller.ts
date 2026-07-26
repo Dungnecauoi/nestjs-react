@@ -26,21 +26,21 @@ export class ImportExportController {
   @Get('export/users')
   @RequirePermissions('user:read')
   @ApiOperation({ summary: 'Xuất danh sách User ra file CSV' })
-  async exportUsers(@Res() res: Response) {
+  async exportUsers(@Res({ passthrough: true }) res: Response) {
     const csvContent = await this.importExportService.exportUsersToCsv();
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename=users_export_${Date.now()}.csv`);
-    return res.send(Buffer.from('\uFEFF' + csvContent, 'utf-8')); // Add BOM for Excel UTF-8 display
+    return Buffer.from('\uFEFF' + csvContent, 'utf-8');
   }
 
   @Get('export/departments')
   @RequirePermissions('department:read')
   @ApiOperation({ summary: 'Xuất danh sách Phòng Ban ra file CSV' })
-  async exportDepartments(@Res() res: Response) {
+  async exportDepartments(@Res({ passthrough: true }) res: Response) {
     const csvContent = await this.importExportService.exportDepartmentsToCsv();
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename=departments_export_${Date.now()}.csv`);
-    return res.send(Buffer.from('\uFEFF' + csvContent, 'utf-8'));
+    return Buffer.from('\uFEFF' + csvContent, 'utf-8');
   }
 
   @Post('import/users')
