@@ -384,5 +384,22 @@ export default {
     "colIp": "IP & Thiết Bị",
     "colTime": "Thời Gian",
     "colActions": "Thao Tác"
+  },
+  "webhooks": {
+    "title": "Quản Lý Webhook Engine & Event Subscriptions",
+    "subtitle": "Đăng ký các URL nhận sự kiện tự động (HTTP POST Payload + Chữ Ký Số HMAC SHA-256) khi có thay đổi dữ liệu Core",
+    "createButton": "Đăng Ký Webhook Mới",
+    "modalTitle": "Đăng Ký Webhook Target Mới",
+    "name": "Tên Webhook / Target",
+    "url": "URL Đích (Endpoint)",
+    "events": "Sự Kiện Lắng Nghe",
+    "secret": "Khóa Bí Mật (Secret Key)",
+    "lastTriggered": "Kích Hoạt Gần Nhất",
+    "testPingHelp": "Gửi Test Ping (Không ghi rác Audit Log)",
+    "deleteConfirm": "Xóa Webhook endpoint này?",
+    "fieldName": "Tên Tích Hợp / Tên Hệ Thống Nhận",
+    "fieldUrl": "URL Đích (HTTP/HTTPS Target URL)",
+    "fieldEvents": "Các Sự Kiện Đăng Ký Lắng Nghe (Tự Động Phân Theo Module)",
+    "selectEventsPlaceholder": "Chọn các sự kiện cần đăng ký..."
   }
 };

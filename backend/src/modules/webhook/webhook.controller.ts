@@ -28,6 +28,13 @@ export class WebhookController {
     return this.webhookService.findAll();
   }
 
+  @Get('available-events')
+  @RequirePermissions('setting:read')
+  @ApiOperation({ summary: 'Lấy danh sách các sự kiện Webhook khả dụng phân loại theo Module' })
+  getAvailableEvents() {
+    return this.webhookService.getAvailableEvents();
+  }
+
   @Post()
   @RequirePermissions('setting:update')
   @ApiOperation({ summary: 'Tạo mới Webhook Endpoint' })

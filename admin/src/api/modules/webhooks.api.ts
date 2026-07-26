@@ -25,6 +25,15 @@ export const webhooksApi = {
     }
   },
 
+  getAvailableEvents: async (): Promise<{ module: string; events: { value: string; label: string }[] }[]> => {
+    try {
+      const res = await api.get('/webhooks/available-events');
+      return res.data?.data || res.data || [];
+    } catch {
+      return [];
+    }
+  },
+
   createWebhook: async (payload: { name: string; url: string; events: string[]; secret?: string }): Promise<WebhookItem> => {
     const res = await api.post('/webhooks', payload);
     return res.data?.data || res.data;

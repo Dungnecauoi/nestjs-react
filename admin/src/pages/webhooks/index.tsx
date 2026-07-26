@@ -11,6 +11,7 @@ import {
   SendOutlined,
   CheckCircleOutlined,
   GlobalOutlined,
+  CopyOutlined,
 } from '@ant-design/icons';
 import { webhooksApi, WebhookItem } from '../../api/modules/webhooks.api';
 import { Can } from '../../components/common/Can';
@@ -28,15 +29,21 @@ export default function WebhooksModule() {
     enabled: isAuthenticated,
   });
 
+  const { data: availableEvents = [] } = useQuery({
+    queryKey: ['webhook-available-events'],
+    queryFn: webhooksApi.getAvailableEvents,
+    enabled: isAuthenticated,
+  });
+
   const handleCreateWebhook = async (values: any) => {
     try {
       await webhooksApi.createWebhook(values);
-      message.success('Đã tạo Webhook Endpoint thành công!');
+      message.success(t('messages.SUCCESS', { defaultValue: 'Đã tạo Webhook Endpoint thành công!' }));
       createForm.resetFields();
       setIsCreateModalOpen(false);
       refetch();
     } catch {
-      message.error('Không thể tạo Webhook Endpoint!');
+      message.error(t('messages.ERROR', { defaultValue: 'Không thể tạo Webhook Endpoint!' }));
     }
   };
 
@@ -53,7 +60,7 @@ export default function WebhooksModule() {
   const handleDeleteWebhook = async (id: string) => {
     try {
       await webhooksApi.deleteWebhook(id);
-      message.success('Đã xóa Webhook Endpoint!');
+      message.success(t('messages.DELETE_SUCCESS', { defaultValue: 'Đã xóa Webhook Endpoint!' }));
       refetch();
     } catch {
       message.error('Không thể xóa Webhook!');
@@ -62,7 +69,7 @@ export default function WebhooksModule() {
 
   const columns: ColumnsType<WebhookItem> = [
     {
-      title: 'Tên Webhook / Target',
+      title: t('webhooks.name', 'Tên Webhook / Target'),
       dataIndex: 'name',
       key: 'name',
       width: 200,
@@ -74,7 +81,7 @@ export default function WebhooksModule() {
       ),
     },
     {
-      title: 'URL Đích (Endpoint)',
+      title: t('webhooks.url', 'URL Đích (Endpoint)'),
       dataIndex: 'url',
       key: 'url',
       render: (url: string) => (
@@ -85,7 +92,7 @@ export default function WebhooksModule() {
       ),
     },
     {
-      title: 'Sự Kiện Lắng Nghe',
+      title: t('webhooks.events', 'Sự Kiện Lắng Nghe'),
       dataIndex: 'events',
       key: 'events',
       width: 220,
@@ -104,18 +111,45 @@ export default function WebhooksModule() {
       ),
     },
     {
-      title: 'Trạng Thái',
+      title: t('webhooks.secret', 'Khóa Bí Mật (Secret Key)'),
+      dataIndex: 'secret',
+      key: 'secret',
+      width: 180,
+      render: (secret: string) =>
+        secret ? (
+          <Space>
+            <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#059669', fontWeight: 700 }}>
+              {secret.substring(0, 8)}...
+            </span>
+            <Tooltip title={t('common.copy', 'Sao chép Secret Key')}>
+              <Button
+                size="small"
+                type="text"
+                icon={<CopyOutlined />}
+                onClick={() => {
+                  navigator.clipboard.writeText(secret);
+                  message.success(t('messages.COPY_SUCCESS', { defaultValue: 'Đã sao chép Webhook Secret Key!' }));
+                }}
+              />
+            </Tooltip>
+          </Space>
+        ) : (
+          <span style={{ color: '#94a3b8' }}>Chưa thiết lập secret</span>
+        ),
+    },
+    {
+      title: t('table.status', 'Trạng Thái'),
       dataIndex: 'isActive',
       key: 'isActive',
       width: 130,
       render: (isActive: boolean) => (
         <Tag color={isActive ? 'success' : 'error'} style={{ fontWeight: 700, borderRadius: 6 }}>
-          {isActive ? 'Hoạt Động' : 'Đã Tắt'}
+          {isActive ? t('table.active', 'Hoạt Động') : t('table.disabled', 'Đã Tắt')}
         </Tag>
       ),
     },
     {
-      title: 'Kích Hoạt Gần Nhất',
+      title: t('webhooks.lastTriggered', 'Kích Hoạt Gần Nhất'),
       dataIndex: 'lastTriggeredAt',
       key: 'lastTriggeredAt',
       width: 180,
@@ -129,11 +163,11 @@ export default function WebhooksModule() {
       render: (_: any, record: WebhookItem) => (
         <Space size={6}>
           <Can permission="setting:update">
-            <Tooltip title="Gửi Test Ping">
+            <Tooltip title={t('webhooks.testPingHelp', 'Gửi Test Ping (Không ghi rác Audit Log)')}>
               <Button size="small" icon={<SendOutlined style={{ color: '#2563eb' }} />} onClick={() => handleTestPing(record.id)} />
             </Tooltip>
 
-            <Popconfirm title="Xóa Webhook này?" onConfirm={() => handleDeleteWebhook(record.id)} okText="Xóa" cancelText="Hủy">
+            <Popconfirm title={t('webhooks.deleteConfirm', 'Xóa Webhook endpoint này?')} onConfirm={() => handleDeleteWebhook(record.id)} okText={t('common.delete', 'Xóa')} cancelText={t('common.cancel', 'Hủy')}>
               <Button size="small" danger icon={<DeleteOutlined />} />
             </Popconfirm>
           </Can>
@@ -148,16 +182,16 @@ export default function WebhooksModule() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <div>
             <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0, color: '#0f172a' }}>
-              Quản Lý Webhook Engine & Event Subscriptions
+              {t('webhooks.title', 'Quản Lý Webhook Engine & Event Subscriptions')}
             </h1>
             <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: 13 }}>
-              Đăng ký các URL nhận sự kiện tự động (HTTP POST Payload + HMAC Signature) khi có thay đổi dữ liệu Core
+              {t('webhooks.subtitle', 'Đăng ký các URL nhận sự kiện tự động (HTTP POST Payload + HMAC SHA-256 Signature) khi có thay đổi dữ liệu Core')}
             </p>
           </div>
 
           <Space wrap size="middle">
             <Button icon={<ReloadOutlined spin={isRefetching} />} onClick={() => refetch()} style={{ borderRadius: 8, fontWeight: 600 }}>
-              Làm Mới
+              {t('common.refresh', 'Làm Mới')}
             </Button>
 
             <Can permission="setting:update">
@@ -167,7 +201,7 @@ export default function WebhooksModule() {
                 onClick={() => setIsCreateModalOpen(true)}
                 style={{ backgroundColor: '#2563eb', borderRadius: 8, fontWeight: 600 }}
               >
-                Đăng Ký Webhook Mới
+                {t('webhooks.createButton', 'Đăng Ký Webhook Mới')}
               </Button>
             </Can>
           </Space>
@@ -180,36 +214,39 @@ export default function WebhooksModule() {
 
       {/* Modal Tạo Webhook */}
       <Modal
-        title="Đăng Ký Webhook Target Mới"
+        title={t('webhooks.modalTitle', 'Đăng Ký Webhook Target Mới')}
         open={isCreateModalOpen}
         onCancel={() => setIsCreateModalOpen(false)}
         onOk={() => createForm.submit()}
-        okText="Tạo Webhook"
-        cancelText="Hủy"
-        width={560}
+        okText={t('common.create', 'Tạo Webhook')}
+        cancelText={t('common.cancel', 'Hủy')}
+        width={580}
       >
         <Form form={createForm} layout="vertical" onFinish={handleCreateWebhook} style={{ marginTop: 16 }} initialValues={{ events: ['*'] }}>
-          <Form.Item name="name" label="Tên Tích Hợp / Tên Hệ Thống Nhận" rules={[{ required: true, message: 'Vui lòng nhập tên!' }]}>
+          <Form.Item name="name" label={t('webhooks.fieldName', 'Tên Tích Hợp / Tên Hệ Thống Nhận')} rules={[{ required: true, message: 'Vui lòng nhập tên!' }]}>
             <Input placeholder="n8n Automation / Zapier Endpoint / Customer System" style={{ borderRadius: 6 }} />
           </Form.Item>
 
-          <Form.Item name="url" label="URL Đích (HTTP/HTTPS Target URL)" rules={[{ required: true, type: 'url', message: 'URL không hợp lệ!' }]}>
+          <Form.Item name="url" label={t('webhooks.fieldUrl', 'URL Đích (HTTP/HTTPS Target URL)')} rules={[{ required: true, type: 'url', message: 'URL không hợp lệ!' }]}>
             <Input placeholder="https://api.thirdparty.com/webhooks/ecomcx" style={{ borderRadius: 6 }} />
           </Form.Item>
 
-          <Form.Item name="events" label="Các Sự Kiện Đăng Ký Lắng Nghe" rules={[{ required: true, message: 'Vui lòng chọn sự kiện!' }]}>
+          <Form.Item name="events" label={t('webhooks.fieldEvents', 'Các Sự Kiện Đăng Ký Lắng Nghe (Tự Động Phân Theo Module)')} rules={[{ required: true, message: 'Vui lòng chọn sự kiện!' }]}>
             <Select
-              mode="tags"
-              placeholder="Chọn sự kiện..."
-              options={[
-                { value: '*', label: 'Tất cả các sự kiện (*)' },
-                { value: 'user.created', label: 'Tạo Người Dùng Mới (user.created)' },
-                { value: 'user.updated', label: 'Cập Nhật Người Dùng (user.updated)' },
-                { value: 'role.updated', label: 'Thay Đổi Quyền Hạn (role.updated)' },
-                { value: 'system.maintenance', label: 'Bảo Trì Hệ Thống (system.maintenance)' },
-              ]}
+              mode="multiple"
+              placeholder={t('webhooks.selectEventsPlaceholder', 'Chọn các sự kiện cần đăng ký...')}
               style={{ borderRadius: 6 }}
-            />
+            >
+              {availableEvents.map((group, idx) => (
+                <Select.OptGroup key={idx} label={group.module}>
+                  {group.events.map((ev) => (
+                    <Select.Option key={ev.value} value={ev.value}>
+                      {ev.label}
+                    </Select.Option>
+                  ))}
+                </Select.OptGroup>
+              ))}
+            </Select>
           </Form.Item>
         </Form>
       </Modal>

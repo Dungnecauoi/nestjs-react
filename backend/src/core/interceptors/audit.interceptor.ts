@@ -60,7 +60,9 @@ export class AuditInterceptor implements NestInterceptor {
       url.includes('/api/audit-logs') ||
       url.includes('/api/notifications') ||
       url.includes('/api/auth/refresh') ||
-      url.includes('/api/auth/me')
+      url.includes('/api/auth/me') ||
+      url.includes('/ping') ||
+      url.includes('/queues/clean')
     ) {
       return next.handle();
     }
