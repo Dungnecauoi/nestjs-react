@@ -4,12 +4,14 @@ import { QueryMediaDto } from './dto/query-media.dto';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import * as fs from 'fs';
 import * as path from 'path';
+import { WebhookService } from '../webhook/webhook.service';
 
 @Injectable()
 export class MediaService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly i18n: I18nService,
+    private readonly webhookService: WebhookService,
   ) {}
 
   async findAll(query: QueryMediaDto = {}) {
@@ -83,7 +85,7 @@ export class MediaService {
     const host = process.env.APP_URL || 'http://localhost:3000';
     const publicUrl = `${host}/uploads/${file.filename}`;
 
-    return this.prisma.media.create({
+    const created = await this.prisma.media.create({
       data: {
         filename: file.originalname,
         filepath: `/uploads/${file.filename}`,
@@ -95,6 +97,8 @@ export class MediaService {
         createdById: createdById || null,
       },
     });
+    this.webhookService.triggerWebhooks('media.uploaded', created).catch(() => {});
+    return created;
   }
 
   async updateMedia(
@@ -149,10 +153,12 @@ export class MediaService {
   async removeMedia(id: string) {
     await this.findOne(id);
     // Soft delete: giữ nguyên file vật lý trên đĩa để restore() vẫn dùng lại được.
-    return this.prisma.media.update({
+    const removed = await this.prisma.media.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
+    this.webhookService.triggerWebhooks('media.deleted', { id }).catch(() => {});
+    return removed;
   }
 
   async restore(id: string) {

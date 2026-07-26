@@ -1,4 +1,4 @@
-import { IsString, IsUrl, IsOptional, IsArray } from 'class-validator';
+import { IsString, IsUrl, IsArray } from 'class-validator';
 
 export class CreateWebhookDto {
   @IsString()
@@ -7,9 +7,7 @@ export class CreateWebhookDto {
   @IsUrl()
   url: string;
 
-  @IsOptional()
-  @IsString()
-  secret?: string;
+  // Secret luôn server-generate (xem WebhookService.create) — không nhận từ client.
 
   @IsArray()
   @IsString({ each: true })

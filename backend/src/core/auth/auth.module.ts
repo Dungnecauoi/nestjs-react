@@ -9,6 +9,7 @@ import { ApiKeyStrategy } from './strategies/api-key.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { ApiKeyGuard } from './guards/api-key.guard';
+import { JwtOrApiKeyGuard } from './guards/jwt-or-api-key.guard';
 import { PermissionGuard } from './guards/permission.guard';
 
 import { AuthService } from './auth.service';
@@ -43,6 +44,7 @@ import { ApiKeyController } from './api-key/api-key.controller';
     JwtAuthGuard,
     JwtRefreshGuard,
     ApiKeyGuard,
+    JwtOrApiKeyGuard,
     PermissionGuard,
   ],
   exports: [
@@ -57,6 +59,7 @@ import { ApiKeyController } from './api-key/api-key.controller';
     JwtAuthGuard,
     JwtRefreshGuard,
     ApiKeyGuard,
+    JwtOrApiKeyGuard,
     PermissionGuard,
   ],
 })

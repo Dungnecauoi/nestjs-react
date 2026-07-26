@@ -11,6 +11,7 @@ import { AssignUserDepartmentsDto } from './dto/assign-user-departments.dto';
 import { QueryUserDto } from './dto/query-user.dto';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import * as bcrypt from 'bcrypt';
+import { WebhookService } from '../webhook/webhook.service';
 
 @Injectable()
 export class UserService {
@@ -42,6 +43,7 @@ export class UserService {
     private readonly prisma: PrismaService,
     private readonly i18n: I18nService,
     private readonly configService: ConfigService,
+    private readonly webhookService: WebhookService,
   ) {}
 
   private get bcryptRounds(): number {
@@ -219,7 +221,9 @@ export class UserService {
       });
     }
 
-    return this.findOne(user.id);
+    const created = await this.findOne(user.id);
+    this.webhookService.triggerWebhooks('user.created', created).catch(() => {});
+    return created;
   }
 
   async update(id: string, dto: any) {
@@ -321,7 +325,9 @@ export class UserService {
       await this.revokeAllSessions(id);
     }
 
-    return this.findOne(id);
+    const updated = await this.findOne(id);
+    this.webhookService.triggerWebhooks('user.updated', updated).catch(() => {});
+    return updated;
   }
 
   async remove(id: string) {
@@ -331,6 +337,7 @@ export class UserService {
       data: { deletedAt: new Date(), isActive: false },
     });
     await this.revokeAllSessions(id);
+    this.webhookService.triggerWebhooks('user.deleted', { id }).catch(() => {});
     return { success: true, message: 'Đã xóa người dùng thành công' };
   }
 
@@ -352,7 +359,9 @@ export class UserService {
       where: { id },
       data: { isActive: true },
     });
-    return this.findOne(id);
+    const approved = await this.findOne(id);
+    this.webhookService.triggerWebhooks('user.approved', approved).catch(() => {});
+    return approved;
   }
 
   async assignRoles(userId: string, dto: AssignUserRolesDto) {

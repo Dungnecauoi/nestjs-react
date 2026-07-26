@@ -6,17 +6,18 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiSecurity, ApiOperation } from '@nestjs/swagger';
 import { AuditService } from './audit.service';
 import { QueryAuditDto } from './dto/query-audit.dto';
-import { JwtAuthGuard } from '../../core/auth/guards/jwt-auth.guard';
+import { JwtOrApiKeyGuard } from '../../core/auth/guards/jwt-or-api-key.guard';
 import { PermissionGuard } from '../../core/auth/guards/permission.guard';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { I18nLang } from 'nestjs-i18n';
 
 @ApiTags('Audit Log Management')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionGuard)
+@ApiSecurity('x-api-key')
+@UseGuards(JwtOrApiKeyGuard, PermissionGuard)
 @Controller('audit-logs')
 export class AuditController {
   constructor(private readonly auditService: AuditService) {}

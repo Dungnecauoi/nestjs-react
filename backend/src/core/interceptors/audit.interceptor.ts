@@ -4,9 +4,10 @@ import {
   ExecutionContext,
   CallHandler,
 } from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { Observable, from } from 'rxjs';
+import { tap, switchMap } from 'rxjs/operators';
 import { AuditService } from '../../modules/audit/audit.service';
+import { PrismaService } from '../database/prisma.service';
 
 const SENSITIVE_KEYS = [
   'password',
@@ -42,9 +43,25 @@ function sanitizeForAudit(value: any, depth = 0): any {
   return result;
 }
 
+/**
+ * A5: Map tên module → tên bảng Prisma để query beforeState chính xác.
+ * Chỉ cần bổ sung khi thêm module mới.
+ */
+const MODULE_TABLE_MAP: Record<string, string> = {
+  users: 'user',
+  roles: 'role',
+  departments: 'department',
+  permissions: 'permission',
+  webhooks: 'webhook',
+  media: 'media',
+};
+
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
-  constructor(private readonly auditService: AuditService) {}
+  constructor(
+    private readonly auditService: AuditService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
@@ -78,27 +95,50 @@ export class AuditInterceptor implements NestInterceptor {
 
     const pathParts = url.split('?')[0].split('/').filter(Boolean);
     const module = pathParts[1] || 'system';
+    // pathParts = ['api', 'users', ':id'] => entityId from URL
+    const entityIdFromUrl = pathParts.length >= 3 ? pathParts[2] : null;
 
     const userAgent = request.headers['user-agent'] || '';
 
-    return next.handle().pipe(
-      tap((responseContent) => {
-        try {
-          this.auditService.logAction({
-            userId: user?.id,
-            userEmail: user?.email || 'Guest',
-            action,
-            module,
-            entityId: responseContent?.id || body?.id || null,
-            beforeState: action === 'UPDATE' ? sanitizeForAudit(body) : null,
-            afterState: sanitizeForAudit(responseContent ?? body ?? null),
-            ipAddress: ip || request.connection?.remoteAddress,
-            userAgent,
-          });
-        } catch (err) {
-          console.error('AuditInterceptor failed to record log:', err);
-        }
-      }),
+    // A5: Lấy beforeState từ DB khi UPDATE — không dùng request.body (chỉ là partial input)
+    const fetchBeforeState = async (): Promise<any> => {
+      if (action !== 'UPDATE' || !entityIdFromUrl) return null;
+
+      const tableName = MODULE_TABLE_MAP[module];
+      if (!tableName) return sanitizeForAudit(body);
+
+      try {
+        const record = await (this.prisma as any)[tableName].findUnique({
+          where: { id: entityIdFromUrl },
+        });
+        return sanitizeForAudit(record);
+      } catch {
+        return sanitizeForAudit(body); // fallback về body nếu query lỗi
+      }
+    };
+
+    return from(fetchBeforeState()).pipe(
+      switchMap((beforeState) =>
+        next.handle().pipe(
+          tap((responseContent) => {
+            try {
+              this.auditService.logAction({
+                userId: user?.id,
+                userEmail: user?.email || 'Guest',
+                action,
+                module,
+                entityId: responseContent?.id || entityIdFromUrl || body?.id || null,
+                beforeState,
+                afterState: sanitizeForAudit(responseContent ?? body ?? null),
+                ipAddress: ip || request.connection?.remoteAddress,
+                userAgent,
+              });
+            } catch (err) {
+              console.error('AuditInterceptor failed to record log:', err);
+            }
+          }),
+        ),
+      ),
     );
   }
 }

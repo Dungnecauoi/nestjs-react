@@ -9,18 +9,19 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiSecurity } from '@nestjs/swagger';
 import { RoleService } from './role.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { AssignPermissionsToRoleDto } from './dto/assign-permissions-role.dto';
 import { QueryRoleDto } from './dto/query-role.dto';
-import { JwtAuthGuard } from '../../core/auth/guards/jwt-auth.guard';
+import { JwtOrApiKeyGuard } from '../../core/auth/guards/jwt-or-api-key.guard';
 import { PermissionGuard } from '../../core/auth/guards/permission.guard';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Role Management')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionGuard)
+@ApiSecurity('x-api-key')
+@UseGuards(JwtOrApiKeyGuard, PermissionGuard)
 @Controller('roles')
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}

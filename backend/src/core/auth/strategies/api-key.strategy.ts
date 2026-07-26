@@ -9,17 +9,17 @@ export class ApiKeyStrategy extends PassportStrategy(
   'api-key',
 ) {
   constructor(private readonly apiKeyService: ApiKeyService) {
-    super(
-      { header: 'x-api-key', prefix: '' },
-      true,
-    );
+    // passReqToCallback=false (mặc định): passport-headerapikey nối `req` vào SAU callback
+    // `verified` khi bật true, làm lệch vị trí tham số cuối mà NestJS's PassportStrategy mixin
+    // coi là `done` — gây "done is not a function" khi strategy này chạy thật lần đầu.
+    super({ header: 'x-api-key', prefix: '' }, false);
   }
 
-  async validate(apiKey: string, done: (err: any, user?: any) => void) {
+  async validate(apiKey: string) {
     const user = await this.apiKeyService.validateKey(apiKey);
     if (!user) {
-      return done(new UnauthorizedException('API Key không hợp lệ hoặc đã hết hạn!'), false);
+      throw new UnauthorizedException('API Key không hợp lệ hoặc đã hết hạn!');
     }
-    return done(null, user);
+    return user;
   }
 }

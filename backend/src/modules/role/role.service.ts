@@ -8,12 +8,14 @@ import { CreateRoleDto } from './dto/create-role.dto';
 import { AssignPermissionsToRoleDto } from './dto/assign-permissions-role.dto';
 import { QueryRoleDto } from './dto/query-role.dto';
 import { I18nContext, I18nService } from 'nestjs-i18n';
+import { WebhookService } from '../webhook/webhook.service';
 
 @Injectable()
 export class RoleService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly i18n: I18nService,
+    private readonly webhookService: WebhookService,
   ) {}
 
   private translateRolePermissions(role: any, lang: string) {
@@ -124,7 +126,7 @@ export class RoleService {
       throw new BadRequestException(`Role code "${dto.code}" đã tồn tại!`);
     }
 
-    return this.prisma.role.create({
+    const created = await this.prisma.role.create({
       data: {
         code: dto.code,
         name: dto.name,
@@ -141,12 +143,14 @@ export class RoleService {
         permissions: { include: { permission: true } },
       },
     });
+    this.webhookService.triggerWebhooks('role.created', created).catch(() => {});
+    return created;
   }
 
   async update(id: string, dto: Partial<CreateRoleDto>) {
     await this.findOne(id);
 
-    return this.prisma.$transaction(async (tx) => {
+    const updated = await this.prisma.$transaction(async (tx) => {
       if (dto.permissionIds) {
         // Xóa hết liên kết permission cũ
         await tx.rolePermission.deleteMany({ where: { roleId: id } });
@@ -171,6 +175,8 @@ export class RoleService {
         },
       });
     });
+    this.webhookService.triggerWebhooks('role.updated', updated).catch(() => {});
+    return updated;
   }
 
   async assignPermissions(id: string, dto: AssignPermissionsToRoleDto) {
@@ -198,6 +204,7 @@ export class RoleService {
       where: { id },
       data: { deletedAt: new Date() },
     });
+    this.webhookService.triggerWebhooks('role.deleted', { id }).catch(() => {});
     const lang = I18nContext.current()?.lang;
     return { message: this.i18n.t('messages.DELETE_SUCCESS', { lang }) };
   }

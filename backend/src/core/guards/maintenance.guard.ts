@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { OptionsService } from '../options/options.service';
 import { IS_PUBLIC_KEY } from '../../common/decorators/public.decorator';
+import { BYPASS_MAINTENANCE_KEY } from '../../common/decorators/bypass-maintenance.decorator';
 import { CustomApiException } from '../../common/exceptions/custom-api.exception';
 import { ErrorCode } from '../../common/enums/error-code.enum';
 
@@ -27,17 +28,15 @@ export class MaintenanceGuard implements CanActivate {
       context.getClass(),
     ]);
 
-    const req = context.switchToHttp().getRequest();
-    const url = (req.originalUrl || req.url || '').toLowerCase();
+    // Metadata-based bypass thay cho so khớp chuỗi URL — route mới không vô tình trùng
+    // substring rồi bị bypass nhầm. Gắn @BypassMaintenance() ở controller/route cần chạy
+    // được trong lúc bảo trì (Auth, Maintenance, Options, Health).
+    const bypassMaintenance = this.reflector.getAllAndOverride<boolean>(
+      BYPASS_MAINTENANCE_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
-    // Always bypass auth, maintenance, options, health and public routes
-    if (
-      isPublic ||
-      url.includes('/auth') ||
-      url.includes('/maintenance') ||
-      url.includes('/options') ||
-      url.includes('/health')
-    ) {
+    if (isPublic || bypassMaintenance) {
       return true;
     }
 
@@ -49,6 +48,7 @@ export class MaintenanceGuard implements CanActivate {
 
     // Bypass if user is super-admin or admin via JWT Token
     try {
+      const req = context.switchToHttp().getRequest();
       let token: string | undefined;
       const authHeader = req.headers.authorization;
       if (authHeader && authHeader.startsWith('Bearer ')) {

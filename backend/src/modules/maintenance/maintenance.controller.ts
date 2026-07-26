@@ -7,15 +7,18 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiSecurity } from '@nestjs/swagger';
 import { MaintenanceService } from './maintenance.service';
-import { JwtAuthGuard } from '../../core/auth/guards/jwt-auth.guard';
+import { JwtOrApiKeyGuard } from '../../core/auth/guards/jwt-or-api-key.guard';
 import { PermissionGuard } from '../../core/auth/guards/permission.guard';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
+import { BypassMaintenance } from '../../common/decorators/bypass-maintenance.decorator';
 
 @ApiTags('Maintenance & System Backup Module')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionGuard)
+@ApiSecurity('x-api-key')
+@UseGuards(JwtOrApiKeyGuard, PermissionGuard)
+@BypassMaintenance() // Phải bật/tắt được chính chế độ bảo trì trong lúc đang bảo trì
 @Controller('maintenance')
 export class MaintenanceController {
   constructor(private readonly maintenanceService: MaintenanceService) {}

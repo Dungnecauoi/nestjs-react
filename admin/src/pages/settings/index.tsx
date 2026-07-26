@@ -6,6 +6,7 @@ import { optionsApi } from '../../api/modules/options.api';
 import { mailConfigApi, MailConfigResponse, MailConfigSaveDto, MailDriverName } from '../../api/modules/mail-config.api';
 import { queryClient } from '../../lib/query-client';
 import { SYSTEM_OPTIONS_QUERY_KEY } from '../../hooks/useSystemOptions';
+import { notify } from '../../utils/notify';
 
 type SmtpProviderPreset = 'gmail' | 'outlook' | 'yahoo' | 'custom';
 
@@ -43,7 +44,7 @@ function MailConfigTabContent() {
         mailgunDomain: data.mailgun?.domain,
       });
     } catch (err) {
-      console.error('Lỗi khi nạp cấu hình mail:', err);
+      notify.error(err, 'Không thể tải cấu hình email. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }

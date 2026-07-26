@@ -483,6 +483,22 @@ export class AuthService {
           break;
         }
       }
+
+      // A6: refresh token không khớp bất kỳ session còn hiệu lực nào (đã bị revoke, đã dùng để
+      // rotate trước đó — dấu hiệu replay, hoặc phiên đã bị thu hồi thủ công) -> từ chối thẳng,
+      // không tạo session mới ngầm cho 1 token đáng ngờ.
+      if (!matchingSession) {
+        const lang = I18nContext.current()?.lang;
+        const message = this.i18n.t('auth.UNAUTHORIZED', {
+          lang,
+          defaultValue: 'Phiên đăng nhập không hợp lệ hoặc đã bị thu hồi',
+        });
+        throw new CustomApiException(
+          ErrorCode.AUTH_UNAUTHORIZED,
+          message,
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
     }
 
     const { roles, permissions } = this.extractUserPermissionsAndRoles(dbUser);
@@ -511,7 +527,21 @@ export class AuthService {
           updatedAt: new Date(),
         },
       });
+    } else if (incomingToken) {
+      // A6: Refresh token có nhưng không match session nào — có thể cookie bị rò rỉ.
+      // Từ chối cấp token mới (KHÔNG tạo session mới) để ngăn session hijacking.
+      const lang = I18nContext.current()?.lang;
+      const message = this.i18n.t('auth.UNAUTHORIZED', {
+        lang,
+        defaultValue: 'Phiên đăng nhập không hợp lệ hoặc đã bị thu hồi. Vui lòng đăng nhập lại.',
+      });
+      throw new CustomApiException(
+        ErrorCode.AUTH_UNAUTHORIZED,
+        message,
+        HttpStatus.UNAUTHORIZED,
+      );
     } else {
+      // Không có refresh token trong cookie (first-time hoặc đã clear) — tạo session mới bình thường
       await this.prisma.userSession.create({
         data: {
           userId: dbUser.id,

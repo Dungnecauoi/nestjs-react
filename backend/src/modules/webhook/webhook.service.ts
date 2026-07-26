@@ -1,9 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../core/database/prisma.service';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
 import * as crypto from 'crypto';
+import * as dns from 'dns';
 import { CustomLoggerService } from '../../core/logger/logger.service';
 import { I18nContext, I18nService } from 'nestjs-i18n';
+import { encrypt, decrypt } from '../../common/utils/crypto.util';
 
 @Injectable()
 export class WebhookService {
@@ -11,7 +14,79 @@ export class WebhookService {
     private readonly prisma: PrismaService,
     private readonly logger: CustomLoggerService,
     private readonly i18n: I18nService,
+    private readonly configService: ConfigService,
   ) {}
+
+  private get appKey(): string {
+    return this.configService.get<string>('app.key') || 'default_secret_key';
+  }
+
+  /**
+   * A2: SSRF Protection — chặn Webhook URL trỏ vào private/internal IPs.
+   * Chỉ cho phép HTTPS, chặn: localhost, 127.x, 10.x, 172.16-31.x, 192.168.x, 169.254.x
+   */
+  private async validateWebhookUrl(url: string): Promise<void> {
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      throw new BadRequestException('Webhook URL không hợp lệ (URL malformed).');
+    }
+
+    if (parsed.protocol !== 'https:') {
+      throw new BadRequestException('Webhook URL bắt buộc phải dùng HTTPS để đảm bảo bảo mật.');
+    }
+
+    const hostname = parsed.hostname.toLowerCase();
+
+    // Chặn literal localhost / loopback
+    if (hostname === 'localhost' || hostname === '0.0.0.0') {
+      throw new BadRequestException('Webhook URL không được trỏ vào mạng nội bộ (localhost).');
+    }
+
+    // Kiểm tra nếu hostname là IPv6 loopback
+    if (hostname === '::1' || hostname.startsWith('[')) {
+      throw new BadRequestException('Webhook URL không được dùng IPv6 loopback.');
+    }
+
+    // Nếu là IP address literal, kiểm tra private ranges
+    const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (ipv4Regex.test(hostname)) {
+      this.assertNotPrivateIp(hostname);
+      return;
+    }
+
+    // Nếu là domain, resolve DNS rồi kiểm tra IP kết quả
+    try {
+      const addresses = await dns.promises.resolve4(hostname);
+      for (const ip of addresses) {
+        this.assertNotPrivateIp(ip);
+      }
+    } catch (err: any) {
+      if (err instanceof BadRequestException) throw err;
+      throw new BadRequestException(`Không thể resolve DNS cho hostname: ${hostname}`);
+    }
+  }
+
+  private assertNotPrivateIp(ip: string): void {
+    const parts = ip.split('.').map(Number);
+    const [a, b] = parts;
+
+    const isPrivate =
+      a === 127 ||                                        // 127.0.0.0/8 loopback
+      a === 10 ||                                         // 10.0.0.0/8
+      (a === 172 && b >= 16 && b <= 31) ||               // 172.16.0.0/12
+      (a === 192 && b === 168) ||                         // 192.168.0.0/16
+      (a === 169 && b === 254) ||                         // 169.254.0.0/16 link-local (AWS metadata)
+      (a === 100 && b >= 64 && b <= 127) ||              // 100.64.0.0/10 shared
+      a === 0;                                            // 0.0.0.0/8
+
+    if (isPrivate) {
+      throw new BadRequestException(
+        `Webhook URL không được trỏ vào mạng nội bộ (IP: ${ip}). SSRF Protection.`,
+      );
+    }
+  }
 
   getAvailableEvents() {
     return [
@@ -58,17 +133,24 @@ export class WebhookService {
   }
 
   async create(dto: CreateWebhookDto) {
-    const secret = dto.secret || crypto.randomBytes(24).toString('hex');
+    // A2: SSRF protection — validate URL trước khi lưu
+    await this.validateWebhookUrl(dto.url);
+
+    // Secret luôn server-generate — không cho client tự đặt (tránh secret yếu/đoán được
+    // dùng để ký HMAC), mã hoá trước khi lưu DB (giống pattern crypto.util.ts của mail driver).
+    const rawSecret = crypto.randomBytes(24).toString('hex');
     const record = await this.prisma.webhook.create({
       data: {
         name: dto.name,
         url: dto.url,
-        secret,
+        secret: encrypt(rawSecret, this.appKey),
         events: JSON.stringify(dto.events),
       },
     });
     return {
       ...record,
+      secret: rawSecret,
+      warning: 'Hãy sao chép Secret này ngay — dùng để xác thực chữ ký HMAC phía nhận Webhook. Sẽ không hiển thị lại lần thứ hai.',
       events: JSON.parse(record.events),
     };
   }
@@ -77,8 +159,9 @@ export class WebhookService {
     const webhooks = await this.prisma.webhook.findMany({
       orderBy: { createdAt: 'desc' },
     });
-    return webhooks.map((w) => ({
+    return webhooks.map(({ secret, ...w }) => ({
       ...w,
+      hasSecret: !!secret,
       events: w.events ? JSON.parse(w.events) : [],
     }));
   }
@@ -116,6 +199,15 @@ export class WebhookService {
   }
 
   private async sendWebhookPayload(hook: any, event: string, payload: any) {
+    // A2: re-validate URL ngay lúc gửi thật (không chỉ lúc create) — chặn DNS-rebinding SSRF
+    // (domain resolve ra IP public lúc đăng ký, đổi sang IP nội bộ trước lúc webhook thật sự bắn).
+    try {
+      await this.validateWebhookUrl(hook.url);
+    } catch (err: any) {
+      this.logger.error(`Webhook ${hook.id} bị chặn lúc gửi (SSRF check thất bại): ${err.message}`, '', 'WebhookService');
+      return;
+    }
+
     const timestamp = new Date().toISOString();
     const bodyStr = JSON.stringify({
       id: crypto.randomUUID(),
@@ -124,8 +216,9 @@ export class WebhookService {
       data: payload,
     });
 
-    const signature = hook.secret
-      ? crypto.createHmac('sha256', hook.secret).update(bodyStr).digest('hex')
+    const rawSecret = hook.secret ? decrypt(hook.secret, this.appKey) : '';
+    const signature = rawSecret
+      ? crypto.createHmac('sha256', rawSecret).update(bodyStr).digest('hex')
       : '';
 
     try {

@@ -8,8 +8,10 @@ import {
   DiskHealthIndicator,
 } from '@nestjs/terminus';
 import { PrismaHealthIndicator } from './prisma.health-indicator';
+import { BypassMaintenance } from '../../common/decorators/bypass-maintenance.decorator';
 
 @ApiTags('Health Check')
+@BypassMaintenance() // Health probe cho load balancer phải luôn trả lời được, kể cả lúc bảo trì
 @Controller('health')
 export class HealthController {
   constructor(

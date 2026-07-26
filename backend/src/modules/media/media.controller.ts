@@ -19,11 +19,12 @@ import {
   ApiOperation,
   ApiConsumes,
   ApiBearerAuth,
+  ApiSecurity,
 } from '@nestjs/swagger';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import { MediaService } from './media.service';
 import { QueryMediaDto } from './dto/query-media.dto';
-import { JwtAuthGuard } from '../../core/auth/guards/jwt-auth.guard';
+import { JwtOrApiKeyGuard } from '../../core/auth/guards/jwt-or-api-key.guard';
 import { PermissionGuard } from '../../core/auth/guards/permission.guard';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { CustomApiException } from '../../common/exceptions/custom-api.exception';
@@ -32,7 +33,8 @@ import { StorageService } from '../../core/storage/storage.service';
 
 @ApiTags('Media Manager Module')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionGuard)
+@ApiSecurity('x-api-key')
+@UseGuards(JwtOrApiKeyGuard, PermissionGuard)
 @Controller('media')
 export class MediaController {
   constructor(

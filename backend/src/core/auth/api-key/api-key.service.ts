@@ -16,14 +16,20 @@ export class ApiKeyService {
   }
 
   async create(dto: CreateApiKeyDto) {
+    // Bắt buộc chọn permission cụ thể — không cho fallback wildcard '*' (tương đương
+    // quyền super-admin), tránh phát hành nhầm "god-mode key" khi quên chọn scope.
+    if (!dto.permissions || dto.permissions.length === 0) {
+      throw new BadRequestException(
+        'Vui lòng chọn ít nhất 1 quyền hạn cụ thể cho API Key. Không cho phép để trống (mặc định wildcard "*" đã bị loại bỏ vì lý do bảo mật).',
+      );
+    }
+
     const rawSecret = crypto.randomBytes(24).toString('hex');
     const fullRawKey = `ecx_live_${rawSecret}`;
     const prefix = fullRawKey.substring(0, 12);
     const keyHash = this.hashKey(fullRawKey);
 
-    const permissionsJson = dto.permissions && dto.permissions.length > 0
-      ? JSON.stringify(dto.permissions)
-      : JSON.stringify(['*']);
+    const permissionsJson = JSON.stringify(dto.permissions);
 
     const record = await this.prisma.apiKey.create({
       data: {
@@ -79,7 +85,8 @@ export class ApiKeyService {
       data: { lastUsedAt: new Date() },
     }).catch(() => null);
 
-    const permissions = apiKey.permissions ? JSON.parse(apiKey.permissions) : ['*'];
+    // Deny-by-default nếu record cũ (trước khi bỏ wildcard mặc định) không có permissions hợp lệ.
+    const permissions = apiKey.permissions ? JSON.parse(apiKey.permissions) : [];
 
     return {
       isApiKey: true,

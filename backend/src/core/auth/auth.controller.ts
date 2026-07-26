@@ -19,10 +19,12 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { BypassMaintenance } from '../../common/decorators/bypass-maintenance.decorator';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @ApiTags('Auth Module')
+@BypassMaintenance() // Đăng nhập/2FA/refresh phải hoạt động được trong lúc bảo trì để admin tắt được chế độ bảo trì
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -46,7 +48,7 @@ export class AuthController {
     return {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax' as const,
+      sameSite: 'strict' as const,
       path: '/api/auth',
       maxAge: this.getCookieMaxAge(),
     };

@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -o /dev/null -w 'HTTP %{http_code}\\\\n' http://localhost:3000/api/departments -H 'x-api-key: ecx_live_baeca8dc6f216f38fa78c614b463eb876e1b8825d1f7cdc4')",
+      "Bash(curl -s -w '\\\\nHTTP %{http_code}\\\\n' http://localhost:3000/api/users -H 'x-api-key: ecx_live_baeca8dc6f216f38fa78c614b463eb876e1b8825d1f7cdc4')",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" http://localhost:3000/api/departments)",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" http://localhost:3000/api/departments -H \"x-api-key: ecx_live_garbage\")",
+      "Read(//private/tmp/**)",
+      "Bash(lsof -i:3000)",
+      "Bash(xargs -I{} sh -c 'echo === {} ===; cat {}')",
+      "Bash(rm -f /tmp/nest-apikey-test2.log)",
+      "Bash(npx nest *)",
+      "Read(//tmp/**)"
+    ]
+  }
+}

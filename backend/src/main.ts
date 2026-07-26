@@ -40,6 +40,9 @@ async function bootstrap() {
   app.use(compression());
   app.use(cookieParser());
 
+  // A4: Trust proxy — để req.ip trả về IP thực khi chạy sau Nginx/Load Balancer
+  app.set('trust proxy', 1);
+
   const corsAllowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
     .split(',')
     .map((origin) => origin.trim())
@@ -88,24 +91,29 @@ async function bootstrap() {
   // để có DI — inject OptionsService format ngày giờ theo Settings)
   app.useGlobalFilters(new HttpExceptionFilter(logger));
 
-  // 7. Swagger API Documentation (/api/docs)
-  const config = new DocumentBuilder()
-    .setTitle('ECOMCX ERP Core Framework API')
-    .setDescription(
-      'Tài liệu API hệ thống NestJS Core Framework (Batteries-Included)',
-    )
-    .setVersion('1.0')
-    .addBearerAuth()
-    .addApiKey({ type: 'apiKey', name: 'x-api-key', in: 'header' }, 'x-api-key')
-    .build();
-
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
-
   const port = process.env.APP_PORT || 3000;
+
+  // 7. Swagger API Documentation — CHỈ mở ở non-production (A1: tránh lộ API schema)
+  if (process.env.NODE_ENV !== 'production') {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('ECOMCX ERP Core Framework API')
+      .setDescription(
+        'Tài liệu API hệ thống NestJS Core Framework (Batteries-Included)',
+      )
+      .setVersion('1.0')
+      .addBearerAuth()
+      .addApiKey({ type: 'apiKey', name: 'x-api-key', in: 'header' }, 'x-api-key')
+      .build();
+
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('api/docs', app, document);
+    logger.log(`Swagger UI: http://localhost:${port}/api/docs`);
+  } else {
+    logger.log('Swagger UI disabled in production mode.');
+  }
+
   await app.listen(port);
   logger.log(`Server đang chạy tại: http://localhost:${port}`);
   logger.log(`API Prefix: http://localhost:${port}/${apiPrefix}`);
-  logger.log(`Tài liệu Swagger UI tại: http://localhost:${port}/api/docs`);
 }
 bootstrap();

@@ -7,12 +7,14 @@ import { PrismaService } from '../../core/database/prisma.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { QueryDepartmentDto } from './dto/query-department.dto';
 import { I18nContext, I18nService } from 'nestjs-i18n';
+import { WebhookService } from '../webhook/webhook.service';
 
 @Injectable()
 export class DepartmentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly i18n: I18nService,
+    private readonly webhookService: WebhookService,
   ) {}
 
   async findAll(query: QueryDepartmentDto = {}) {
@@ -110,9 +112,11 @@ export class DepartmentService {
       );
     }
 
-    return this.prisma.department.create({
+    const created = await this.prisma.department.create({
       data: dto,
     });
+    this.webhookService.triggerWebhooks('department.created', created).catch(() => {});
+    return created;
   }
 
   async update(id: string, dto: Partial<CreateDepartmentDto>) {
@@ -122,10 +126,12 @@ export class DepartmentService {
       await this.assertNoCycle(id, dto.parentId);
     }
 
-    return this.prisma.department.update({
+    const updated = await this.prisma.department.update({
       where: { id },
       data: dto,
     });
+    this.webhookService.triggerWebhooks('department.updated', updated).catch(() => {});
+    return updated;
   }
 
   /**
@@ -165,6 +171,7 @@ export class DepartmentService {
       where: { id },
       data: { deletedAt: new Date() },
     });
+    this.webhookService.triggerWebhooks('department.deleted', { id }).catch(() => {});
     const lang = I18nContext.current()?.lang;
     return { message: this.i18n.t('messages.DELETE_SUCCESS', { lang }) };
   }
