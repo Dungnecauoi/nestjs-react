@@ -19,6 +19,7 @@ import {
   KeyOutlined,
   CloudServerOutlined,
   ToolOutlined,
+  ApiOutlined,
 } from '@ant-design/icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -155,6 +156,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed }) => {
       icon: <ToolOutlined />,
       label: 'Bảo Trì & Backup',
       permission: ROUTES.ADMIN_MAINTENANCE.permission,
+    },
+    {
+      key: ROUTES.ADMIN_WEBHOOKS.path,
+      icon: <ApiOutlined />,
+      label: 'Webhook Engine',
+      permission: ROUTES.ADMIN_WEBHOOKS.permission,
     },
   ].filter((item) => hasPermission(userPermissions, item.permission));
 

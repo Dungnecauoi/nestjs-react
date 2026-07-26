@@ -13,6 +13,7 @@ import { AuditModule } from './modules/audit/audit.module';
 import { TranslationModule } from './modules/translation/translation.module';
 import { ImportExportModule } from './modules/import-export/import-export.module';
 import { MaintenanceModule } from './modules/maintenance/maintenance.module';
+import { WebhookModule } from './modules/webhook/webhook.module';
 import { AuditInterceptor } from './core/interceptors/audit.interceptor';
 import { MaintenanceGuard } from './core/guards/maintenance.guard';
 import { APP_GUARD } from '@nestjs/core';
@@ -30,6 +31,7 @@ import { APP_GUARD } from '@nestjs/core';
     TranslationModule,
     ImportExportModule,
     MaintenanceModule,
+    WebhookModule,
   ],
   controllers: [AppController],
   providers: [

@@ -261,6 +261,21 @@ model ApiKey {
   @@map("api_keys")
 }
 
+// 14. Model Webhook Engine (3rd-Party Event Subscriptions)
+model Webhook {
+  id              String    @id @default(uuid())
+  name            String
+  url             String    @db.Text
+  secret          String?   @db.Text
+  events          String    @db.Text // JSON array string mảng các sự kiện: ['user.created', 'order.completed', '*']
+  isActive        Boolean   @default(true) @map("is_active")
+  lastTriggeredAt DateTime? @map("last_triggered_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("webhooks")
+}
+
 
 
 

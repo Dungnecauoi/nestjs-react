@@ -23,6 +23,7 @@ import AuditLogsPage from '../pages/audit-logs';
 import ApiKeysModule from '../pages/api-keys';
 import QueuesModule from '../pages/queues';
 import MaintenanceModule from '../pages/maintenance';
+import WebhooksModule from '../pages/webhooks';
 import Forbidden from '../pages/errors/Forbidden';
 import NotFound from '../pages/errors/NotFound';
 import { ProtectedRoute } from './ProtectedRoute';
@@ -101,6 +102,10 @@ export const AppRoutes: React.FC = () => {
 
           <Route element={<ProtectedRoute requiredPermission={ROUTES.ADMIN_MAINTENANCE.permission} />}>
             <Route path={ROUTES.ADMIN_MAINTENANCE.path} element={<MaintenanceModule />} />
+          </Route>
+
+          <Route element={<ProtectedRoute requiredPermission={ROUTES.ADMIN_WEBHOOKS.permission} />}>
+            <Route path={ROUTES.ADMIN_WEBHOOKS.path} element={<WebhooksModule />} />
           </Route>
         </Route>
       </Route>

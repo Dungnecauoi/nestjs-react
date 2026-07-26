@@ -109,4 +109,9 @@ export const ROUTES: Record<string, RouteConfigItem> = {
     name: 'Bảo Trì & Sao Lưu System',
     permission: 'setting:read',
   },
+  ADMIN_WEBHOOKS: {
+    path: '/admin/webhooks',
+    name: 'Quản Lý Webhook Engine',
+    permission: 'setting:read',
+  },
 };
