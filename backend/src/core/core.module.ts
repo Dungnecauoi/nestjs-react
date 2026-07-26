@@ -28,6 +28,7 @@ import { AuthModule } from './auth/auth.module';
 import { DatabaseModule } from './database/database.module';
 import { OptionsModule } from './options/options.module';
 import { MailModule } from './mail/mail.module';
+import { QueueModule } from './queue/queue.module';
 import { TransformInterceptor } from './interceptors/transform.interceptor';
 
 @Global()
@@ -36,6 +37,7 @@ import { TransformInterceptor } from './interceptors/transform.interceptor';
     AuthModule,
     DatabaseModule,
     OptionsModule,
+    QueueModule,
     // 1. Central Configuration Module
     ConfigModule.forRoot({
       isGlobal: true,
@@ -119,7 +121,9 @@ import { TransformInterceptor } from './interceptors/transform.interceptor';
     StorageModule,
     AuthModule,
     DatabaseModule,
+    OptionsModule,
     MailModule,
+    QueueModule,
   ],
 })
 export class CoreModule {}

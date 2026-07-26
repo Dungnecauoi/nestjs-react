@@ -40,24 +40,26 @@ export default function DashboardModule() {
   const { data: systemOptions } = useSystemOptions();
   const isDepartmentsEnabled = systemOptions?.enableDepartments !== false;
 
-  const { data: users = [] } = useQuery({
+  const { data: usersResponse } = useQuery({
     queryKey: ['users'],
-    queryFn: usersApi.getUsers,
+    queryFn: () => usersApi.getUsers({ limit: 100 }),
   });
+  const users = usersResponse?.data || [];
 
-  const { data: departments = [] } = useQuery({
+  const { data: departmentsResponse } = useQuery({
     queryKey: ['departments'],
-    queryFn: departmentsApi.getDepartments,
+    queryFn: () => departmentsApi.getDepartments({ limit: 100 }),
   });
+  const departments = departmentsResponse?.data || [];
 
   const { data: recentAudit } = useQuery({
     queryKey: ['audit-logs', 'dashboard-recent'],
     queryFn: () => auditApi.getAuditLogs({ page: 1, limit: 5 }),
   });
 
-  const totalUsers = users.length;
-  const activeUsers = users.filter((u) => u.isActive).length;
-  const pendingUsers = users.filter((u) => !u.isActive).length;
+  const totalUsers = usersResponse?.meta?.total ?? users.length;
+  const activeUsers = users.filter((u: any) => u.isActive).length;
+  const pendingUsers = users.filter((u: any) => !u.isActive).length;
 
   const columns: ColumnsType<AuditLogItem> = [
     {
@@ -154,7 +156,7 @@ export default function DashboardModule() {
             <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
               <Statistic
                 title={t('dashboard.totalDepts', 'Cơ Cấu Phòng Ban')}
-                value={departments.length}
+                value={departmentsResponse?.meta?.total ?? departments.length}
                 prefix={<ApartmentOutlined style={{ color: '#0284c7', marginRight: 8 }} />}
               />
             </Card>

@@ -1,0 +1,8 @@
+{
+  "EMAIL_EXISTS": "This email is already in use!",
+  "PASSWORD_REQUIRED": "Please enter an initial password for the account!",
+  "NOT_FOUND": "User not found!",
+  "DELETED_NOT_FOUND": "Deleted user not found!",
+  "DELETE_SUCCESS": "User deleted successfully",
+  "ACCOUNT_LOCKED": "Account is temporarily locked due to 5 consecutive failed login attempts. Please try again after 15 minutes."
+}

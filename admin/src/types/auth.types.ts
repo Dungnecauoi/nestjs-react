@@ -1,10 +1,21 @@
-// Kế thừa định dạng API Response từ NestJS TransformInterceptor
 export interface ApiResponse<T = any> {
   success: boolean;
   statusCode: number;
   message: string;
   data: T;
   timestamp: string;
+}
+
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: PaginationMeta;
 }
 
 // User Model Interface

@@ -5,13 +5,17 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
+import { ApiKeyStrategy } from './strategies/api-key.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
+import { ApiKeyGuard } from './guards/api-key.guard';
 import { PermissionGuard } from './guards/permission.guard';
 
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { TwoFactorService } from './two-factor.service';
+import { ApiKeyService } from './api-key/api-key.service';
+import { ApiKeyController } from './api-key/api-key.controller';
 
 @Global()
 @Module({
@@ -28,25 +32,31 @@ import { TwoFactorService } from './two-factor.service';
       }),
     }),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, ApiKeyController],
   providers: [
     AuthService,
     TwoFactorService,
+    ApiKeyService,
     JwtStrategy,
     JwtRefreshStrategy,
+    ApiKeyStrategy,
     JwtAuthGuard,
     JwtRefreshGuard,
+    ApiKeyGuard,
     PermissionGuard,
   ],
   exports: [
     AuthService,
     TwoFactorService,
+    ApiKeyService,
     JwtModule,
     PassportModule,
     JwtStrategy,
     JwtRefreshStrategy,
+    ApiKeyStrategy,
     JwtAuthGuard,
     JwtRefreshGuard,
+    ApiKeyGuard,
     PermissionGuard,
   ],
 })

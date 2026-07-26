@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
@@ -15,6 +16,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { AssignUserRolesDto } from './dto/assign-user-roles.dto';
 import { AssignUserPermissionsDto } from './dto/assign-user-permissions.dto';
 import { AssignUserDepartmentsDto } from './dto/assign-user-departments.dto';
+import { QueryUserDto } from './dto/query-user.dto';
 import { JwtAuthGuard } from '../../core/auth/guards/jwt-auth.guard';
 import { PermissionGuard } from '../../core/auth/guards/permission.guard';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
@@ -29,10 +31,10 @@ export class UserController {
   @Get()
   @RequirePermissions('user:read')
   @ApiOperation({
-    summary: 'Lấy danh sách User kèm Roles, Direct Permissions & Departments',
+    summary: 'Lấy danh sách User kèm Roles, Direct Permissions & Departments (Phân trang Server-side)',
   })
-  findAll() {
-    return this.userService.findAll();
+  findAll(@Query() query: QueryUserDto) {
+    return this.userService.findAll(query);
   }
 
   @Get(':id')

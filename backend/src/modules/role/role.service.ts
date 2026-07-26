@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../../core/database/prisma.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { AssignPermissionsToRoleDto } from './dto/assign-permissions-role.dto';
+import { QueryRoleDto } from './dto/query-role.dto';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 
 @Injectable()
@@ -40,20 +41,57 @@ export class RoleService {
     };
   }
 
-  async findAll() {
+  async findAll(query: QueryRoleDto = {}) {
     const lang = I18nContext.current()?.lang || 'vi';
-    const roles = await this.prisma.role.findMany({
-      where: { deletedAt: null },
-      include: {
-        permissions: {
-          include: {
-            permission: true,
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+    } = query;
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      deletedAt: null,
+    };
+
+    if (search) {
+      where.OR = [
+        { code: { contains: search } },
+        { name: { contains: search } },
+        { description: { contains: search } },
+      ];
+    }
+
+    const [roles, total] = await Promise.all([
+      this.prisma.role.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { [sortBy]: sortOrder },
+        include: {
+          permissions: {
+            include: {
+              permission: true,
+            },
           },
         },
-      },
-    });
+      }),
+      this.prisma.role.count({ where }),
+    ]);
 
-    return roles.map((role) => this.translateRolePermissions(role, lang));
+    const items = roles.map((role) => this.translateRolePermissions(role, lang));
+
+    return {
+      data: items,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findOne(id: string) {

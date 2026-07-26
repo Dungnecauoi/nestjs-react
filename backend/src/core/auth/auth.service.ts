@@ -109,15 +109,68 @@ export class AuthService {
       );
     }
 
+    // 1.1 Check if Account is temporarily locked
+    if (dbUser.lockedUntil) {
+      if (dbUser.lockedUntil > new Date()) {
+        const message = this.i18n.t('user.ACCOUNT_LOCKED', {
+          lang,
+          defaultValue: 'Tài khoản tạm thời bị khóa do nhập sai mật khẩu quá 5 lần. Vui lòng thử lại sau 15 phút.',
+        });
+        throw new CustomApiException(
+          ErrorCode.AUTH_FORBIDDEN,
+          message,
+          HttpStatus.FORBIDDEN,
+        );
+      } else {
+        // Unlock expired lock
+        await this.prisma.user.update({
+          where: { id: dbUser.id },
+          data: { failedLoginAttempts: 0, lockedUntil: null },
+        });
+      }
+    }
+
     // 2. Verify Bcrypt Hashed Password
     const isPasswordValid = await bcrypt.compare(dto.password, dbUser.password);
     if (!isPasswordValid) {
+      const newAttempts = (dbUser.failedLoginAttempts || 0) + 1;
+      const isLocking = newAttempts >= 5;
+      const lockedUntil = isLocking ? new Date(Date.now() + 15 * 60 * 1000) : null;
+
+      await this.prisma.user.update({
+        where: { id: dbUser.id },
+        data: {
+          failedLoginAttempts: isLocking ? 0 : newAttempts,
+          lockedUntil: isLocking ? lockedUntil : dbUser.lockedUntil,
+        },
+      });
+
+      if (isLocking) {
+        const message = this.i18n.t('user.ACCOUNT_LOCKED', {
+          lang,
+          defaultValue: 'Tài khoản tạm thời bị khóa do nhập sai mật khẩu quá 5 lần. Vui lòng thử lại sau 15 phút.',
+        });
+        throw new CustomApiException(
+          ErrorCode.AUTH_FORBIDDEN,
+          message,
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
       const message = this.i18n.t('auth.LOGIN_FAILED', { lang });
       throw new CustomApiException(
         ErrorCode.AUTH_LOGIN_FAILED,
         message,
         HttpStatus.UNAUTHORIZED,
       );
+    }
+
+    // Reset failed login attempts on successful password verification
+    if (dbUser.failedLoginAttempts > 0 || dbUser.lockedUntil) {
+      await this.prisma.user.update({
+        where: { id: dbUser.id },
+        data: { failedLoginAttempts: 0, lockedUntil: null },
+      });
     }
 
     // 3. Extract dynamic roles and permissions from database relations
@@ -700,6 +753,46 @@ export class AuthService {
     });
 
     // Đổi mật khẩu bắt buộc đăng xuất mọi thiết bị (refresh token cũ không còn hiệu lực)
+    await this.prisma.userSession.updateMany({
+      where: { userId, isRevoked: false },
+      data: { isRevoked: true },
+    });
+
+    const message = this.i18n.t('auth.PASSWORD_RESET_SUCCESS', {
+      lang,
+      defaultValue: 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại.',
+    });
+    return { success: true, message };
+  }
+
+  async changePassword(userId: string, dto: { currentPassword: string; newPassword: string }) {
+    const lang = I18nContext.current()?.lang;
+    const dbUser = await this.prisma.user.findUnique({ where: { id: userId, deletedAt: null } });
+
+    if (!dbUser) {
+      const message = this.i18n.t('auth.UNAUTHORIZED', { lang });
+      throw new CustomApiException(ErrorCode.AUTH_UNAUTHORIZED, message, HttpStatus.UNAUTHORIZED);
+    }
+
+    const isMatch = await bcrypt.compare(dto.currentPassword, dbUser.password);
+    if (!isMatch) {
+      const message = this.i18n.t('auth.CURRENT_PASSWORD_INCORRECT', {
+        lang,
+        defaultValue: 'Mật khẩu hiện tại không chính xác!',
+      });
+      throw new CustomApiException(ErrorCode.AUTH_LOGIN_FAILED, message, HttpStatus.BAD_REQUEST);
+    }
+
+    const hashedPassword = await bcrypt.hash(
+      dto.newPassword,
+      this.configService.get<number>('auth.bcryptRounds') || 12,
+    );
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
     await this.prisma.userSession.updateMany({
       where: { userId, isRevoked: false },
       data: { isRevoked: true },

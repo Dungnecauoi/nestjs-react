@@ -24,6 +24,9 @@ export default function RolesModule() {
   const [editForm] = Form.useForm();
   const [permForm] = Form.useForm();
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [searchText, setSearchText] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPermModalOpen, setIsPermModalOpen] = useState(false);
@@ -31,11 +34,14 @@ export default function RolesModule() {
 
   const { isAuthenticated } = useAuthStore();
 
-  const { data: roles = [], isLoading, isRefetching, refetch } = useQuery({
-    queryKey: ['roles'],
-    queryFn: rolesApi.getRoles,
+  const { data: rolesResponse, isLoading, isRefetching, refetch } = useQuery({
+    queryKey: ['roles', page, pageSize, searchText],
+    queryFn: () => rolesApi.getRoles({ page, limit: pageSize, search: searchText }),
     enabled: isAuthenticated,
   });
+
+  const roles = rolesResponse?.data || [];
+  const total = rolesResponse?.meta?.total || 0;
 
   const { data: allPermissions = [] } = useQuery({
     queryKey: ['permissions'],
@@ -277,7 +283,16 @@ export default function RolesModule() {
           dataSource={roles}
           rowKey="id"
           loading={isLoading}
-          pagination={{ pageSize: 10, showSizeChanger: true }}
+          pagination={{
+            current: page,
+            pageSize: pageSize,
+            total: total,
+            showSizeChanger: true,
+            onChange: (p, ps) => {
+              setPage(p);
+              setPageSize(ps);
+            },
+          }}
           scroll={{ x: 900 }}
         />
       </Card>

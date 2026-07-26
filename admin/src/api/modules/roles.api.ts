@@ -1,17 +1,24 @@
-// API Module for Roles
 import api from '../axios';
-import { ApiResponse, Role } from '../../types/auth.types';
+import { ApiResponse, Role, PaginatedResponse } from '../../types/auth.types';
+
+export interface RoleQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
 
 export const rolesApi = {
-  getRoles: async (): Promise<Role[]> => {
+  getRoles: async (params?: RoleQueryParams): Promise<PaginatedResponse<Role>> => {
     try {
-      const res = await api.get<ApiResponse<Role[]>>('/roles');
+      const res = await api.get<ApiResponse<PaginatedResponse<Role>>>('/roles', { params });
       if (res.data.success && res.data.data) {
         return res.data.data;
       }
-      return [];
+      return { data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } };
     } catch {
-      return [];
+      return { data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } };
     }
   },
 

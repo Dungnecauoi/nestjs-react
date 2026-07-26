@@ -20,17 +20,23 @@ export default function DepartmentsModule() {
   const [createForm] = Form.useForm();
   const [editForm] = Form.useForm();
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [searchText, setSearchText] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedDept, setSelectedDept] = useState<Department | null>(null);
 
   const { isAuthenticated } = useAuthStore();
 
-  const { data: departments = [], isLoading, isRefetching, refetch } = useQuery({
-    queryKey: ['departments'],
-    queryFn: departmentsApi.getDepartments,
+  const { data: departmentsResponse, isLoading, isRefetching, refetch } = useQuery({
+    queryKey: ['departments', page, pageSize, searchText],
+    queryFn: () => departmentsApi.getDepartments({ page, limit: pageSize, search: searchText }),
     enabled: isAuthenticated,
   });
+
+  const departments = departmentsResponse?.data || [];
+  const total = departmentsResponse?.meta?.total || 0;
 
   const handleCreateDepartment = async (values: any) => {
     try {
@@ -185,7 +191,16 @@ export default function DepartmentsModule() {
           dataSource={departments}
           rowKey="id"
           loading={isLoading}
-          pagination={{ pageSize: 10 }}
+          pagination={{
+            current: page,
+            pageSize: pageSize,
+            total: total,
+            showSizeChanger: true,
+            onChange: (p, ps) => {
+              setPage(p);
+              setPageSize(ps);
+            },
+          }}
           scroll={{ x: 700 }}
         />
       </Card>

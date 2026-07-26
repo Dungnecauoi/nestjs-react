@@ -1,17 +1,68 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../core/database/prisma.service';
+import { QueryMediaDto } from './dto/query-media.dto';
+import { I18nContext, I18nService } from 'nestjs-i18n';
 import * as fs from 'fs';
 import * as path from 'path';
 
 @Injectable()
 export class MediaService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly i18n: I18nService,
+  ) {}
 
-  async findAll() {
-    return this.prisma.media.findMany({
-      where: { deletedAt: null },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAll(query: QueryMediaDto = {}) {
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      mimetype,
+      disk,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+    } = query;
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      deletedAt: null,
+    };
+
+    if (search) {
+      where.OR = [
+        { filename: { contains: search } },
+        { title: { contains: search } },
+        { altText: { contains: search } },
+      ];
+    }
+
+    if (mimetype) {
+      where.mimetype = { contains: mimetype };
+    }
+
+    if (disk) {
+      where.disk = disk;
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.media.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { [sortBy]: sortOrder },
+      }),
+      this.prisma.media.count({ where }),
+    ]);
+
+    return {
+      data: items,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findOne(id: string) {
@@ -19,7 +70,10 @@ export class MediaService {
       where: { id, deletedAt: null },
     });
     if (!item) {
-      throw new NotFoundException(`Không tìm thấy tập tin media với ID: ${id}`);
+      const lang = I18nContext.current()?.lang;
+      throw new NotFoundException(
+        this.i18n.t('messages.NOT_FOUND', { lang, args: { id } }),
+      );
     }
     return item;
   }

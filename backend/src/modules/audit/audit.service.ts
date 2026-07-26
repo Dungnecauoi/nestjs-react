@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../core/database/prisma.service';
 import { QueryAuditDto } from './dto/query-audit.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -170,5 +171,18 @@ export class AuditService {
     }
 
     return this.prisma.auditLog.delete({ where: { id } });
+  }
+
+  /**
+   * Dọn dẹp Nhật ký thao tác hệ thống cũ hơn 90 ngày vào 4:00 AM mỗi ngày
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_4AM)
+  async cleanupOldAuditLogs() {
+    const cutoffDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    await this.prisma.auditLog.deleteMany({
+      where: {
+        createdAt: { lt: cutoffDate },
+      },
+    });
   }
 }

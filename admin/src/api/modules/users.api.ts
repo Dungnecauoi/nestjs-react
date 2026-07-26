@@ -1,14 +1,24 @@
-// API Module for Users
 import api from '../axios';
-import { ApiResponse, User } from '../../types/auth.types';
+import { ApiResponse, User, PaginatedResponse } from '../../types/auth.types';
+
+export interface UserQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  role?: string;
+  departmentId?: string;
+  isActive?: boolean;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
 
 export const usersApi = {
-  getUsers: async (): Promise<User[]> => {
-    const res = await api.get<ApiResponse<User[]>>('/users');
+  getUsers: async (params?: UserQueryParams): Promise<PaginatedResponse<User>> => {
+    const res = await api.get<ApiResponse<PaginatedResponse<User>>>('/users', { params });
     if (res.data.success && res.data.data) {
       return res.data.data;
     }
-    return [];
+    return { data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } };
   },
 
   getUser: async (id: string): Promise<User> => {

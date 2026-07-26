@@ -6,12 +6,14 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { RoleService } from './role.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { AssignPermissionsToRoleDto } from './dto/assign-permissions-role.dto';
+import { QueryRoleDto } from './dto/query-role.dto';
 import { JwtAuthGuard } from '../../core/auth/guards/jwt-auth.guard';
 import { PermissionGuard } from '../../core/auth/guards/permission.guard';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
@@ -25,9 +27,9 @@ export class RoleController {
 
   @Get()
   @RequirePermissions('role:read')
-  @ApiOperation({ summary: 'Lấy danh sách Role kèm Quyền hạn' })
-  findAll() {
-    return this.roleService.findAll();
+  @ApiOperation({ summary: 'Lấy danh sách Role kèm Quyền hạn (Phân trang Server-side)' })
+  findAll(@Query() query: QueryRoleDto) {
+    return this.roleService.findAll(query);
   }
 
   @Get(':id')

@@ -20,6 +20,9 @@ import GmailOAuthCallback from '../pages/settings/GmailOAuthCallback';
 import TranslationsModule from '../pages/translations';
 import NotificationsPage from '../pages/notifications';
 import AuditLogsPage from '../pages/audit-logs';
+import ApiKeysModule from '../pages/api-keys';
+import QueuesModule from '../pages/queues';
+import MaintenanceModule from '../pages/maintenance';
 import Forbidden from '../pages/errors/Forbidden';
 import NotFound from '../pages/errors/NotFound';
 import { ProtectedRoute } from './ProtectedRoute';
@@ -86,6 +89,18 @@ export const AppRoutes: React.FC = () => {
 
           <Route element={<ProtectedRoute requiredPermission={ROUTES.ADMIN_AUDIT_LOGS.permission} />}>
             <Route path={ROUTES.ADMIN_AUDIT_LOGS.path} element={<AuditLogsPage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute requiredPermission={ROUTES.ADMIN_API_KEYS.permission} />}>
+            <Route path={ROUTES.ADMIN_API_KEYS.path} element={<ApiKeysModule />} />
+          </Route>
+
+          <Route element={<ProtectedRoute requiredPermission={ROUTES.ADMIN_QUEUES.permission} />}>
+            <Route path={ROUTES.ADMIN_QUEUES.path} element={<QueuesModule />} />
+          </Route>
+
+          <Route element={<ProtectedRoute requiredPermission={ROUTES.ADMIN_MAINTENANCE.permission} />}>
+            <Route path={ROUTES.ADMIN_MAINTENANCE.path} element={<MaintenanceModule />} />
           </Route>
         </Route>
       </Route>

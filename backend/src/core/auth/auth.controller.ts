@@ -197,6 +197,17 @@ export class AuthController {
     return this.authService.resetPassword(dto.token, dto.newPassword);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Post('change-password')
+  @ApiOperation({ summary: 'Thay đổi mật khẩu tài khoản đang đăng nhập' })
+  async changePassword(
+    @CurrentUser() user: any,
+    @Body() body: { currentPassword: string; newPassword: string },
+  ) {
+    return this.authService.changePassword(user.id ?? user.sub, body);
+  }
+
   @Public()
   @Post('verify-email')
   @ApiOperation({

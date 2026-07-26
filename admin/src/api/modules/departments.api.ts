@@ -1,16 +1,25 @@
 import api from '../axios';
-import { ApiResponse, Department } from '../../types/auth.types';
+import { ApiResponse, Department, PaginatedResponse } from '../../types/auth.types';
+
+export interface DepartmentQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  parentId?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
 
 export const departmentsApi = {
-  getDepartments: async (): Promise<Department[]> => {
+  getDepartments: async (params?: DepartmentQueryParams): Promise<PaginatedResponse<Department>> => {
     try {
-      const res = await api.get<ApiResponse<Department[]>>('/departments');
+      const res = await api.get<ApiResponse<PaginatedResponse<Department>>>('/departments', { params });
       if (res.data.success && res.data.data) {
         return res.data.data;
       }
-      return [];
+      return { data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } };
     } catch {
-      return [];
+      return { data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } };
     }
   },
 

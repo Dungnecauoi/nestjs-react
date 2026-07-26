@@ -11,7 +11,11 @@ import { MediaModule } from './modules/media/media.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { TranslationModule } from './modules/translation/translation.module';
+import { ImportExportModule } from './modules/import-export/import-export.module';
+import { MaintenanceModule } from './modules/maintenance/maintenance.module';
 import { AuditInterceptor } from './core/interceptors/audit.interceptor';
+import { MaintenanceGuard } from './core/guards/maintenance.guard';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -24,10 +28,16 @@ import { AuditInterceptor } from './core/interceptors/audit.interceptor';
     NotificationModule,
     AuditModule,
     TranslationModule,
+    ImportExportModule,
+    MaintenanceModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
+    {
+      provide: APP_GUARD,
+      useClass: MaintenanceGuard,
+    },
     {
       provide: APP_INTERCEPTOR,
       useClass: AuditInterceptor,

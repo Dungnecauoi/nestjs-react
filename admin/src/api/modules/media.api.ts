@@ -1,5 +1,5 @@
 import api from '../axios';
-import { ApiResponse } from '../../types/auth.types';
+import { ApiResponse, PaginatedResponse } from '../../types/auth.types';
 
 export interface MediaItem {
   id: string;
@@ -16,16 +16,26 @@ export interface MediaItem {
   createdAt: string;
 }
 
+export interface MediaQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  mimetype?: string;
+  disk?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
 export const mediaApi = {
-  getMediaList: async (): Promise<MediaItem[]> => {
+  getMediaList: async (params?: MediaQueryParams): Promise<PaginatedResponse<MediaItem>> => {
     try {
-      const res = await api.get<ApiResponse<MediaItem[]>>('/media');
+      const res = await api.get<ApiResponse<PaginatedResponse<MediaItem>>>('/media', { params });
       if (res.data.success && res.data.data) {
         return res.data.data;
       }
-      return [];
+      return { data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } };
     } catch {
-      return [];
+      return { data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } };
     }
   },
 

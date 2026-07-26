@@ -23,6 +23,7 @@ import {
   Popconfirm,
   Radio,
   Tooltip,
+  Pagination,
   message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -59,6 +60,8 @@ export default function MediaModule() {
   const cropperRef = useRef<ReactCropperElement>(null);
 
   // State
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [searchText, setSearchText] = useState<string>('');
@@ -91,11 +94,19 @@ export default function MediaModule() {
 
   const { isAuthenticated } = useAuthStore();
 
-  const { data: mediaList = [], isLoading, isRefetching, refetch } = useQuery({
-    queryKey: ['media'],
-    queryFn: mediaApi.getMediaList,
+  const { data: mediaResponse, isLoading, isRefetching, refetch } = useQuery({
+    queryKey: ['media', page, pageSize, typeFilter, searchText],
+    queryFn: () => mediaApi.getMediaList({
+      page,
+      limit: pageSize,
+      search: searchText,
+      mimetype: typeFilter !== 'all' ? typeFilter : undefined,
+    }),
     enabled: isAuthenticated,
   });
+
+  const mediaList = mediaResponse?.data || [];
+  const total = mediaResponse?.meta?.total || 0;
 
   const handleCropperCrop = () => {
     const cropper = cropperRef.current?.cropper;
@@ -328,28 +339,6 @@ export default function MediaModule() {
     setTimeout(() => setCopiedUrl(false), 2000);
   };
 
-  // Filter items by type and search query
-  const filteredList = mediaList.filter((item) => {
-    if (typeFilter === 'image' && !item.mimetype?.startsWith('image/')) return false;
-    if (typeFilter === 'video' && !item.mimetype?.startsWith('video/')) return false;
-    if (typeFilter === 'audio' && !item.mimetype?.startsWith('audio/')) return false;
-    if (
-      typeFilter === 'document' &&
-      (item.mimetype?.startsWith('image/') || item.mimetype?.startsWith('video/') || item.mimetype?.startsWith('audio/'))
-    ) {
-      return false;
-    }
-
-    if (searchText) {
-      const q = searchText.toLowerCase();
-      const matchName = item.filename?.toLowerCase().includes(q);
-      const matchTitle = item.title?.toLowerCase().includes(q);
-      const matchAlt = item.altText?.toLowerCase().includes(q);
-      if (!matchName && !matchTitle && !matchAlt) return false;
-    }
-    return true;
-  });
-
   const columns: ColumnsType<MediaItem> = [
     {
       title: t('media.preview', 'Xem Trước'),
@@ -489,7 +478,10 @@ export default function MediaModule() {
         <div style={{ marginTop: 16, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           <Select
             value={typeFilter}
-            onChange={setTypeFilter}
+            onChange={(val) => {
+              setTypeFilter(val);
+              setPage(1);
+            }}
             style={{ width: 220, borderRadius: 6 }}
             options={[
               { value: 'all', label: t('media.filterAll', 'Tất Cả Loại Tập Tin') },
@@ -504,7 +496,10 @@ export default function MediaModule() {
             prefix={<Search style={{ width: 14, height: 14, color: '#94a3b8' }} />}
             placeholder={t('media.searchPlaceholder', 'Tìm kiếm theo tên tập tin, tiêu đề...')}
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+              setPage(1);
+            }}
             style={{ width: 260, borderRadius: 8 }}
             allowClear
           />
@@ -515,7 +510,7 @@ export default function MediaModule() {
       {viewMode === 'grid' ? (
         <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', borderRadius: 12 }}>
           <Row gutter={[16, 16]}>
-            {filteredList.map((item) => (
+            {mediaList.map((item) => (
               <Col key={item.id} xs={12} sm={8} md={6} lg={4} xl={3}>
                 <div
                   onClick={() => handleOpenDetail(item)}
@@ -584,15 +579,36 @@ export default function MediaModule() {
               </Col>
             ))}
           </Row>
+          <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}>
+            <Pagination
+              current={page}
+              pageSize={pageSize}
+              total={total}
+              showSizeChanger
+              onChange={(p, ps) => {
+                setPage(p);
+                setPageSize(ps);
+              }}
+            />
+          </div>
         </Card>
       ) : (
         <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', borderRadius: 12 }}>
           <Table
             columns={columns}
-            dataSource={filteredList}
+            dataSource={mediaList}
             rowKey="id"
             loading={isLoading}
-            pagination={{ pageSize: 12 }}
+            pagination={{
+              current: page,
+              pageSize: pageSize,
+              total: total,
+              showSizeChanger: true,
+              onChange: (p, ps) => {
+                setPage(p);
+                setPageSize(ps);
+              },
+            }}
           />
         </Card>
       )}

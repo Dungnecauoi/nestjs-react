@@ -94,4 +94,19 @@ export const ROUTES: Record<string, RouteConfigItem> = {
     path: '/admin/profile',
     name: 'Hồ Sơ Cá Nhân',
   },
+  ADMIN_API_KEYS: {
+    path: '/admin/api-keys',
+    name: 'Quản Lý API Keys',
+    permission: 'setting:read',
+  },
+  ADMIN_QUEUES: {
+    path: '/admin/queues',
+    name: 'Giám Sát Hàng Đợi (Queue)',
+    permission: 'setting:read',
+  },
+  ADMIN_MAINTENANCE: {
+    path: '/admin/maintenance',
+    name: 'Bảo Trì & Sao Lưu System',
+    permission: 'setting:read',
+  },
 };

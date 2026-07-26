@@ -46,6 +46,14 @@ export class OptionsService {
     return result;
   }
 
+  async get<T = any>(optionName: string, defaultValue: T = null as any): Promise<T> {
+    return this.getOption(optionName, defaultValue);
+  }
+
+  async set(optionName: string, optionValue: any, autoload: boolean = true) {
+    return this.setOption(optionName, optionValue, autoload);
+  }
+
   async getAllOptions() {
     const cached = await this.cacheManager.get<Record<string, any>>(ALL_OPTIONS_CACHE_KEY);
     if (cached) {

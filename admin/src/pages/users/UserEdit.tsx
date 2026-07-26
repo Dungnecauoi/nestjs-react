@@ -43,15 +43,17 @@ export default function UserEdit() {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
 
-  const { data: departments = [] } = useQuery({
+  const { data: departmentsResponse } = useQuery({
     queryKey: ['departments'],
-    queryFn: departmentsApi.getDepartments,
+    queryFn: () => departmentsApi.getDepartments({ limit: 100 }),
   });
+  const departments = departmentsResponse?.data || [];
 
-  const { data: roles = [] } = useQuery({
+  const { data: rolesResponse } = useQuery({
     queryKey: ['roles'],
-    queryFn: rolesApi.getRoles,
+    queryFn: () => rolesApi.getRoles({ limit: 100 }),
   });
+  const roles = rolesResponse?.data || [];
 
   const { data: permissions = [] } = useQuery({
     queryKey: ['permissions'],
@@ -61,12 +63,12 @@ export default function UserEdit() {
   const { data: systemOptions } = useSystemOptions();
   const isDepartmentsEnabled = systemOptions?.enableDepartments !== false;
 
-  const departmentOptions = departments.map((d) => ({
+  const departmentOptions = departments.map((d: any) => ({
     value: d.id,
     label: `${d.name} (${d.code})`,
   }));
 
-  const roleOptions = roles.map((r) => ({ value: r.code, label: `${r.name} (${r.code})` }));
+  const roleOptions = roles.map((r: any) => ({ value: r.code, label: `${r.name} (${r.code})` }));
   const permissionOptions = permissions.map((p) => ({ value: p.code, label: `${p.name} (${p.code})` }));
 
   useEffect(() => {

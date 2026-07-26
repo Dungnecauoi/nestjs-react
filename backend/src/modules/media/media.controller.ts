@@ -5,6 +5,7 @@ import {
   Patch,
   Delete,
   Param,
+  Query,
   Body,
   UseGuards,
   UseInterceptors,
@@ -21,6 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import { MediaService } from './media.service';
+import { QueryMediaDto } from './dto/query-media.dto';
 import { JwtAuthGuard } from '../../core/auth/guards/jwt-auth.guard';
 import { PermissionGuard } from '../../core/auth/guards/permission.guard';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
@@ -40,9 +42,9 @@ export class MediaController {
 
   @Get()
   @RequirePermissions('media:read')
-  @ApiOperation({ summary: 'Lấy toàn bộ danh sách tập tin Media' })
-  async findAll() {
-    return this.mediaService.findAll();
+  @ApiOperation({ summary: 'Lấy danh sách tập tin Media (Phân trang Server-side)' })
+  async findAll(@Query() query: QueryMediaDto) {
+    return this.mediaService.findAll(query);
   }
 
   @Get(':id')

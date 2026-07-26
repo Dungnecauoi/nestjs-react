@@ -17,10 +17,13 @@ import {
   ClusterOutlined,
   IdcardOutlined,
   PhoneOutlined,
+  DownloadOutlined,
+  UploadOutlined,
 } from '@ant-design/icons';
 import { usersApi } from '../../api/modules/users.api';
 import { rolesApi } from '../../api/modules/roles.api';
 import { permissionsApi } from '../../api/modules/permissions.api';
+import { importExportApi } from '../../api/modules/importExport.api';
 import { User } from '../../types/auth.types';
 import { Can } from '../../components/common/Can';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -32,22 +35,28 @@ export default function UsersModule() {
   const navigate = useNavigate();
   const [assignForm] = Form.useForm();
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [searchText, setSearchText] = useState('');
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   const { isAuthenticated } = useAuthStore();
 
-  const { data: users = [], isLoading, isRefetching, refetch } = useQuery({
-    queryKey: ['users'],
-    queryFn: usersApi.getUsers,
+  const { data: usersResponse, isLoading, isRefetching, refetch } = useQuery({
+    queryKey: ['users', page, pageSize, searchText],
+    queryFn: () => usersApi.getUsers({ page, limit: pageSize, search: searchText }),
     enabled: isAuthenticated,
   });
 
-  const { data: roles = [] } = useQuery({
+  const users = usersResponse?.data || [];
+  const total = usersResponse?.meta?.total || 0;
+
+  const { data: rolesResponse } = useQuery({
     queryKey: ['roles'],
-    queryFn: rolesApi.getRoles,
+    queryFn: () => rolesApi.getRoles({ limit: 100 }),
   });
+  const roles = rolesResponse?.data || [];
 
   const { data: permissions = [] } = useQuery({
     queryKey: ['permissions'],
@@ -108,16 +117,6 @@ export default function UsersModule() {
       message.error('Không thể gán Vai Trò!');
     }
   };
-
-  const filteredUsers = users.filter((u) => {
-    const query = searchText.toLowerCase();
-    return (
-      u.name?.toLowerCase().includes(query) ||
-      u.email?.toLowerCase().includes(query) ||
-      u.identityCard?.toLowerCase().includes(query) ||
-      u.phone?.toLowerCase().includes(query)
-    );
-  });
 
   const columns: ColumnsType<User> = [
     {
@@ -339,6 +338,21 @@ export default function UsersModule() {
 
           <Space wrap size="middle">
             <Button
+              icon={<DownloadOutlined />}
+              onClick={async () => {
+                try {
+                  await importExportApi.exportUsersCsv();
+                  message.success('Đã tải xuống file CSV danh sách người dùng!');
+                } catch {
+                  message.error('Không thể xuất file CSV!');
+                }
+              }}
+              style={{ borderRadius: 8, fontWeight: 600 }}
+            >
+              Xuất CSV
+            </Button>
+
+            <Button
               icon={<ReloadOutlined spin={isRefetching} />}
               onClick={() => refetch()}
               style={{ borderRadius: 8, fontWeight: 600 }}
@@ -359,13 +373,16 @@ export default function UsersModule() {
           </Space>
         </div>
 
-        {/* Filter Bar */}
+      {/* Filter Bar */}
         <div style={{ marginTop: 16 }}>
           <Input
             placeholder={t('users.searchPlaceholder', 'Tìm kiếm theo tên, email, CCCD hoặc số điện thoại...')}
             prefix={<SearchOutlined style={{ color: '#94a3b8' }} />}
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+              setPage(1);
+            }}
             style={{ maxWidth: 420, borderRadius: 8 }}
             allowClear
           />
@@ -376,10 +393,19 @@ export default function UsersModule() {
       <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', borderRadius: 12, overflow: 'hidden' }}>
         <Table
           columns={columns}
-          dataSource={filteredUsers}
+          dataSource={users}
           rowKey="id"
           loading={isLoading}
-          pagination={{ pageSize: 10, showSizeChanger: true }}
+          pagination={{
+            current: page,
+            pageSize: pageSize,
+            total: total,
+            showSizeChanger: true,
+            onChange: (p, ps) => {
+              setPage(p);
+              setPageSize(ps);
+            },
+          }}
           scroll={{ x: 1100 }}
         />
       </Card>

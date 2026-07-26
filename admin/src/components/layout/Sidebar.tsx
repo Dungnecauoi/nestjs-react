@@ -16,6 +16,9 @@ import {
   HistoryOutlined,
   TeamOutlined,
   AppstoreOutlined,
+  KeyOutlined,
+  CloudServerOutlined,
+  ToolOutlined,
 } from '@ant-design/icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -138,6 +141,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed }) => {
       icon: <HistoryOutlined />,
       label: t('nav.auditLogs', 'Nhật Ký'),
       permission: ROUTES.ADMIN_AUDIT_LOGS.permission,
+    },
+    {
+      key: ROUTES.ADMIN_API_KEYS.path,
+      icon: <KeyOutlined />,
+      label: 'API Keys',
+      permission: ROUTES.ADMIN_API_KEYS.permission,
+    },
+    {
+      key: ROUTES.ADMIN_QUEUES.path,
+      icon: <CloudServerOutlined />,
+      label: 'Queue Jobs',
+      permission: ROUTES.ADMIN_QUEUES.permission,
+    },
+    {
+      key: ROUTES.ADMIN_MAINTENANCE.path,
+      icon: <ToolOutlined />,
+      label: 'Bảo Trì & Backup',
+      permission: ROUTES.ADMIN_MAINTENANCE.permission,
     },
   ].filter((item) => hasPermission(userPermissions, item.permission));
 
