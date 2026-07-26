@@ -10,8 +10,9 @@ export class MaintenanceService {
   ) {}
 
   async getStatus() {
-    const isMaintenance = await this.optionsService.get<boolean>('maintenanceMode', false);
-    return { maintenanceMode: !!isMaintenance };
+    const val = await this.optionsService.get('maintenanceMode', false);
+    const isMaintenance = String(val) === 'true';
+    return { maintenanceMode: isMaintenance };
   }
 
   async setMaintenanceMode(enabled: boolean) {

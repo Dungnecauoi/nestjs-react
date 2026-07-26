@@ -41,7 +41,8 @@ export class MaintenanceGuard implements CanActivate {
       return true;
     }
 
-    const isMaintenance = await this.optionsService.get<boolean>('maintenanceMode', false);
+    const val = await this.optionsService.get('maintenanceMode', false);
+    const isMaintenance = String(val) === 'true';
     if (!isMaintenance) {
       return true;
     }

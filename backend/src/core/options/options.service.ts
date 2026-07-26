@@ -19,6 +19,8 @@ export class OptionsService {
     if (!record || record.optionValue === null) {
       return defaultValue;
     }
+    if (record.optionValue === 'true') return true;
+    if (record.optionValue === 'false') return false;
     try {
       return JSON.parse(record.optionValue);
     } catch {

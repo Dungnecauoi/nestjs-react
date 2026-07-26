@@ -1,5 +1,5 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, Switch, Button, Space, Alert, message, Modal } from 'antd';
 import {
   DownloadOutlined,
@@ -12,6 +12,8 @@ import { useAuthStore } from '../../store/useAuthStore';
 
 export default function MaintenanceModule() {
   const { isAuthenticated } = useAuthStore();
+  const queryClient = useQueryClient();
+  const [toggling, setToggling] = useState(false);
 
   const { data: status, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['maintenance-status'],
@@ -31,12 +33,16 @@ export default function MaintenanceModule() {
       okText: checked ? 'Xác Nhận Bật Bảo Trì' : 'Xác Nhận Mở Lại',
       cancelText: 'Hủy Bỏ',
       onOk: async () => {
+        setToggling(true);
         try {
           await maintenanceApi.toggleMode(checked);
           message.success(checked ? 'Đã bật chế độ bảo trì!' : 'Đã tắt chế độ bảo trì!');
-          refetch();
+          await queryClient.invalidateQueries({ queryKey: ['maintenance-status'] });
+          await refetch();
         } catch {
           message.error('Không thể thay đổi chế độ bảo trì!');
+        } finally {
+          setToggling(false);
         }
       },
     });
@@ -89,7 +95,7 @@ export default function MaintenanceModule() {
           )}
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Switch checked={isMaintenance} onChange={handleToggleMaintenance} loading={isLoading} />
+            <Switch checked={isMaintenance} onChange={handleToggleMaintenance} loading={isLoading || toggling} />
             <span style={{ fontWeight: 700, fontSize: 14 }}>
               {isMaintenance ? 'Đang Bật Bảo Trì' : 'Đang Tắt Bảo Trì'}
             </span>
