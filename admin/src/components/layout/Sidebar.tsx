@@ -94,16 +94,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed }) => {
       label: t('nav.roles', 'Vai Trò'),
       permission: ROUTES.ADMIN_ROLES.permission,
     },
-    ...(isDepartmentsEnabled
-      ? [
-          {
-            key: ROUTES.ADMIN_DEPARTMENTS.path,
-            icon: <ApartmentOutlined />,
-            label: t('nav.departments', 'Phòng Ban'),
-            permission: ROUTES.ADMIN_DEPARTMENTS.permission,
-          },
-        ]
-      : []),
+    {
+      key: ROUTES.ADMIN_DEPARTMENTS.path,
+      icon: <ApartmentOutlined />,
+      label: t('nav.departments', 'Phòng Ban'),
+      permission: ROUTES.ADMIN_DEPARTMENTS.permission,
+    },
   ].filter((item) => hasPermission(userPermissions, item.permission));
 
   // 2. Resources SubMenu Items

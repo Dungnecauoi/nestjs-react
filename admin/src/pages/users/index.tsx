@@ -66,9 +66,7 @@ export default function UsersModule() {
   const roleOptions = roles.map((r) => ({ value: r.code, label: `${r.name} (${r.code})` }));
   const permissionOptions = permissions.map((p) => ({ value: p.code, label: `${p.name} (${p.code})` }));
 
-  // Respect system setting: hide department column if enableDepartments === false
-  const { data: systemOptions } = useSystemOptions();
-  const isDepartmentsEnabled = systemOptions?.enableDepartments !== false;
+
 
   const handleApproveUser = async (userId: string) => {
     try {
@@ -240,33 +238,29 @@ export default function UsersModule() {
         </Space>
       ),
     },
-    ...(isDepartmentsEnabled
-      ? [
-          {
-            title: t('table.departments', 'Phòng Ban'),
-            dataIndex: 'departments',
-            key: 'departments',
-            render: (departments: any[]) => (
-              <Space wrap size={[4, 4]}>
-                {departments && departments.length > 0 ? (
-                  departments.map((d, i) => (
-                    <Tag
-                      key={i}
-                      color="cyan"
-                      icon={<ClusterOutlined />}
-                      style={{ borderRadius: '6px', fontWeight: 600, padding: '2px 8px' }}
-                    >
-                      {d.department?.name || d.name || 'Phòng Ban'}
-                    </Tag>
-                  ))
-                ) : (
-                  <Tag color="default" style={{ borderRadius: '6px' }}>Chưa gán</Tag>
-                )}
-              </Space>
-            ),
-          },
-        ]
-      : []),
+    {
+      title: t('table.departments', 'Phòng Ban'),
+      dataIndex: 'departments',
+      key: 'departments',
+      render: (departments: any[]) => (
+        <Space wrap size={[4, 4]}>
+          {departments && departments.length > 0 ? (
+            departments.map((d, i) => (
+              <Tag
+                key={i}
+                color="cyan"
+                icon={<ClusterOutlined />}
+                style={{ borderRadius: '6px', fontWeight: 600, padding: '2px 8px' }}
+              >
+                {d.department?.name || d.name || 'Phòng Ban'}
+              </Tag>
+            ))
+          ) : (
+            <Tag color="default" style={{ borderRadius: '6px' }}>Chưa gán</Tag>
+          )}
+        </Space>
+      ),
+    },
     {
       title: t('table.actions', 'Thao Tác'),
       key: 'actions',

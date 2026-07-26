@@ -476,17 +476,6 @@ export default function SettingsModule() {
 
         <Col xs={24} md={12}>
           <Form.Item
-            name="enableDepartments"
-            label={t('settings.enableDepartments')}
-            valuePropName="checked"
-            extra={t('settings.enableDepartmentsHelp')}
-          >
-            <Switch />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24} md={12}>
-          <Form.Item
             name="enable2FA"
             label={t('settings.enable2FA')}
             valuePropName="checked"

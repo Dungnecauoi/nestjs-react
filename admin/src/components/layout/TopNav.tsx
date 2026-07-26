@@ -14,7 +14,6 @@ import {
   SlidersOutlined,
 } from '@ant-design/icons';
 import { useTheme } from '../../context/ThemeContext';
-import { useSystemOptions } from '../../hooks/useSystemOptions';
 
 const { Header: AntHeader } = Layout;
 const { Text } = Typography;
@@ -27,9 +26,6 @@ export const TopNav: React.FC<TopNavProps> = ({ onOpenConfigurator }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isDark } = useTheme();
-
-  const { data: systemOptions } = useSystemOptions();
-  const isDepartmentsEnabled = systemOptions?.enableDepartments !== false;
 
   const menuItems: MenuProps['items'] = [
     {
@@ -47,15 +43,11 @@ export const TopNav: React.FC<TopNavProps> = ({ onOpenConfigurator }) => {
       icon: <SafetyCertificateOutlined />,
       label: 'Vai Trò',
     },
-    ...(isDepartmentsEnabled
-      ? [
-          {
-            key: '/admin/departments',
-            icon: <ApartmentOutlined />,
-            label: 'Phòng Ban',
-          },
-        ]
-      : []),
+    {
+      key: '/admin/departments',
+      icon: <ApartmentOutlined />,
+      label: 'Phòng Ban',
+    },
     {
       key: '/admin/profile',
       icon: <IdcardOutlined />,

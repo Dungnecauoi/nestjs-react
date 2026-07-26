@@ -10,7 +10,6 @@ import {
   ClockCircleOutlined,
   ThunderboltFilled,
 } from '@ant-design/icons';
-import { useSystemOptions } from '../../hooks/useSystemOptions';
 import { usersApi } from '../../api/modules/users.api';
 import { departmentsApi } from '../../api/modules/departments.api';
 import { auditApi } from '../../api/modules/audit.api';
@@ -37,8 +36,6 @@ function renderActionTag(action: string) {
 
 export default function DashboardModule() {
   const { t } = useTranslation();
-  const { data: systemOptions } = useSystemOptions();
-  const isDepartmentsEnabled = systemOptions?.enableDepartments !== false;
 
   const { data: usersResponse } = useQuery({
     queryKey: ['users'],
@@ -121,7 +118,7 @@ export default function DashboardModule() {
 
       {/* Metric Cards Grid */}
       <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} lg={isDepartmentsEnabled ? 6 : 8}>
+        <Col xs={24} sm={12} lg={6}>
           <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
             <Statistic
               title={t('dashboard.totalUsers', 'Tổng Số Người Dùng')}
@@ -131,7 +128,7 @@ export default function DashboardModule() {
           </Card>
         </Col>
 
-        <Col xs={24} sm={12} lg={isDepartmentsEnabled ? 6 : 8}>
+        <Col xs={24} sm={12} lg={6}>
           <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
             <Statistic
               title={t('dashboard.activeUsers', 'Tài Khoản Hoạt Động')}
@@ -141,7 +138,7 @@ export default function DashboardModule() {
           </Card>
         </Col>
 
-        <Col xs={24} sm={12} lg={isDepartmentsEnabled ? 6 : 8}>
+        <Col xs={24} sm={12} lg={6}>
           <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
             <Statistic
               title={t('dashboard.pendingUsers', 'Chờ Admin Phê Duyệt')}
@@ -151,17 +148,15 @@ export default function DashboardModule() {
           </Card>
         </Col>
 
-        {isDepartmentsEnabled && (
-          <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
-              <Statistic
-                title={t('dashboard.totalDepts', 'Cơ Cấu Phòng Ban')}
-                value={departmentsResponse?.meta?.total ?? departments.length}
-                prefix={<ApartmentOutlined style={{ color: '#0284c7', marginRight: 8 }} />}
-              />
-            </Card>
-          </Col>
-        )}
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
+            <Statistic
+              title={t('dashboard.totalDepts', 'Cơ Cấu Phòng Ban')}
+              value={departmentsResponse?.meta?.total ?? departments.length}
+              prefix={<ApartmentOutlined style={{ color: '#0284c7', marginRight: 8 }} />}
+            />
+          </Card>
+        </Col>
       </Row>
 
       {/* Recent Activities Section */}

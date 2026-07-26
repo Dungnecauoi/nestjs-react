@@ -33,7 +33,6 @@ import { departmentsApi } from '../../api/modules/departments.api';
 import { rolesApi } from '../../api/modules/roles.api';
 import { permissionsApi } from '../../api/modules/permissions.api';
 import { ROUTES } from '../../routes/routes.config';
-import { useSystemOptions } from '../../hooks/useSystemOptions';
 
 export default function UserEdit() {
   const { t } = useTranslation();
@@ -60,8 +59,7 @@ export default function UserEdit() {
     queryFn: permissionsApi.getPermissions,
   });
 
-  const { data: systemOptions } = useSystemOptions();
-  const isDepartmentsEnabled = systemOptions?.enableDepartments !== false;
+
 
   const departmentOptions = departments.map((d: any) => ({
     value: d.id,
@@ -350,16 +348,14 @@ export default function UserEdit() {
                   />
                 </Form.Item>
 
-                {isDepartmentsEnabled && (
-                  <Form.Item name="departmentIds" label={t('users.selectDepartments', 'Chọn Phòng Ban Trực Thuộc')}>
-                    <Select
-                      mode="multiple"
-                      placeholder="Chọn phòng ban..."
-                      options={departmentOptions}
-                      style={{ borderRadius: 8 }}
-                    />
-                  </Form.Item>
-                )}
+                <Form.Item name="departmentIds" label={t('users.selectDepartments', 'Chọn Phòng Ban Trực Thuộc')}>
+                  <Select
+                    mode="multiple"
+                    placeholder="Chọn phòng ban..."
+                    options={departmentOptions}
+                    style={{ borderRadius: 8 }}
+                  />
+                </Form.Item>
 
                 <Divider style={{ margin: '12px 0' }} />
 

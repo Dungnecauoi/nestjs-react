@@ -33,7 +33,6 @@ import { departmentsApi } from '../../api/modules/departments.api';
 import { rolesApi } from '../../api/modules/roles.api';
 import { permissionsApi } from '../../api/modules/permissions.api';
 import { ROUTES } from '../../routes/routes.config';
-import { useSystemOptions } from '../../hooks/useSystemOptions';
 
 export default function UserCreate() {
   const { t } = useTranslation();
@@ -84,8 +83,7 @@ export default function UserCreate() {
     }
   };
 
-  const { data: systemOptions } = useSystemOptions();
-  const isDepartmentsEnabled = systemOptions?.enableDepartments !== false;
+
 
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -304,16 +302,14 @@ export default function UserCreate() {
                   />
                 </Form.Item>
 
-                {isDepartmentsEnabled && (
-                  <Form.Item name="departmentIds" label={t('users.selectDepartments', 'Chọn Phòng Ban Trực Thuộc')}>
-                    <Select
-                      mode="multiple"
-                      placeholder="Chọn phòng ban..."
-                      options={departmentOptions}
-                      style={{ borderRadius: 8 }}
-                    />
-                  </Form.Item>
-                )}
+                <Form.Item name="departmentIds" label={t('users.selectDepartments', 'Chọn Phòng Ban Trực Thuộc')}>
+                  <Select
+                    mode="multiple"
+                    placeholder="Chọn phòng ban..."
+                    options={departmentOptions}
+                    style={{ borderRadius: 8 }}
+                  />
+                </Form.Item>
 
                 <Divider style={{ margin: '12px 0' }} />
 
