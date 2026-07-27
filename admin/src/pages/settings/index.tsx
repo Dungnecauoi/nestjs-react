@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, Form, Input, Switch, Button, Row, Col, Select, Tabs, Radio, InputNumber, Upload, Space, Divider, Spin, Alert, message } from 'antd';
-import { SaveOutlined, CheckOutlined, SettingOutlined, PictureOutlined, ReadOutlined, EditOutlined, UploadOutlined, MailOutlined, GoogleOutlined, SendOutlined } from '@ant-design/icons';
+import { SaveOutlined, CheckOutlined, SettingOutlined, PictureOutlined, ReadOutlined, EditOutlined, UploadOutlined, MailOutlined, GoogleOutlined, SendOutlined, CloudServerOutlined } from '@ant-design/icons';
 import { optionsApi } from '../../api/modules/options.api';
 import { mailConfigApi, MailConfigResponse, MailConfigSaveDto, MailDriverName } from '../../api/modules/mail-config.api';
+import { storageConfigApi, StorageConfigResponse, StorageConfigSaveDto, StorageDriverName } from '../../api/modules/storage-config.api';
 import { queryClient } from '../../lib/query-client';
 import { SYSTEM_OPTIONS_QUERY_KEY } from '../../hooks/useSystemOptions';
 import { notify } from '../../utils/notify';
@@ -357,6 +358,161 @@ function MailConfigTabContent() {
             </Button>
           </Space.Compact>
         </div>
+      </Card>
+    </Spin>
+  );
+}
+
+function StorageConfigTabContent() {
+  const [storageForm] = Form.useForm();
+  const [disk, setDisk] = useState<StorageDriverName>('local');
+  const [config, setConfig] = useState<StorageConfigResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+
+  const loadConfig = async () => {
+    setLoading(true);
+    try {
+      const data = await storageConfigApi.getStorageConfig();
+      setConfig(data);
+      setDisk(data.disk);
+      storageForm.setFieldsValue({
+        disk: data.disk,
+        s3Region: data.s3?.region || 'us-east-1',
+        s3Bucket: data.s3?.bucket,
+        s3Endpoint: data.s3?.endpoint,
+        s3ForcePathStyle: data.s3?.forcePathStyle,
+      });
+    } catch (err) {
+      notify.error(err, 'Không thể tải cấu hình lưu trữ. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadConfig();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSave = async (values: any) => {
+    setSaving(true);
+    try {
+      const dto: StorageConfigSaveDto = { disk: values.disk };
+      if (values.disk === 's3') {
+        dto.s3 = {
+          accessKeyId: values.s3AccessKeyId || undefined,
+          secretAccessKey: values.s3SecretAccessKey || undefined,
+          region: values.s3Region,
+          bucket: values.s3Bucket,
+          endpoint: values.s3Endpoint || undefined,
+          forcePathStyle: values.s3ForcePathStyle,
+        };
+      }
+      const updated = await storageConfigApi.saveStorageConfig(dto);
+      setConfig(updated);
+      message.success('Đã lưu cấu hình lưu trữ media thành công!');
+    } catch (err: any) {
+      message.error(err.response?.data?.message || 'Không thể lưu cấu hình lưu trữ!');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    setTesting(true);
+    try {
+      await storageConfigApi.testConnection();
+      message.success('Kết nối S3/MinIO thành công!');
+    } catch (err: any) {
+      message.error(err.response?.data?.message || 'Kết nối thất bại!');
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  return (
+    <Spin spinning={loading}>
+      <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
+        <Form
+          form={storageForm}
+          layout="vertical"
+          onFinish={handleSave}
+          initialValues={{ disk: 'local', s3Region: 'us-east-1' }}
+        >
+          <Form.Item name="disk" label="Nơi Lưu Trữ Media (Driver)" rules={[{ required: true }]}>
+            <Select
+              onChange={(value) => setDisk(value)}
+              options={[
+                { value: 'local', label: 'Local Disk (Lưu trên server, mặc định)' },
+                { value: 's3', label: 'Amazon S3 / MinIO / S3-Compatible' },
+              ]}
+            />
+          </Form.Item>
+
+          {disk === 's3' && (
+            <>
+              <Divider style={{ margin: '8px 0 16px 0' }} />
+              <Row gutter={16}>
+                <Col xs={24} md={12}>
+                  <Form.Item
+                    name="s3AccessKeyId"
+                    label="Access Key ID"
+                    extra={config?.s3?.configured ? 'Đã lưu — để trống nếu không muốn đổi' : undefined}
+                  >
+                    <Input.Password />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item name="s3SecretAccessKey" label="Secret Access Key">
+                    <Input.Password />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item name="s3Region" label="Region" rules={[{ required: true }]}>
+                    <Input placeholder="us-east-1" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item name="s3Bucket" label="Bucket" rules={[{ required: true }]}>
+                    <Input placeholder="my-app-media" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={16}>
+                  <Form.Item
+                    name="s3Endpoint"
+                    label="Endpoint (chỉ cần cho MinIO / S3-Compatible khác AWS)"
+                  >
+                    <Input placeholder="https://minio.yourdomain.com" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={8}>
+                  <Form.Item
+                    name="s3ForcePathStyle"
+                    label="Path-Style Access"
+                    valuePropName="checked"
+                    extra="Bật khi dùng MinIO"
+                  >
+                    <Switch />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
+
+          <Divider style={{ margin: '16px 0' }} />
+          <Space>
+            <Button type="primary" htmlType="submit" loading={saving} icon={<SaveOutlined />} style={{ fontWeight: 700 }}>
+              Lưu Cấu Hình Lưu Trữ
+            </Button>
+            {disk === 's3' && (
+              <Button icon={<CloudServerOutlined />} loading={testing} onClick={handleTestConnection}>
+                Kiểm Tra Kết Nối
+              </Button>
+            )}
+          </Space>
+        </Form>
       </Card>
     </Spin>
   );
@@ -771,6 +927,16 @@ export default function SettingsModule() {
         </Space>
       ),
       children: <MailConfigTabContent />,
+    },
+    {
+      key: '6',
+      label: (
+        <Space>
+          <CloudServerOutlined />
+          Lưu Trữ
+        </Space>
+      ),
+      children: <StorageConfigTabContent />,
     },
   ];
 

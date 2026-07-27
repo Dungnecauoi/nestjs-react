@@ -10,7 +10,31 @@
       "Bash(xargs -I{} sh -c 'echo === {} ===; cat {}')",
       "Bash(rm -f /tmp/nest-apikey-test2.log)",
       "Bash(npx nest *)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(rm -f /tmp/nest-apikey-update-test.log)",
+      "Bash(grep -n \"id: dbUser.id,$\" src/core/auth/auth.service.ts)",
+      "Bash(rm -f /tmp/nest-profile-test.log)",
+      "Bash(sleep 3; cat /tmp/nest-profile-test.log | tail -20; ps aux | grep \"nest start\" | grep -v grep)",
+      "Bash(node -pe 'JSON.stringify\\(JSON.parse\\(require\\(\"fs\"\\).readFileSync\\(0\\)\\).data\\)')",
+      "Bash(curl -s -X POST http://localhost:3000/api/auth/login -H \"Content-Type: application/json\" -d '{\"email\":\"admin@ecomcx.com\",\"password\":\"123456\"}')",
+      "Bash(node -pe 'JSON.parse\\(require\\(\"fs\"\\).readFileSync\\(0\\)\\).data.name')",
+      "Bash(rm -f /tmp/nest-media-attach-test.log)",
+      "Bash(rm -f /tmp/nest-queue-default.log)",
+      "Bash(cat /tmp/nest-queue-default.log | grep -B5 \"insertExportedProviderOrModule\" | head -20)",
+      "Bash(rm -f /tmp/nest-queue-default2.log)",
+      "Bash(rm -f /tmp/nest-queue-redis.log)",
+      "Bash(QUEUE_CONNECTION=redis npx nest start)",
+      "Bash(rm -f /tmp/nest-phase2.log)",
+      "Bash(grep -c \"\\\\.png$\\\\|file-\")",
+      "Bash(rm -f /tmp/nest-phase4-redis.log)",
+      "Bash(git -C /Volumes/SSD-1/core/nestjs status --short backend/prisma/)",
+      "Bash(rm -f /tmp/nest-final.log)",
+      "Bash(node -pe 'const d=JSON.parse\\(require\\(\"fs\"\\).readFileSync\\(0\\)\\).data; \\({total: d.meta ? d.meta.total : d.length}\\)')",
+      "Bash(rm -f /tmp/nest-legacy-off.log)",
+      "Bash(node -e \"const {PrismaClient} = require\\('/Volumes/SSD-1/core/nestjs/backend/node_modules/.prisma/legacy-client'\\); console.log\\('OK, class:', typeof PrismaClient\\)\")",
+      "Bash(rm -f /tmp/nest-legacy-on.log)",
+      "Bash(LEGACY_DATABASE_URL=\"mysql://root:@127.0.0.1:3306/test-nestjs\" npx nest start)",
+      "Bash(rm -f /tmp/nest-alltogether.log)"
     ]
   }
 }

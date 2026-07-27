@@ -11,6 +11,7 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ApiKeyService } from './api-key.service';
 import { CreateApiKeyDto } from './dto/create-api-key.dto';
+import { UpdateApiKeyDto } from './dto/update-api-key.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { PermissionGuard } from '../guards/permission.guard';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
@@ -34,6 +35,13 @@ export class ApiKeyController {
   @ApiOperation({ summary: 'Tạo API Key tích hợp mới' })
   create(@Body() dto: CreateApiKeyDto) {
     return this.apiKeyService.create(dto);
+  }
+
+  @Patch(':id')
+  @RequirePermissions('setting:update')
+  @ApiOperation({ summary: 'Cập nhật tên/quyền hạn của API Key' })
+  update(@Param('id') id: string, @Body() dto: UpdateApiKeyDto) {
+    return this.apiKeyService.update(id, dto);
   }
 
   @Patch(':id/revoke')

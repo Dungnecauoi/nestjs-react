@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, Form, Input, Button, Avatar, Space, Tag, Descriptions, Row, Col, Modal, QRCode, Alert, message, Table, Popconfirm } from 'antd';
-import { UserOutlined, SaveOutlined, SafetyCertificateOutlined, QrcodeOutlined, CheckCircleOutlined, StopOutlined, DesktopOutlined, DeleteOutlined } from '@ant-design/icons';
+import { UserOutlined, SaveOutlined, SafetyCertificateOutlined, QrcodeOutlined, CheckCircleOutlined, StopOutlined, DesktopOutlined, DeleteOutlined, CameraOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useAuthStore } from '../../store/useAuthStore';
 import { authApi } from '../../api/modules/auth.api';
 import { sessionsApi, SessionItem } from '../../api/modules/sessions.api';
 import { notify } from '../../utils/notify';
+import { MediaPickerModal } from '../../components/common/MediaPickerModal';
+import { MediaItem } from '../../api/modules/media.api';
 
 export default function UserProfile() {
   const { t } = useTranslation();
@@ -22,6 +24,8 @@ export default function UserProfile() {
   const [otpLoading, setOtpLoading] = useState(false);
   const [qrLoading, setQrLoading] = useState(false);
   const [otpAuthUrl, setOtpAuthUrl] = useState<string | null>(null);
+  const [isAvatarPickerOpen, setIsAvatarPickerOpen] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
 
   const userName = user?.name || '';
   const userEmail = user?.email || '';
@@ -95,12 +99,40 @@ export default function UserProfile() {
       form.setFieldsValue({
         name: user.name || '',
         email: user.email || '',
-        phone: '',
+        phone: user.phone || '',
         department: '',
       });
       setIs2FAActive(user.isTwoFactorEnabled || false);
     }
   }, [user, form]);
+
+  const handleSaveProfile = async () => {
+    setSavingProfile(true);
+    try {
+      const values = await form.validateFields();
+      const updated = await authApi.updateProfile({
+        name: values.name,
+        phone: values.phone,
+      });
+      if (user) setUser({ ...user, ...updated });
+      notify.success('profile.updateSuccess', 'Đã lưu thông tin hồ sơ!');
+    } catch (err: any) {
+      if (err?.errorFields) return; // lỗi validate form, đã hiện message tại field
+      notify.error(err, 'Không thể lưu thông tin hồ sơ!');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const handleSelectAvatar = async (media: MediaItem) => {
+    try {
+      const updated = await authApi.updateProfile({ avatarMediaId: media.id });
+      if (user) setUser({ ...user, avatar: updated.avatar });
+      notify.success('profile.avatarUpdateSuccess', 'Đã đổi ảnh đại diện!');
+    } catch (err: any) {
+      notify.error(err, 'Không thể đổi ảnh đại diện!');
+    }
+  };
 
   const openSetupModal = async () => {
     setOtpError(null);
@@ -172,13 +204,22 @@ export default function UserProfile() {
       <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
           <Space size="large">
-            {user?.avatar ? (
-              <Avatar size={64} src={user.avatar} />
-            ) : (
-              <Avatar size={64} style={{ backgroundColor: '#09090b', fontWeight: 800, fontSize: 24 }}>
-                {userInitial}
-              </Avatar>
-            )}
+            <div style={{ position: 'relative', width: 64, height: 64 }}>
+              {user?.avatar ? (
+                <Avatar size={64} src={user.avatar} />
+              ) : (
+                <Avatar size={64} style={{ backgroundColor: '#09090b', fontWeight: 800, fontSize: 24 }}>
+                  {userInitial}
+                </Avatar>
+              )}
+              <Button
+                shape="circle"
+                size="small"
+                icon={<CameraOutlined />}
+                onClick={() => setIsAvatarPickerOpen(true)}
+                style={{ position: 'absolute', bottom: -4, right: -4, boxShadow: '0 1px 4px rgba(0,0,0,0.25)' }}
+              />
+            </div>
             <div>
               <Space align="center">
                 <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{userName}</h1>
@@ -190,7 +231,7 @@ export default function UserProfile() {
             </div>
           </Space>
 
-          <Button type="primary" icon={<SaveOutlined />}>
+          <Button type="primary" icon={<SaveOutlined />} loading={savingProfile} onClick={handleSaveProfile}>
             Lưu Thay Đổi
           </Button>
         </div>
@@ -377,6 +418,14 @@ export default function UserProfile() {
           </Button>
         </div>
       </Modal>
+
+      <MediaPickerModal
+        open={isAvatarPickerOpen}
+        onClose={() => setIsAvatarPickerOpen(false)}
+        onSelect={handleSelectAvatar}
+        accept="image"
+        title="Chọn Ảnh Đại Diện"
+      />
     </div>
   );
 }

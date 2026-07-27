@@ -1,16 +1,18 @@
 // Prisma Schema file cho NestJS Core Framework (Enterprise Auth, Team/Department, Role & Direct Permission)
 //
-// Biến thể MySQL (mặc định). Core này còn hỗ trợ PostgreSQL/SQLite qua
-// schema.postgresql.prisma / schema.sqlite.prisma — chọn bằng `npm run db:use:<driver>`.
-// Khi sửa model ở đây, nhớ sửa CẢ 3 file để không bị lệch (Prisma bắt buộc
-// datasource.provider cố định lúc generate, không dùng chung 1 file cho nhiều DB engine).
+// Biến thể PostgreSQL — chọn bằng `npm run db:use:postgresql` (copy đè lên schema.prisma).
+// Khi sửa model, sửa CẢ 3 file (schema.mysql.prisma, schema.postgresql.prisma,
+// schema.sqlite.prisma) để không bị lệch — Prisma bắt buộc datasource.provider cố định lúc
+// generate, không thể dùng chung 1 file cho nhiều DB engine cùng lúc. Giống schema.mysql.prisma
+// 100%, chỉ khác datasource.provider — Postgres hỗ trợ @db.Text y hệt MySQL nên không cần đổi
+// gì khác.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

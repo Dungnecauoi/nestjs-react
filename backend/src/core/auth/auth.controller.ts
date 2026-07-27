@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Delete,
   Body,
   Param,
@@ -17,6 +18,7 @@ import { AuthService, parseDurationToMs } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { BypassMaintenance } from '../../common/decorators/bypass-maintenance.decorator';
@@ -256,6 +258,14 @@ export class AuthController {
       message: 'Lấy thông tin tài khoản thành công',
       data: user,
     };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('profile')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Tự cập nhật hồ sơ cá nhân (tên, avatar, SĐT, ngày sinh...)' })
+  async updateProfile(@CurrentUser() user: any, @Body() dto: UpdateProfileDto) {
+    return this.authService.updateProfile(user.id ?? user.sub, dto);
   }
 
   @UseGuards(JwtAuthGuard)

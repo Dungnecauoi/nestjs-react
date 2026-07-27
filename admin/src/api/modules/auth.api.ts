@@ -33,6 +33,20 @@ export const authApi = {
     return res.data.data;
   },
 
+  updateProfile: async (payload: {
+    name?: string;
+    avatarMediaId?: string;
+    phone?: string;
+    identityCard?: string;
+    gender?: string;
+    dateOfBirth?: string;
+    address?: string;
+    bio?: string;
+  }): Promise<User> => {
+    const res = await api.patch<ApiResponse<User>>('/auth/profile', payload);
+    return res.data.data;
+  },
+
   forgotPassword: async (email: string) => {
     const res = await api.post('/auth/forgot-password', { email });
     return res.data?.data || res.data;

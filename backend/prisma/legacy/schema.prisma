@@ -1,0 +1,34 @@
+// Schema RIÊNG cho database phụ (hệ thống Legacy) — độc lập hoàn toàn với
+// backend/prisma/schema.prisma (DB chính). Client sinh từ file này KHÔNG liên quan gì tới
+// PrismaClient mặc định — 2 client riêng biệt, 2 connection riêng biệt, không JOIN được
+// xuyên 2 DB (giới hạn của Prisma, không phải thiếu sót).
+//
+// Cách dùng thật:
+// 1. Set LEGACY_DATABASE_URL trong .env trỏ tới DB legacy thật.
+// 2. Chạy `npm run legacy:db:pull` — Prisma sẽ INTROSPECT (đọc cấu trúc bảng có sẵn của DB
+//    legacy) và tự viết lại các model bên dưới, thay cho model ví dụ `LegacyExampleTable`.
+// 3. Chạy `npm run legacy:db:generate` để sinh client.
+// 4. Dùng qua `LegacyPrismaService` (backend/src/core/database/legacy-prisma.service.ts),
+//    ví dụ: `this.legacyPrismaService.db.legacyExampleTable.findMany()`.
+//
+// Muốn tích hợp thêm 1 hệ thống legacy thứ 2/3: copy nguyên thư mục `prisma/legacy/` sang
+// tên khác (vd `prisma/legacy-crm/`), đổi tên generator output + service/module tương ứng —
+// không có cách làm tự động/dùng chung do Prisma bắt buộc 1 client sinh riêng cho 1 schema.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/.prisma/legacy-client"
+}
+
+datasource db {
+  provider = "mysql" // đổi theo DB legacy thật: mysql | postgresql | sqlserver | sqlite
+  url      = env("LEGACY_DATABASE_URL")
+}
+
+// Model ví dụ — XOÁ sau khi chạy `prisma db pull` để thay bằng model thật từ DB legacy.
+model LegacyExampleTable {
+  id   Int    @id
+  name String
+
+  @@map("legacy_example_table")
+}

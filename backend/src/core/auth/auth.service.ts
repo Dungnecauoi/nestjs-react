@@ -11,6 +11,8 @@ import { MailService } from '../mail/mail.service';
 import { CustomApiException } from '../../common/exceptions/custom-api.exception';
 import { ErrorCode } from '../../common/enums/error-code.enum';
 import { LoginDto } from './dto/login.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { MediaService } from '../../modules/media/media.service';
 
 type UserTokenType = 'PASSWORD_RESET' | 'EMAIL_VERIFY';
 
@@ -72,6 +74,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly twoFactorService: TwoFactorService,
     private readonly mailService: MailService,
+    private readonly mediaService: MediaService,
   ) {}
 
   private extractUserPermissionsAndRoles(dbUser: any) {
@@ -223,6 +226,8 @@ export class AuthService {
         id: dbUser.id,
         name: dbUser.name,
         email: dbUser.email,
+        avatar: dbUser.avatar,
+        phone: dbUser.phone,
         roles,
         permissions,
         isTwoFactorEnabled: dbUser.isTwoFactorEnabled,
@@ -319,6 +324,8 @@ export class AuthService {
         id: dbUser.id,
         name: dbUser.name,
         email: dbUser.email,
+        avatar: dbUser.avatar,
+        phone: dbUser.phone,
         roles,
         permissions,
         isTwoFactorEnabled: dbUser.isTwoFactorEnabled,
@@ -558,6 +565,8 @@ export class AuthService {
         id: dbUser.id,
         name: dbUser.name,
         email: dbUser.email,
+        avatar: dbUser.avatar,
+        phone: dbUser.phone,
         roles,
         permissions,
         isTwoFactorEnabled: dbUser.isTwoFactorEnabled,
@@ -793,6 +802,53 @@ export class AuthService {
       defaultValue: 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại.',
     });
     return { success: true, message };
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const lang = I18nContext.current()?.lang;
+    const dbUser = await this.prisma.user.findUnique({ where: { id: userId, deletedAt: null } });
+
+    if (!dbUser) {
+      const message = this.i18n.t('auth.UNAUTHORIZED', { lang });
+      throw new CustomApiException(ErrorCode.AUTH_UNAUTHORIZED, message, HttpStatus.UNAUTHORIZED);
+    }
+
+    let avatarUrl: string | undefined;
+    if (dto.avatarMediaId !== undefined) {
+      const media = await this.mediaService.findOne(dto.avatarMediaId);
+      avatarUrl = media.url;
+      // Gỡ avatar hiện tại (nếu có) khỏi collection 'avatar' của user này — media cũ vẫn còn
+      // nguyên, chỉ không còn là avatar hiện hành, vẫn dùng lại được ở nơi khác.
+      await this.mediaService.detach('User', userId, 'avatar');
+      await this.mediaService.attachTo(media.id, 'User', userId, 'avatar');
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(avatarUrl !== undefined && { avatar: avatarUrl }),
+        ...(dto.phone !== undefined && { phone: dto.phone }),
+        ...(dto.identityCard !== undefined && { identityCard: dto.identityCard }),
+        ...(dto.gender !== undefined && { gender: dto.gender }),
+        ...(dto.dateOfBirth !== undefined && { dateOfBirth: new Date(dto.dateOfBirth) }),
+        ...(dto.address !== undefined && { address: dto.address }),
+        ...(dto.bio !== undefined && { bio: dto.bio }),
+      },
+    });
+
+    return {
+      id: updated.id,
+      name: updated.name,
+      email: updated.email,
+      avatar: updated.avatar,
+      phone: updated.phone,
+      identityCard: updated.identityCard,
+      gender: updated.gender,
+      dateOfBirth: updated.dateOfBirth,
+      address: updated.address,
+      bio: updated.bio,
+    };
   }
 
   async changePassword(userId: string, dto: { currentPassword: string; newPassword: string }) {

@@ -4,6 +4,8 @@ import { OptionsService } from './options.service';
 import { MailConfigService } from '../mail/mail-config.service';
 import { GmailOAuthService } from '../mail/gmail-oauth.service';
 import { MailConfigDto, MailTestDto, GmailExchangeDto } from '../mail/dto/mail-config.dto';
+import { StorageConfigService } from '../storage/storage-config.service';
+import { StorageConfigDto } from '../storage/dto/storage-config.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionGuard } from '../auth/guards/permission.guard';
@@ -17,6 +19,7 @@ export class OptionsController {
     private readonly optionsService: OptionsService,
     private readonly mailConfigService: MailConfigService,
     private readonly gmailOAuthService: GmailOAuthService,
+    private readonly storageConfigService: StorageConfigService,
   ) {}
 
   @Public()
@@ -103,5 +106,34 @@ export class OptionsController {
   @ApiOperation({ summary: 'Ngắt kết nối Gmail OAuth2' })
   async disconnectGmailOAuth() {
     return { success: true, data: await this.mailConfigService.disconnectGmail() };
+  }
+
+  @ApiBearerAuth()
+  @RequirePermissions('setting:read')
+  @Get('storage-config')
+  @ApiOperation({ summary: 'Lấy cấu hình lưu trữ media hiện tại (secret đã được ẩn)' })
+  async getStorageConfig() {
+    return { success: true, data: await this.storageConfigService.getMaskedConfig() };
+  }
+
+  @ApiBearerAuth()
+  @RequirePermissions('setting:update')
+  @Post('storage-config')
+  @ApiOperation({ summary: 'Lưu cấu hình lưu trữ media (Local/S3/MinIO)' })
+  async saveStorageConfig(@Body() dto: StorageConfigDto) {
+    return {
+      success: true,
+      message: 'Đã lưu cấu hình lưu trữ media thành công!',
+      data: await this.storageConfigService.saveConfig(dto),
+    };
+  }
+
+  @ApiBearerAuth()
+  @RequirePermissions('setting:update')
+  @Post('storage-config/test')
+  @ApiOperation({ summary: 'Kiểm tra kết nối S3/MinIO bằng cấu hình đang lưu' })
+  async testStorageConfig() {
+    await this.storageConfigService.testConnection();
+    return { success: true, message: 'Kết nối S3/MinIO thành công!' };
   }
 }

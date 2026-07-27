@@ -36,6 +36,11 @@ export const apiKeysApi = {
     return res.data?.data || res.data;
   },
 
+  updateApiKey: async (id: string, payload: { name?: string; permissions?: string[] }) => {
+    const res = await api.patch(`/api-keys/${id}`, payload);
+    return res.data?.data || res.data;
+  },
+
   revokeApiKey: async (id: string) => {
     const res = await api.patch(`/api-keys/${id}/revoke`);
     return res.data?.data || res.data;

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { CreateApiKeyDto } from './dto/create-api-key.dto';
+import { UpdateApiKeyDto } from './dto/update-api-key.dto';
 import * as crypto from 'crypto';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 
@@ -94,6 +95,24 @@ export class ApiKeyService {
       name: apiKey.name,
       roles: ['api-key'],
       permissions,
+    };
+  }
+
+  async update(id: string, dto: UpdateApiKeyDto) {
+    const key = await this.prisma.apiKey.findUnique({ where: { id } });
+    if (!key) {
+      const lang = I18nContext.current()?.lang;
+      throw new NotFoundException(this.i18n.t('messages.NOT_FOUND', { lang, args: { id } }));
+    }
+
+    const data: { name?: string; permissions?: string } = {};
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.permissions !== undefined) data.permissions = JSON.stringify(dto.permissions);
+
+    const updated = await this.prisma.apiKey.update({ where: { id }, data });
+    return {
+      ...updated,
+      permissions: updated.permissions ? JSON.parse(updated.permissions) : [],
     };
   }
 

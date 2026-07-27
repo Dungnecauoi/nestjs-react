@@ -174,7 +174,7 @@ export default function RolesModule() {
       title: t('roles.permissions', 'Quyền Hạn'),
       key: 'permissions',
       width: 140,
-      render: (record: Role) => {
+      render: (_: any, record: Role) => {
         const count = record.permissions ? record.permissions.length : 0;
         return (
           <Tag

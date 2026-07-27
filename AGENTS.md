@@ -116,3 +116,23 @@ Mọi câu trả lời, đoạn code phát triển hoặc chỉnh sửa trong h�
 - **Backend Format Toàn Quyền**: Mọi field ngày giờ mang tính **hiển thị/log** (`createdAt`, `updatedAt`, `readAt`, `expiresAt`...) BẮT BUỘC được format sẵn theo `dateFormat`/`timeFormat`/`timezone` đang cấu hình tại Settings trước khi trả về Frontend. Việc này xử lý tự động qua `TransformInterceptor` (`backend/src/core/interceptors/transform.interceptor.ts`) + `deepFormatDates` (`backend/src/common/utils/date-format.util.ts`) áp dụng cho **toàn bộ response** — module/endpoint mới KHÔNG cần tự xử lý format ngày giờ.
 - **Nghiêm Cấm Frontend Tự Format/Parse Lại**: Component Frontend KHÔNG ĐƯỢC gọi `new Date(x).toLocaleString(...)` hay bất kỳ hình thức parse lại nào lên field ngày giờ hiển thị nhận từ API — CHỈ render nguyên văn chuỗi Backend trả về.
 - **Ngoại Lệ Field Dữ Liệu Chỉnh Sửa Được**: Field ngày giờ dùng làm dữ liệu đưa vào `DatePicker`/Form để chỉnh sửa (vd `dateOfBirth`) Backend giữ nguyên ISO, không format — khai báo thêm vào mảng `excludeKeys`/`NON_DISPLAY_DATE_FIELDS` của `deepFormatDates` khi phát sinh field loại này ở model mới.
+
+---
+
+## 14. 🗄️ QUY TẮC ĐA DATABASE DRIVER (MySQL / PostgreSQL / SQLite)
+
+- **3 Schema Biến Thể Song Song**: `backend/prisma/schema.mysql.prisma`, `schema.postgresql.prisma`, `schema.sqlite.prisma` là 3 file NGUỒN — `schema.prisma` (không có hậu tố) là file **đang được chọn**, do `scripts/select-db-driver.js` copy đè vào. KHÔNG sửa trực tiếp `schema.prisma` để đổi driver — sửa đúng file nguồn tương ứng.
+- **Đổi Driver**: `npm run db:use:mysql` / `db:use:postgresql` / `db:use:sqlite` (copy schema tương ứng + `prisma generate`). Sau đó cập nhật `DATABASE_URL` trong `.env` đúng định dạng driver (`mysql://...`, `postgresql://...`, `file:./dev.db`), rồi chạy `npx prisma migrate dev` để tạo migration history mới — **migration của driver này không dùng chung được với driver khác** (giới hạn cố hữu của Prisma, không phải bug).
+- **Khi Sửa Model**: BẮT BUỘC sửa CẢ 3 file schema nguồn cho đồng bộ (không chỉ sửa `schema.prisma` đang active). Chỉ khác biệt giữa 3 file: `datasource.provider` và việc SQLite không có `@db.Text` (MySQL/PostgreSQL đều hỗ trợ y hệt nhau, giữ nguyên).
+- **Không Dùng `$queryRaw`/`$executeRaw`/Native SQL Đặc Thù**: Core chỉ dùng Prisma Client API chuẩn (không raw SQL, không `enum` Prisma, không `Json` field) — đây là điều kiện để 1 model dùng chung được cả 3 driver mà không cần sửa code logic. Vi phạm điều này sẽ phá vỡ khả năng đa-driver.
+- **Giới Hạn SQLite**: Phù hợp dev/self-host quy mô nhỏ — không khuyến khích production nhiều người dùng ghi đồng thời (khoá ghi đơn luồng). **Không hỗ trợ MongoDB** — Prisma+Mongo đòi ID `@db.ObjectId` và không có FK/cascade thật, toàn bộ quan hệ many-to-many RBAC của core phải viết lại hoàn toàn — không phải "thêm driver" mà là core khác.
+
+---
+
+## 15. 🔌 QUY TẮC KẾT NỐI DATABASE PHỤ (Legacy/Second Database Integration)
+
+- **Schema Riêng Biệt Hoàn Toàn**: DB phụ (hệ thống Legacy, CRM cũ...) dùng schema RIÊNG tại `backend/prisma/legacy/schema.prisma`, sinh client RIÊNG (`npm run legacy:db:generate` → `node_modules/.prisma/legacy-client`) — độc lập 100% với `backend/prisma/schema.prisma` (DB chính). Đây là giới hạn kiến trúc của Prisma (không giống Laravel Eloquent): 1 `PrismaClient` gắn chặt 1 schema lúc `generate`, không thể tạo client động từ connection string phát hiện lúc chạy.
+- **Không JOIN Xuyên Database**: KHÔNG thể query kết hợp DB chính và DB legacy trong 1 câu lệnh Prisma. Muốn kết hợp dữ liệu, BẮT BUỘC query riêng từng bên rồi ghép ở tầng application code (application-level join).
+- **Setup Bằng Introspection**: Không tự thiết kế schema cho DB legacy — dùng `npm run legacy:db:pull` (Prisma đọc cấu trúc bảng có sẵn của DB legacy thật, tự sinh model tương ứng), thay cho model ví dụ `LegacyExampleTable` trong file schema.
+- **Zero-Infra Mặc Định**: `LegacyDatabaseModule` (`backend/src/core/database/legacy-database.module.ts`) chỉ đăng ký `LegacyPrismaService` khi biến môi trường `LEGACY_DATABASE_URL` có set — dự án không cần tích hợp legacy thì không có kết nối thừa, không bắt buộc phải generate client legacy mới compile được (đúng pattern đã dùng cho Redis Queue/Cache/Broadcast).
+- **Thêm DB Legacy Thứ 2/3**: Copy nguyên thư mục `prisma/legacy/` sang tên khác (vd `prisma/legacy-crm/`), đổi tên generator `output` + tạo `LegacyCrmPrismaService`/`LegacyCrmDatabaseModule` tương ứng theo đúng mẫu — không có cách làm tự động/dùng chung do giới hạn kiến trúc Prisma đã nêu ở trên.

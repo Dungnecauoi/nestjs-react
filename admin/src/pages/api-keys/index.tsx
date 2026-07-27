@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Table, Tag, Button, Modal, Form, Input, Space, Card, Popconfirm, Tooltip, message, Alert, Grid, List } from 'antd';
+import { Table, Tag, Button, Modal, Form, Input, Select, Space, Card, Popconfirm, Tooltip, message, Alert, Grid, List } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   KeyOutlined,
@@ -11,8 +11,10 @@ import {
   StopOutlined,
   CheckCircleOutlined,
   CopyOutlined,
+  EditOutlined,
 } from '@ant-design/icons';
 import { apiKeysApi, ApiKeyItem, CreateApiKeyResponse } from '../../api/modules/apiKeys.api';
+import { permissionsApi } from '../../api/modules/permissions.api';
 import { Can } from '../../components/common/Can';
 import { useAuthStore } from '../../store/useAuthStore';
 import { ResponsiveTable } from '../../components/common/ResponsiveTable';
@@ -20,9 +22,12 @@ import { ResponsiveTable } from '../../components/common/ResponsiveTable';
 export default function ApiKeysModule() {
   const { t } = useTranslation();
   const [createForm] = Form.useForm();
+  const [editForm] = Form.useForm();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createdSecretResult, setCreatedSecretResult] = useState<CreateApiKeyResponse | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedApiKey, setSelectedApiKey] = useState<ApiKeyItem | null>(null);
   const { isAuthenticated } = useAuthStore();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
@@ -33,6 +38,29 @@ export default function ApiKeysModule() {
     enabled: isAuthenticated,
   });
 
+  const { data: allPermissions = [] } = useQuery({
+    queryKey: ['permissions'],
+    queryFn: permissionsApi.getPermissions,
+    enabled: isAuthenticated,
+  });
+
+  // API Key check quyền bằng permission.code (không phải id) — PermissionGuard so trực tiếp
+  // chuỗi code với @RequirePermissions(...) trên route, khác với Role dùng permissionId.
+  const permissionOptions = useMemo(() => {
+    const permList = Array.isArray(allPermissions) ? allPermissions : [];
+    const groupedMap = permList.reduce((acc, p) => {
+      const mod = (p.module || 'system').toUpperCase();
+      if (!acc[mod]) acc[mod] = [];
+      acc[mod].push({ label: `${p.name} (${p.code})`, value: p.code });
+      return acc;
+    }, {} as Record<string, { label: string; value: string }[]>);
+
+    return Object.keys(groupedMap).map((modKey) => ({
+      label: `MODULE: ${modKey}`,
+      options: groupedMap[modKey],
+    }));
+  }, [allPermissions]);
+
   const handleCreateApiKey = async (values: any) => {
     try {
       const result = await apiKeysApi.createApiKey(values);
@@ -42,6 +70,27 @@ export default function ApiKeysModule() {
       refetch();
     } catch {
       message.error('Không thể tạo API Key!');
+    }
+  };
+
+  const handleOpenEditModal = (record: ApiKeyItem) => {
+    setSelectedApiKey(record);
+    editForm.setFieldsValue({
+      name: record.name,
+      permissions: record.permissions || [],
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditApiKey = async (values: { name: string; permissions: string[] }) => {
+    if (!selectedApiKey) return;
+    try {
+      await apiKeysApi.updateApiKey(selectedApiKey.id, values);
+      message.success('Đã cập nhật quyền hạn API Key!');
+      setIsEditModalOpen(false);
+      refetch();
+    } catch {
+      message.error('Không thể cập nhật API Key!');
     }
   };
 
@@ -98,6 +147,24 @@ export default function ApiKeysModule() {
       ),
     },
     {
+      title: 'Quyền Hạn Đã Cấp',
+      dataIndex: 'permissions',
+      key: 'permissions',
+      width: 220,
+      render: (permissions: string[]) =>
+        permissions && permissions.length > 0 ? (
+          <Space size={4} wrap>
+            {permissions.map((code) => (
+              <Tag key={code} color="purple" style={{ borderRadius: 6, fontWeight: 600 }}>
+                {code}
+              </Tag>
+            ))}
+          </Space>
+        ) : (
+          <span style={{ color: '#94a3b8' }}>Chưa cấp quyền</span>
+        ),
+    },
+    {
       title: 'Trạng Thái',
       dataIndex: 'isActive',
       key: 'isActive',
@@ -129,6 +196,10 @@ export default function ApiKeysModule() {
       render: (_: any, record: ApiKeyItem) => (
         <Space size={6}>
           <Can permission="setting:update">
+            <Tooltip title="Sửa Quyền Hạn">
+              <Button size="small" icon={<EditOutlined />} onClick={() => handleOpenEditModal(record)} />
+            </Tooltip>
+
             {record.isActive ? (
               <Tooltip title="Vô Hiệu Hóa">
                 <Button size="small" icon={<StopOutlined />} onClick={() => handleRevokeApiKey(record.id)} />
@@ -231,8 +302,57 @@ export default function ApiKeysModule() {
             <Form.Item name="name" label="Tên Tích Hợp / Tên App Mobile" rules={[{ required: true, message: 'Vui lòng nhập tên!' }]}>
               <Input placeholder="Mobile App iOS / CRM Integration" style={{ borderRadius: 6 }} />
             </Form.Item>
+
+            <Form.Item
+              name="permissions"
+              label="Quyền Hạn Cấp Cho API Key"
+              rules={[{ required: true, message: 'Vui lòng chọn ít nhất 1 quyền hạn!' }]}
+              extra="API Key chỉ gọi được đúng các quyền được chọn ở đây, không có mặc định full quyền."
+            >
+              <Select
+                mode="multiple"
+                allowClear
+                placeholder="Chọn các quyền hạn cụ thể (vd: department:read, user:read)..."
+                options={permissionOptions}
+                style={{ width: '100%', borderRadius: 6 }}
+                maxTagCount="responsive"
+              />
+            </Form.Item>
           </Form>
         )}
+      </Modal>
+
+      {/* Modal Sửa Quyền Hạn API Key */}
+      <Modal
+        title={`Sửa Quyền Hạn: ${selectedApiKey?.name || ''} (${selectedApiKey?.prefix || ''}...)`}
+        open={isEditModalOpen}
+        onCancel={() => setIsEditModalOpen(false)}
+        onOk={() => editForm.submit()}
+        okText="Lưu Thay Đổi"
+        cancelText="Hủy"
+        width={560}
+      >
+        <Form form={editForm} layout="vertical" onFinish={handleEditApiKey} style={{ marginTop: 16 }}>
+          <Form.Item name="name" label="Tên Tích Hợp / Tên App Mobile" rules={[{ required: true, message: 'Vui lòng nhập tên!' }]}>
+            <Input placeholder="Mobile App iOS / CRM Integration" style={{ borderRadius: 6 }} />
+          </Form.Item>
+
+          <Form.Item
+            name="permissions"
+            label="Quyền Hạn Cấp Cho API Key"
+            rules={[{ required: true, message: 'Vui lòng chọn ít nhất 1 quyền hạn!' }]}
+            extra="Đổi quyền có hiệu lực ngay cho các lần gọi API tiếp theo bằng key này."
+          >
+            <Select
+              mode="multiple"
+              allowClear
+              placeholder="Chọn các quyền hạn cụ thể..."
+              options={permissionOptions}
+              style={{ width: '100%', borderRadius: 6 }}
+              maxTagCount="responsive"
+            />
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   );

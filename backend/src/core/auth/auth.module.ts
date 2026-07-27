@@ -17,10 +17,12 @@ import { AuthController } from './auth.controller';
 import { TwoFactorService } from './two-factor.service';
 import { ApiKeyService } from './api-key/api-key.service';
 import { ApiKeyController } from './api-key/api-key.controller';
+import { MediaModule } from '../../modules/media/media.module';
 
 @Global()
 @Module({
   imports: [
+    MediaModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
