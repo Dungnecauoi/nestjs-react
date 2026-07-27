@@ -182,7 +182,12 @@ export class AuthService {
     // 4. If 2FA is active, require 2-step OTP verification before issuing final tokens
     if (dbUser.isTwoFactorEnabled) {
       const preAuthToken = await this.jwtService.signAsync(
-        { sub: dbUser.id, email: dbUser.email, isPreAuth: true },
+        {
+          sub: dbUser.id,
+          email: dbUser.email,
+          isPreAuth: true,
+          rememberMe: !!dto.rememberMe,
+        },
         { expiresIn: '5m' },
       );
 
@@ -201,14 +206,14 @@ export class AuthService {
       permissions,
     };
 
-    const tokens = await this.generateTokens(payload);
+    const tokens = await this.generateTokens(payload, dto.rememberMe);
 
     // 5. Save Multi-Device UserSession record in MySQL
     const tokenHash = await bcrypt.hash(
       tokens.refreshToken,
       this.configService.get<number>('auth.bcryptRounds') || 12,
     );
-    const expiresAt = new Date(Date.now() + this.getSessionDurationMs());
+    const expiresAt = new Date(Date.now() + this.getSessionDurationMs(dto.rememberMe));
 
     await this.prisma.userSession.create({
       data: {
@@ -217,6 +222,7 @@ export class AuthService {
         userAgent: meta?.userAgent || 'Unknown Device',
         ipAddress: meta?.ipAddress || '127.0.0.1',
         expiresAt,
+        rememberMe: !!dto.rememberMe,
       },
     });
 
@@ -300,14 +306,16 @@ export class AuthService {
       permissions,
     };
 
-    const tokens = await this.generateTokens(payload);
+    const tokens = await this.generateTokens(payload, decoded.rememberMe);
 
     // Save Multi-Device UserSession record in MySQL
     const tokenHash = await bcrypt.hash(
       tokens.refreshToken,
       this.configService.get<number>('auth.bcryptRounds') || 12,
     );
-    const expiresAt = new Date(Date.now() + this.getSessionDurationMs());
+    const expiresAt = new Date(
+      Date.now() + this.getSessionDurationMs(decoded.rememberMe),
+    );
 
     await this.prisma.userSession.create({
       data: {
@@ -316,6 +324,7 @@ export class AuthService {
         userAgent: meta?.userAgent || 'Unknown Device',
         ipAddress: meta?.ipAddress || '127.0.0.1',
         expiresAt,
+        rememberMe: !!decoded.rememberMe,
       },
     });
 
@@ -516,14 +525,18 @@ export class AuthService {
       permissions,
     };
 
-    const tokens = await this.generateTokens(payload);
+    // Giữ nguyên trạng thái "ghi nhớ đăng nhập" của session gốc khi rotate — nếu không, mỗi
+    // lần refresh (diễn ra thường xuyên vì access token sống ngắn) sẽ âm thầm rút phiên 30
+    // ngày về lại mặc định 7 ngày, làm mất tác dụng tính năng "Ghi nhớ đăng nhập".
+    const rememberMe = matchingSession?.rememberMe ?? false;
+    const tokens = await this.generateTokens(payload, rememberMe);
 
     // Rotate token on active session if found, or create session
     const newTokenHash = await bcrypt.hash(
       tokens.refreshToken,
       this.configService.get<number>('auth.bcryptRounds') || 12,
     );
-    const newExpiresAt = new Date(Date.now() + this.getSessionDurationMs());
+    const newExpiresAt = new Date(Date.now() + this.getSessionDurationMs(rememberMe));
 
     if (matchingSession) {
       await this.prisma.userSession.update({
@@ -651,15 +664,16 @@ export class AuthService {
     return { success: true };
   }
 
-  private async generateTokens(payload: any) {
+  private async generateTokens(payload: any, rememberMe?: boolean) {
     const jwtSecret = this.configService.get<string>('auth.jwtSecret');
     const jwtExpiresIn =
       this.configService.get<string>('auth.jwtExpiresIn') || '1h';
     const jwtRefreshSecret = this.configService.get<string>(
       'auth.jwtRefreshSecret',
     );
-    const jwtRefreshExpiresIn =
-      this.configService.get<string>('auth.jwtRefreshExpiresIn') || '7d';
+    const jwtRefreshExpiresIn = rememberMe
+      ? this.configService.get<string>('auth.jwtRememberMeExpiresIn') || '30d'
+      : this.configService.get<string>('auth.jwtRefreshExpiresIn') || '7d';
 
     if (!jwtSecret || !jwtRefreshSecret) {
       throw new CustomApiException(
@@ -685,6 +699,9 @@ export class AuthService {
       refreshToken,
       tokenType: 'Bearer',
       expiresIn: jwtExpiresIn,
+      // Cookie refresh token nên sống đúng bằng thời hạn JWT thật — controller dùng field này
+      // để set maxAge, tránh lệch giữa "cookie còn hạn" và "JWT thực sự còn hạn".
+      refreshMaxAgeMs: parseDurationToMs(jwtRefreshExpiresIn),
     };
   }
 
@@ -946,9 +963,10 @@ export class AuthService {
     return { success: true, message };
   }
 
-  private getSessionDurationMs(): number {
-    const jwtRefreshExpiresIn =
-      this.configService.get<string>('auth.jwtRefreshExpiresIn') || '7d';
+  private getSessionDurationMs(rememberMe?: boolean): number {
+    const jwtRefreshExpiresIn = rememberMe
+      ? this.configService.get<string>('auth.jwtRememberMeExpiresIn') || '30d'
+      : this.configService.get<string>('auth.jwtRefreshExpiresIn') || '7d';
     return parseDurationToMs(jwtRefreshExpiresIn);
   }
 

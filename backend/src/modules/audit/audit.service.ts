@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../core/database/prisma.service';
 import { QueryAuditDto } from './dto/query-audit.dto';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { I18nService } from 'nestjs-i18n';
 
 export interface CreateAuditLogParams {
@@ -21,12 +20,15 @@ export interface CreateAuditLogParams {
 export class AuditService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly eventEmitter: EventEmitter2,
     private readonly i18n: I18nService,
   ) {}
 
   /**
-   * Ghi log thao tác hệ thống và phát sinh Notification Event
+   * Ghi log thao tác hệ thống — chỉ là nhật ký tra cứu (trang Audit Logs), KHÔNG tạo
+   * Notification. Trước đây mọi CREATE/DELETE (kể cả upload ảnh, tạo webhook...) tự bắn
+   * thông báo broadcast cho toàn bộ user đang online — gây spam. Module nào cần thông báo
+   * thật (vd xoá user, đổi quyền) nên tự gọi NotificationService trực tiếp tại đúng chỗ đó,
+   * không gắn chung vào audit log.
    */
   async logAction(params: CreateAuditLogParams) {
     const {
@@ -41,7 +43,7 @@ export class AuditService {
       userAgent,
     } = params;
 
-    const auditLog = await this.prisma.auditLog.create({
+    return this.prisma.auditLog.create({
       data: {
         userId: userId || null,
         userEmail: userEmail || 'System',
@@ -54,21 +56,6 @@ export class AuditService {
         userAgent: userAgent || null,
       },
     });
-
-    // Phát sự kiện tới Notification System để thông báo cho Admin nếu là hành động quan trọng (bỏ qua auth refresh/login)
-    if (
-      (['CREATE', 'DELETE'].includes(action) || module === 'setting') &&
-      module !== 'auth'
-    ) {
-      this.eventEmitter.emit('notification.send', {
-        title: `Nhật ký thao tác: ${action} [${module}]`,
-        content: `${userEmail || 'Hệ thống'} vừa thực hiện thao tác ${action} trên module ${module}`,
-        type: action === 'DELETE' ? 'warning' : 'info',
-        data: JSON.stringify({ auditLogId: auditLog.id, module, entityId }),
-      });
-    }
-
-    return auditLog;
   }
 
   /**

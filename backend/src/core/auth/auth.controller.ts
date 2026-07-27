@@ -46,13 +46,15 @@ export class AuthController {
     return parseDurationToMs(expiresIn);
   }
 
-  private getCookieOptions() {
+  // `maxAgeMs` nên truyền từ `refreshMaxAgeMs` do AuthService trả về (khớp đúng thời hạn JWT
+  // thật — có thể dài hơn mặc định khi "Ghi nhớ đăng nhập") — fallback về config tĩnh nếu thiếu.
+  private getCookieOptions(maxAgeMs?: number) {
     return {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict' as const,
       path: '/api/auth',
-      maxAge: this.getCookieMaxAge(),
+      maxAge: maxAgeMs ?? this.getCookieMaxAge(),
     };
   }
 
@@ -84,7 +86,7 @@ export class AuthController {
       res.cookie(
         this.getCookieName(),
         result.refreshToken,
-        this.getCookieOptions(),
+        this.getCookieOptions((result as any).refreshMaxAgeMs),
       );
     }
 
@@ -115,7 +117,7 @@ export class AuthController {
       res.cookie(
         this.getCookieName(),
         result.refreshToken,
-        this.getCookieOptions(),
+        this.getCookieOptions((result as any).refreshMaxAgeMs),
       );
     }
 
@@ -178,7 +180,7 @@ export class AuthController {
       res.cookie(
         this.getCookieName(),
         tokens.refreshToken,
-        this.getCookieOptions(),
+        this.getCookieOptions((tokens as any).refreshMaxAgeMs),
       );
     }
 

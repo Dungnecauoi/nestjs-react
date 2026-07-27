@@ -34,7 +34,9 @@
       "Bash(node -e \"const {PrismaClient} = require\\('/Volumes/SSD-1/core/nestjs/backend/node_modules/.prisma/legacy-client'\\); console.log\\('OK, class:', typeof PrismaClient\\)\")",
       "Bash(rm -f /tmp/nest-legacy-on.log)",
       "Bash(LEGACY_DATABASE_URL=\"mysql://root:@127.0.0.1:3306/test-nestjs\" npx nest start)",
-      "Bash(rm -f /tmp/nest-alltogether.log)"
+      "Bash(rm -f /tmp/nest-alltogether.log)",
+      "Bash(rm -f /tmp/nest-remember-me.log)",
+      "Bash(node -pe 'JSON.parse\\(require\\(\"fs\"\\).readFileSync\\(0\\)\\).data.meta.total')"
     ]
   }
 }

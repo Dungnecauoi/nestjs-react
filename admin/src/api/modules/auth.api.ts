@@ -3,7 +3,7 @@ import api from '../axios';
 import { ApiResponse, User } from '../../types/auth.types';
 
 export const authApi = {
-  login: async (credentials: { email: string; password?: string }) => {
+  login: async (credentials: { email: string; password?: string; rememberMe?: boolean }) => {
     const res = await api.post('/auth/login', credentials);
     return res.data?.data || res.data;
   },

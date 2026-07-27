@@ -6,6 +6,8 @@ export default registerAs('auth', () => ({
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '5m',
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'super_refresh_secret',
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+  // "Ghi nhớ đăng nhập": khi user tick chọn, refresh token/session sống lâu hơn hẳn mặc định.
+  jwtRememberMeExpiresIn: process.env.JWT_REMEMBER_ME_EXPIRES_IN || '30d',
   cookieName: process.env.AUTH_COOKIE_NAME || 'ecomcx_session',
   bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS || '12', 10),
   sessionDriver: process.env.SESSION_DRIVER || 'redis',

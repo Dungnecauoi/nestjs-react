@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Card, Form, Input, Button, Alert, Space, Typography, Modal, message } from 'antd';
+import { Card, Form, Input, Button, Checkbox, Alert, Space, Typography, Modal, message } from 'antd';
 import { LockOutlined, MailOutlined, ArrowRightOutlined, ThunderboltFilled, SafetyCertificateOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { authApi } from '../../api/modules/auth.api';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -32,6 +32,7 @@ export default function Login() {
       const responseData = await authApi.login({
         email: values.email,
         password: values.password,
+        rememberMe: values.rememberMe,
       });
 
       // Intercept 2FA login step if required by backend
@@ -150,7 +151,10 @@ export default function Login() {
             <Input.Password prefix={<LockOutlined style={{ color: '#94a3b8' }} />} placeholder="••••••••" />
           </Form.Item>
 
-          <div style={{ textAlign: 'right', marginTop: -8, marginBottom: 8, fontSize: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: -8, marginBottom: 8, fontSize: 12 }}>
+            <Form.Item name="rememberMe" valuePropName="checked" noStyle initialValue={false}>
+              <Checkbox>Ghi nhớ đăng nhập</Checkbox>
+            </Form.Item>
             <Link to={ROUTES.FORGOT_PASSWORD.path} style={{ fontWeight: 600 }}>
               Quên mật khẩu?
             </Link>

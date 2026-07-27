@@ -1,5 +1,5 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsNotEmpty, IsString, IsOptional, IsBoolean, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { i18nValidationMessage } from 'nestjs-i18n';
 
 export class LoginDto {
@@ -13,4 +13,12 @@ export class LoginDto {
   @IsNotEmpty({ message: i18nValidationMessage('validation.NOT_EMPTY') })
   @MinLength(6, { message: i18nValidationMessage('validation.MIN_LENGTH') })
   password: string;
+
+  @ApiPropertyOptional({
+    description: 'Ghi nhớ đăng nhập — phiên (refresh token) sống lâu hơn hẳn mặc định',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  rememberMe?: boolean;
 }
