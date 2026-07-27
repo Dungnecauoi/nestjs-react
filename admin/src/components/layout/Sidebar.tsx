@@ -261,22 +261,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
           borderBottom: isDark ? '1px solid #27272a' : '1px solid #f1f5f9',
         }}
       >
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            backgroundColor: isDark ? '#3f3f46' : '#09090b',
-            color: '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 800,
-            flexShrink: 0,
-          }}
-        >
-          <ThunderboltFilled />
-        </div>
+        {systemOptions?.siteLogo ? (
+          <img
+            src={systemOptions.siteLogo}
+            alt="Logo"
+            style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'contain', flexShrink: 0 }}
+          />
+        ) : (
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              backgroundColor: isDark ? '#3f3f46' : '#09090b',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 800,
+              flexShrink: 0,
+            }}
+          >
+            <ThunderboltFilled />
+          </div>
+        )}
         {(!isCollapsed || isMobileOpen) && (
           <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
             <Text style={{ fontWeight: 800, fontSize: 14, display: 'block', lineHeight: 1.2 }}>

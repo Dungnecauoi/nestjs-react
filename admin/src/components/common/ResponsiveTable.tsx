@@ -25,7 +25,12 @@ export function ResponsiveTable<T extends object>({
       description={t('table.noData', 'Không có dữ liệu')}
     />
   );
-  const emptyText = locale?.emptyText || defaultEmpty;
+  // AntD Table's locale.emptyText chấp nhận cả dạng hàm (() => ReactNode), nhưng List (nhánh
+  // mobile bên dưới) chỉ nhận ReactNode thuần — resolve hàm thành node ngay tại đây để dùng
+  // chung được cho cả 2 nhánh, tránh lỗi type khi build production (tsc chặn, khác dev server).
+  const rawEmptyText = locale?.emptyText;
+  const emptyText =
+    typeof rawEmptyText === 'function' ? rawEmptyText() : (rawEmptyText ?? defaultEmpty);
 
   if (isMobile) {
     const validColumns = ((columns || []) as any[]).filter((c) => c && !c.hidden);

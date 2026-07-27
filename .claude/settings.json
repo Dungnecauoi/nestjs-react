@@ -36,7 +36,15 @@
       "Bash(LEGACY_DATABASE_URL=\"mysql://root:@127.0.0.1:3306/test-nestjs\" npx nest start)",
       "Bash(rm -f /tmp/nest-alltogether.log)",
       "Bash(rm -f /tmp/nest-remember-me.log)",
-      "Bash(node -pe 'JSON.parse\\(require\\(\"fs\"\\).readFileSync\\(0\\)\\).data.meta.total')"
+      "Bash(node -pe 'JSON.parse\\(require\\(\"fs\"\\).readFileSync\\(0\\)\\).data.meta.total')",
+      "Bash(node -e ' *)",
+      "Bash(grep -n \"const handleSave\\\\|<Form$\\\\|<Form \\\\|onFinish={handleSave}\\\\|form={form}\" src/pages/settings/index.tsx)",
+      "Bash(rm -f /tmp/nest-favicon-test.log)",
+      "Bash(sleep 3; tail -10 /tmp/nest-favicon-test.log; ps aux | grep \"nest start\" | grep -v grep)",
+      "Bash(curl -s http://localhost:3000/api/options)",
+      "Bash(node -pe 'const d=JSON.parse\\(require\\(\"fs\"\\).readFileSync\\(0\\)\\).data; \\({siteFavicon:d.siteFavicon, siteLogo:d.siteLogo, keys: Object.keys\\(d\\).length}\\)')",
+      "Bash(node -e \"console.log\\(JSON.stringify\\(JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\), null, 2\\)\\)\")",
+      "Bash(node -pe 'const d=JSON.parse\\(require\\(\"fs\"\\).readFileSync\\(0\\)\\).data.data; \\({siteFavicon:d.siteFavicon, siteLogo:d.siteLogo}\\)')"
     ]
   }
 }

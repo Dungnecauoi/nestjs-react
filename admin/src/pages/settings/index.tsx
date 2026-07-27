@@ -1,13 +1,74 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, Form, Input, Switch, Button, Row, Col, Select, Tabs, Radio, InputNumber, Upload, Space, Divider, Spin, Alert, message } from 'antd';
-import { SaveOutlined, CheckOutlined, SettingOutlined, PictureOutlined, ReadOutlined, EditOutlined, UploadOutlined, MailOutlined, GoogleOutlined, SendOutlined, CloudServerOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Switch, Button, Row, Col, Select, Tabs, Radio, InputNumber, Space, Divider, Spin, Alert, message } from 'antd';
+import { SaveOutlined, CheckOutlined, SettingOutlined, PictureOutlined, ReadOutlined, EditOutlined, UploadOutlined, DeleteOutlined, MailOutlined, GoogleOutlined, SendOutlined, CloudServerOutlined } from '@ant-design/icons';
 import { optionsApi } from '../../api/modules/options.api';
 import { mailConfigApi, MailConfigResponse, MailConfigSaveDto, MailDriverName } from '../../api/modules/mail-config.api';
 import { storageConfigApi, StorageConfigResponse, StorageConfigSaveDto, StorageDriverName } from '../../api/modules/storage-config.api';
+import { MediaPickerModal } from '../../components/common/MediaPickerModal';
+import { MediaItem } from '../../api/modules/media.api';
 import { queryClient } from '../../lib/query-client';
 import { SYSTEM_OPTIONS_QUERY_KEY } from '../../hooks/useSystemOptions';
 import { notify } from '../../utils/notify';
+
+// Field ảnh dùng chung cho Favicon/Logo — tích hợp trực tiếp với AntD Form (nhận value/onChange
+// từ Form.Item), mở MediaPickerModal thật (chọn từ thư viện media có sẵn hoặc tải mới), thay cho
+// <Upload action="#"> trước đây (decorative, action="#" không trỏ tới API thật nên luôn lỗi).
+function ImagePickerField({
+  value,
+  onChange,
+  pickerTitle,
+}: {
+  value?: string;
+  onChange?: (url: string) => void;
+  pickerTitle: string;
+}) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      {value ? (
+        <img
+          src={value}
+          alt=""
+          style={{ width: 48, height: 48, objectFit: 'contain', border: '1px solid #e2e8f0', borderRadius: 6, background: '#fff' }}
+        />
+      ) : (
+        <div
+          style={{
+            width: 48,
+            height: 48,
+            border: '1px dashed #cbd5e1',
+            borderRadius: 6,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#94a3b8',
+            fontSize: 10,
+          }}
+        >
+          Chưa có
+        </div>
+      )}
+      <Button icon={<UploadOutlined />} onClick={() => setPickerOpen(true)}>
+        Chọn Ảnh
+      </Button>
+      {value && (
+        <Button danger type="text" size="small" icon={<DeleteOutlined />} onClick={() => onChange?.('')} />
+      )}
+      <MediaPickerModal
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onSelect={(media: MediaItem) => {
+          onChange?.(media.url);
+          setPickerOpen(false);
+        }}
+        accept="image"
+        title={pickerTitle}
+      />
+    </div>
+  );
+}
 
 type SmtpProviderPreset = 'gmail' | 'outlook' | 'yahoo' | 'custom';
 
@@ -153,6 +214,7 @@ function MailConfigTabContent() {
           layout="vertical"
           onFinish={handleSave}
           initialValues={{ driver: 'log', sesRegion: 'us-east-1' }}
+          component={false}
         >
           <Form.Item
             name="driver"
@@ -338,7 +400,7 @@ function MailConfigTabContent() {
           )}
 
           <Divider style={{ margin: '16px 0' }} />
-          <Button type="primary" htmlType="submit" loading={saving} icon={<SaveOutlined />} style={{ fontWeight: 700 }}>
+          <Button type="primary" onClick={() => mailForm.submit()} loading={saving} icon={<SaveOutlined />} style={{ fontWeight: 700 }}>
             Lưu Cấu Hình Email
           </Button>
         </Form>
@@ -440,6 +502,7 @@ function StorageConfigTabContent() {
           layout="vertical"
           onFinish={handleSave}
           initialValues={{ disk: 'local', s3Region: 'us-east-1' }}
+          component={false}
         >
           <Form.Item name="disk" label="Nơi Lưu Trữ Media (Driver)" rules={[{ required: true }]}>
             <Select
@@ -503,7 +566,7 @@ function StorageConfigTabContent() {
 
           <Divider style={{ margin: '16px 0' }} />
           <Space>
-            <Button type="primary" htmlType="submit" loading={saving} icon={<SaveOutlined />} style={{ fontWeight: 700 }}>
+            <Button type="primary" onClick={() => storageForm.submit()} loading={saving} icon={<SaveOutlined />} style={{ fontWeight: 700 }}>
               Lưu Cấu Hình Lưu Trữ
             </Button>
             {disk === 's3' && (
@@ -537,6 +600,8 @@ export default function SettingsModule() {
           // General Settings
           siteTitle: options.siteTitle || 'ECOMCX Enterprise ERP Core',
           siteTagline: options.siteTagline || 'Nền Tảng Quản Trị Doanh Nghiệp Tối Ưu',
+          siteFavicon: options.siteFavicon || '',
+          siteLogo: options.siteLogo || '',
           adminEmail: options.adminEmail || 'admin@ecomcx.com',
           enableDepartments: options.enableDepartments !== false,
           defaultUserRole: options.defaultUserRole || 'STAFF',
@@ -615,9 +680,13 @@ export default function SettingsModule() {
 
         <Col xs={24} md={12}>
           <Form.Item name="siteFavicon" label={t('settings.siteFavicon')}>
-            <Upload listType="picture" maxCount={1} action="#">
-              <Button icon={<UploadOutlined />}>{t('settings.uploadFaviconButton')}</Button>
-            </Upload>
+            <ImagePickerField pickerTitle="Chọn Favicon" />
+          </Form.Item>
+        </Col>
+
+        <Col xs={24} md={12}>
+          <Form.Item name="siteLogo" label="Logo Hệ Thống">
+            <ImagePickerField pickerTitle="Chọn Logo" />
           </Form.Item>
         </Col>
 

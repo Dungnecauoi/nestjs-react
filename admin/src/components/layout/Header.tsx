@@ -198,6 +198,7 @@ export const Header: React.FC<HeaderProps> = ({
             }}
           >
             <Avatar
+              src={user?.avatar || undefined}
               style={{
                 backgroundColor: isDark ? '#3f3f46' : '#1890ff',
                 color: '#ffffff',
