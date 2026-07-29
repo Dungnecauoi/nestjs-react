@@ -109,6 +109,7 @@ export default {
     approve: 'Approve',
     active: 'Active',
     pendingApproval: 'Pending Approval',
+    noData: 'No data available',
   },
   users: {
     title: 'User Management',
@@ -165,6 +166,10 @@ export default {
     identityColumn: 'Identity Details (Card & Phone)',
     noIdentityCard: 'No Card ID',
     noPhone: 'No Phone Number',
+    export: 'Export File',
+    exportCsv: 'Export CSV',
+    exportExcel: 'Export Excel (.xlsx)',
+    exportSuccess: 'Downloaded successfully!',
   },
   media: {
     title: 'WordPress Media Library',
@@ -339,5 +344,12 @@ export default {
     fieldUrl: 'Target URL (HTTP/HTTPS)',
     fieldEvents: 'Subscribed Event Topics (Auto-grouped by Core Modules)',
     selectEventsPlaceholder: 'Select event topics to subscribe...',
+    editModalTitle: 'Edit Webhook Endpoint Configuration',
+  },
+  departments: {
+    export: 'Export File',
+    exportCsv: 'Export CSV',
+    exportExcel: 'Export Excel (.xlsx)',
+    exportSuccess: 'Downloaded successfully!',
   },
 };

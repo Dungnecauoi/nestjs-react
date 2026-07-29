@@ -24,6 +24,10 @@ import { RequirePermissions } from '../../common/decorators/permissions.decorato
 export class ImportExportController {
   constructor(private readonly importExportService: ImportExportService) {}
 
+  // ────────────────────────────────────────────────────
+  // CSV Export
+  // ────────────────────────────────────────────────────
+
   @Get('export/users')
   @RequirePermissions('user:read')
   @ApiOperation({ summary: 'Xuất danh sách User ra file CSV' })
@@ -43,6 +47,44 @@ export class ImportExportController {
     res.setHeader('Content-Disposition', `attachment; filename=departments_export_${Date.now()}.csv`);
     return Buffer.from('\uFEFF' + csvContent, 'utf-8');
   }
+
+  // ────────────────────────────────────────────────────
+  // Excel Export (.xlsx)
+  // ────────────────────────────────────────────────────
+
+  @Get('export/users/excel')
+  @RequirePermissions('user:read')
+  @ApiOperation({ summary: 'Xuất danh sách User ra file Excel (.xlsx) — có định dạng màu sắc, auto-filter' })
+  async exportUsersExcel(@Res() res: Response) {
+    const buffer = await this.importExportService.exportUsersToExcel();
+    const filename = `users_export_${Date.now()}.xlsx`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.end(buffer);
+  }
+
+  @Get('export/departments/excel')
+  @RequirePermissions('department:read')
+  @ApiOperation({ summary: 'Xuất danh sách Phòng Ban ra file Excel (.xlsx)' })
+  async exportDepartmentsExcel(@Res() res: Response) {
+    const buffer = await this.importExportService.exportDepartmentsToExcel();
+    const filename = `departments_export_${Date.now()}.xlsx`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.end(buffer);
+  }
+
+  // ────────────────────────────────────────────────────
+  // CSV Import
+  // ────────────────────────────────────────────────────
 
   @Post('import/users')
   @RequirePermissions('user:create')

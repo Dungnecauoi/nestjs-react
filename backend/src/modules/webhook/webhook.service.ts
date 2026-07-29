@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../core/database/prisma.service';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
+import { UpdateWebhookDto } from './dto/update-webhook.dto';
 import * as crypto from 'crypto';
 import * as dns from 'dns';
 import { CustomLoggerService } from '../../core/logger/logger.service';
@@ -155,6 +156,35 @@ export class WebhookService {
     };
   }
 
+  async update(id: string, dto: UpdateWebhookDto) {
+    const existing = await this.prisma.webhook.findUnique({ where: { id } });
+    if (!existing) {
+      const lang = I18nContext.current()?.lang;
+      throw new NotFoundException(this.i18n.t('messages.NOT_FOUND', { lang, args: { id } }));
+    }
+
+    if (dto.url && dto.url !== existing.url) {
+      await this.validateWebhookUrl(dto.url);
+    }
+
+    const data: any = {};
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.url !== undefined) data.url = dto.url;
+    if (dto.events !== undefined) data.events = JSON.stringify(dto.events);
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+
+    const updated = await this.prisma.webhook.update({
+      where: { id },
+      data,
+    });
+
+    return {
+      ...updated,
+      hasSecret: !!updated.secret,
+      events: updated.events ? JSON.parse(updated.events) : [],
+    };
+  }
+
   async findAll() {
     const webhooks = await this.prisma.webhook.findMany({
       orderBy: { createdAt: 'desc' },
@@ -222,7 +252,7 @@ export class WebhookService {
       : '';
 
     try {
-      await fetch(hook.url, {
+      const res = await fetch(hook.url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -232,7 +262,15 @@ export class WebhookService {
           'x-webhook-signature': signature,
         },
         body: bodyStr,
+        signal: AbortSignal.timeout(10000), // SEC-02: 10s timeout preventing DoS/event-loop hangs
       });
+
+      if (!res.ok) {
+        this.logger.warn(
+          `Webhook ${hook.id} (${hook.url}) returned non-2xx HTTP status: ${res.status} ${res.statusText}`,
+          'WebhookService',
+        );
+      }
 
       await this.prisma.webhook.update({
         where: { id: hook.id },

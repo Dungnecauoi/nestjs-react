@@ -31,6 +31,13 @@ export class AuditController {
     return this.auditService.findAll(query);
   }
 
+  @Get('stats')
+  @RequirePermissions('user:read')
+  @ApiOperation({ summary: 'Lấy các chỉ số thống kê tổng quan hệ thống cho Dashboard' })
+  async getStats() {
+    return this.auditService.getDashboardStats();
+  }
+
   @Get(':id')
   @RequirePermissions('audit:read')
   @ApiOperation({

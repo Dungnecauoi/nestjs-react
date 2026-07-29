@@ -59,6 +59,25 @@ export class AuditService {
   }
 
   /**
+   * Lấy các chỉ số tổng quan phục vụ Dashboard (đếm trực tiếp từ DB)
+   */
+  async getDashboardStats() {
+    const [totalUsers, activeUsers, pendingUsers, totalDepartments] = await Promise.all([
+      this.prisma.user.count({ where: { deletedAt: null } }),
+      this.prisma.user.count({ where: { deletedAt: null, isActive: true } }),
+      this.prisma.user.count({ where: { deletedAt: null, isActive: false } }),
+      this.prisma.department.count({ where: { deletedAt: null } }),
+    ]);
+
+    return {
+      totalUsers,
+      activeUsers,
+      pendingUsers,
+      totalDepartments,
+    };
+  }
+
+  /**
    * Lấy danh sách Nhật Ký Thao Tác (Audit Logs) phân trang Server-side
    */
   async findAll(query: QueryAuditDto) {

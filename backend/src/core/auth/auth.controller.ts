@@ -19,6 +19,10 @@ import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { Verify2FaDto } from './dto/verify-2fa.dto';
+import { OtpCodeDto } from './dto/otp-code.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { BypassMaintenance } from '../../common/decorators/bypass-maintenance.decorator';
@@ -98,7 +102,7 @@ export class AuthController {
   @Post('2fa/authenticate')
   @ApiOperation({ summary: 'Xác nhận mã 6 số 2FA OTP khi Đăng Nhập' })
   async authenticate2FA(
-    @Body() body: { preAuthToken: string; otpCode: string },
+    @Body() dto: Verify2FaDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
@@ -108,8 +112,8 @@ export class AuthController {
     };
 
     const result = await this.authService.authenticate2FA(
-      body.preAuthToken,
-      body.otpCode,
+      dto.preAuthToken,
+      dto.otpCode,
       meta,
     );
 
@@ -140,8 +144,8 @@ export class AuthController {
   @ApiOperation({
     summary: 'Xác minh OTP và Kích Hoạt 2FA cho tài khoản đang đăng nhập',
   })
-  async turnOn2FA(@CurrentUser() user: any, @Body() body: { otpCode: string }) {
-    return this.authService.turnOn2FA(user.id ?? user.sub, body.otpCode);
+  async turnOn2FA(@CurrentUser() user: any, @Body() dto: OtpCodeDto) {
+    return this.authService.turnOn2FA(user.id ?? user.sub, dto.otpCode);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -152,9 +156,9 @@ export class AuthController {
   })
   async turnOff2FA(
     @CurrentUser() user: any,
-    @Body() body: { otpCode: string },
+    @Body() dto: OtpCodeDto,
   ) {
-    return this.authService.turnOff2FA(user.id ?? user.sub, body.otpCode);
+    return this.authService.turnOff2FA(user.id ?? user.sub, dto.otpCode);
   }
 
   @Public()
@@ -209,9 +213,9 @@ export class AuthController {
   @ApiOperation({ summary: 'Thay đổi mật khẩu tài khoản đang đăng nhập' })
   async changePassword(
     @CurrentUser() user: any,
-    @Body() body: { currentPassword: string; newPassword: string },
+    @Body() dto: ChangePasswordDto,
   ) {
-    return this.authService.changePassword(user.id ?? user.sub, body);
+    return this.authService.changePassword(user.id ?? user.sub, dto);
   }
 
   @Public()
@@ -219,8 +223,8 @@ export class AuthController {
   @ApiOperation({
     summary: 'Xác minh địa chỉ email bằng token nhận được qua email',
   })
-  async verifyEmail(@Body() body: { token: string }) {
-    return this.authService.verifyEmail(body.token);
+  async verifyEmail(@Body() dto: VerifyEmailDto) {
+    return this.authService.verifyEmail(dto.token);
   }
 
   @UseGuards(JwtAuthGuard)

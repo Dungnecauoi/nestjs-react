@@ -37,7 +37,7 @@ export class MailConfigService {
   ) {}
 
   private get appKey(): string {
-    return this.configService.get<string>('app.key') || 'default_secret_key';
+    return this.configService.getOrThrow<string>('app.key');
   }
 
   private async getRawConfig(): Promise<MailRuntimeConfig | null> {

@@ -111,7 +111,8 @@ export default {
     "edit": "Chỉnh Sửa",
     "delete": "Xóa",
     "confirmDelete": "Bạn có chắc chắn muốn xóa bản ghi này không?",
-    "deleteSuccess": "Đã xóa bản ghi thành công!"
+    "deleteSuccess": "Đã xóa bản ghi thành công!",
+    "noData": "Không có dữ liệu"
   },
   "users": {
     "title": "Quản Lý Người Dùng",
@@ -167,7 +168,11 @@ export default {
     "rolesNotice": "Người dùng sẽ nhận được toàn bộ mảng Quyền Hạn (Permissions) tương ứng với các Vai Trò được chọn ở trên.",
     "identityColumn": "Thông Tin Định Danh (CCCD & Phone)",
     "noIdentityCard": "Chưa cập nhật CCCD",
-    "noPhone": "Chưa cập nhật SĐT"
+    "noPhone": "Chưa cập nhật SĐT",
+    "export": "Xuất File",
+    "exportCsv": "Xuất CSV",
+    "exportExcel": "Xuất Excel (.xlsx)",
+    "exportSuccess": "Đã tải xuống thành công!"
   },
   "roles": {
     "title": "Quản Lý Vai Trò & Phân Quyền (RBAC)",
@@ -200,7 +205,11 @@ export default {
     "actions": "Thao Tác",
     "edit": "Chỉnh Sửa",
     "createSuccess": "Đã thêm phòng ban mới thành công!",
-    "updateSuccess": "Đã cập nhật phòng ban thành công!"
+    "updateSuccess": "Đã cập nhật phòng ban thành công!",
+    "export": "Xuất File",
+    "exportCsv": "Xuất CSV",
+    "exportExcel": "Xuất Excel (.xlsx)",
+    "exportSuccess": "Đã tải xuống thành công!"
   },
   "media": {
     "title": "Thư Viện Media WordPress",
@@ -400,6 +409,7 @@ export default {
     "fieldName": "Tên Tích Hợp / Tên Hệ Thống Nhận",
     "fieldUrl": "URL Đích (HTTP/HTTPS Target URL)",
     "fieldEvents": "Các Sự Kiện Đăng Ký Lắng Nghe (Tự Động Phân Theo Module)",
-    "selectEventsPlaceholder": "Chọn các sự kiện cần đăng ký..."
+    "selectEventsPlaceholder": "Chọn các sự kiện cần đăng ký...",
+    "editModalTitle": "Chỉnh Sửa Cấu Hình Webhook Endpoint"
   }
 };

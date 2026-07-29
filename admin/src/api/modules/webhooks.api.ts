@@ -39,6 +39,11 @@ export const webhooksApi = {
     return res.data?.data || res.data;
   },
 
+  updateWebhook: async (id: string, payload: { name?: string; url?: string; events?: string[]; isActive?: boolean }): Promise<WebhookItem> => {
+    const res = await api.patch(`/webhooks/${id}`, payload);
+    return res.data?.data || res.data;
+  },
+
   testPing: async (id: string) => {
     const res = await api.post(`/webhooks/${id}/ping`);
     return res.data?.data || res.data;

@@ -587,7 +587,12 @@ export default function SettingsModule() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [activeTab, setActiveTab] = useState('1');
   const [homepageDisplayType, setHomepageDisplayType] = useState<'latest' | 'static'>('latest');
+
+  // Tab '1'-'4' dùng form chung (General, Media, Reading, Writing)
+  // Tab '5' (Email) và '6' (Storage) có form + nút Lưu riêng trong component con
+  const isGeneralFormTab = ['1', '2', '3', '4'].includes(activeTab);
 
   // Load all settings live from NestJS Options API
   useEffect(() => {
@@ -632,7 +637,7 @@ export default function SettingsModule() {
 
         setHomepageDisplayType(options.homepageType || 'latest');
       } catch (err) {
-        console.error('Lỗi khi nạp cấu hình:', err);
+        notify.error(err, 'Không thể tải cấu hình hệ thống. Vui lòng thử lại.');
       } finally {
         setLoading(false);
       }
@@ -656,8 +661,7 @@ export default function SettingsModule() {
       message.success(t('settings.savedSuccessDatabase'));
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
-      console.error('Lỗi khi lưu cấu hình:', err);
-      message.error('Không thể lưu cấu hình vào Database!');
+      notify.error(err, 'Không thể lưu cấu hình vào Database!');
     } finally {
       setSaving(false);
     }
@@ -1022,22 +1026,33 @@ export default function SettingsModule() {
               </p>
             </div>
 
-            <Button
-              type="primary"
-              size="large"
-              icon={saved ? <CheckOutlined /> : <SaveOutlined />}
-              loading={saving}
-              onClick={() => form.submit()}
-              style={{ fontWeight: 700 }}
-            >
-              {saved ? 'Đã Lưu!' : t('settings.save')}
-            </Button>
+            {/* Chỉ hiển thị nút Lưu chung khi ở tab General/Media/Reading/Writing.
+                Tab Email (key=5) và Storage (key=6) có nút Lưu riêng bên trong. */}
+            {isGeneralFormTab && (
+              <Button
+                type="primary"
+                size="large"
+                icon={saved ? <CheckOutlined /> : <SaveOutlined />}
+                loading={saving}
+                onClick={() => form.submit()}
+                style={{ fontWeight: 700 }}
+              >
+                {saved ? t('settings.saved', 'Đã Lưu!') : t('settings.save')}
+              </Button>
+            )}
           </div>
         </Card>
 
         {/* Main Settings Form Tabs */}
         <Form form={form} layout="vertical" onFinish={handleSave}>
-          <Tabs defaultActiveKey="1" items={tabItems} type="card" size="large" />
+          <Tabs
+            defaultActiveKey="1"
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            items={tabItems}
+            type="card"
+            size="large"
+          />
         </Form>
       </div>
     </Spin>

@@ -31,7 +31,7 @@ export class StorageConfigService {
   ) {}
 
   private get appKey(): string {
-    return this.configService.get<string>('app.key') || 'default_secret_key';
+    return this.configService.getOrThrow<string>('app.key');
   }
 
   private get appUrl(): string {

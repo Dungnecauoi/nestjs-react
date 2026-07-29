@@ -44,7 +44,10 @@
       "Bash(curl -s http://localhost:3000/api/options)",
       "Bash(node -pe 'const d=JSON.parse\\(require\\(\"fs\"\\).readFileSync\\(0\\)\\).data; \\({siteFavicon:d.siteFavicon, siteLogo:d.siteLogo, keys: Object.keys\\(d\\).length}\\)')",
       "Bash(node -e \"console.log\\(JSON.stringify\\(JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\), null, 2\\)\\)\")",
-      "Bash(node -pe 'const d=JSON.parse\\(require\\(\"fs\"\\).readFileSync\\(0\\)\\).data.data; \\({siteFavicon:d.siteFavicon, siteLogo:d.siteLogo}\\)')"
+      "Bash(node -pe 'const d=JSON.parse\\(require\\(\"fs\"\\).readFileSync\\(0\\)\\).data.data; \\({siteFavicon:d.siteFavicon, siteLogo:d.siteLogo}\\)')",
+      "Bash(rm -f /tmp/nest-final-check.log)",
+      "Bash(lsof -ti:5173)",
+      "Bash(rm -f /tmp/vite-final-check.log)"
     ]
   }
 }

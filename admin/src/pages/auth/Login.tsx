@@ -45,14 +45,13 @@ export default function Login() {
 
       if (responseData?.accessToken) {
         setAuth(responseData.accessToken, responseData.user);
-        message.success('Đăng nhập hệ thống thành công!');
+        message.success(t('auth.loginSuccess', 'Đăng nhập hệ thống thành công!'));
         navigate(ROUTES.DASHBOARD.path);
       } else {
-        setErrorMessage('Tên đăng nhập hoặc mật khẩu không chính xác');
+        setErrorMessage(t('auth.invalidCredentials', 'Tên đăng nhập hoặc mật khẩu không chính xác'));
       }
     } catch (err: any) {
-      console.error('Lỗi đăng nhập:', err);
-      setErrorMessage(err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản');
+      setErrorMessage(err.response?.data?.message || t('auth.loginFailed', 'Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản'));
     } finally {
       setIsLoading(false);
     }
@@ -76,10 +75,10 @@ export default function Login() {
       if (responseData?.accessToken) {
         setAuth(responseData.accessToken, responseData.user);
         setIs2FAModalOpen(false);
-        message.success('Xác thực 2FA 2 bước thành công! Chào mừng bạn trở lại.');
+        message.success(t('auth.twoFactorSuccess', 'Xác thực 2FA 2 bước thành công! Chào mừng bạn trở lại.'));
         navigate(ROUTES.DASHBOARD.path);
       } else {
-        setOtpError('Mã OTP 2FA không chính xác!');
+        setOtpError(t('auth.otpIncorrect', 'Mã OTP 2FA không chính xác!'));
       }
     } catch (err: any) {
       setOtpError(err.response?.data?.message || 'Mã OTP không hợp lệ hoặc đã hết hạn');

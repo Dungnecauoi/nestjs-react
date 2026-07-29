@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Table, Tag, Button, Modal, Form, Input, Select, Space, Card, Popconfirm, Tooltip, message, Grid, List } from 'antd';
+import { Table, Tag, Button, Modal, Form, Input, Select, Switch, Space, Card, Popconfirm, Tooltip, message, Grid, List } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   ApiOutlined,
   PlusOutlined,
+  EditOutlined,
   ReloadOutlined,
   DeleteOutlined,
   SendOutlined,
@@ -22,7 +23,11 @@ import { ResponsiveTable } from '../../components/common/ResponsiveTable';
 export default function WebhooksModule() {
   const { t } = useTranslation();
   const [createForm] = Form.useForm();
+  const [editForm] = Form.useForm();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedWebhook, setSelectedWebhook] = useState<WebhookItem | null>(null);
+
   const { isAuthenticated } = useAuthStore();
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
@@ -48,6 +53,29 @@ export default function WebhooksModule() {
       refetch();
     } catch (err) {
       notify.error(err, 'Không thể tạo Webhook Endpoint!');
+    }
+  };
+
+  const handleOpenEditModal = (record: WebhookItem) => {
+    setSelectedWebhook(record);
+    editForm.setFieldsValue({
+      name: record.name,
+      url: record.url,
+      events: record.events || ['*'],
+      isActive: record.isActive,
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditWebhook = async (values: any) => {
+    if (!selectedWebhook) return;
+    try {
+      await webhooksApi.updateWebhook(selectedWebhook.id, values);
+      notify.success('messages.SUCCESS', 'Đã cập nhật Webhook Endpoint thành công!');
+      setIsEditModalOpen(false);
+      refetch();
+    } catch (err) {
+      notify.error(err, 'Không thể cập nhật Webhook Endpoint!');
     }
   };
 
@@ -167,8 +195,12 @@ export default function WebhooksModule() {
       render: (_: any, record: WebhookItem) => (
         <Space size={6}>
           <Can permission="setting:update">
+            <Tooltip title={t('common.edit', 'Chỉnh Sửa')}>
+              <Button size="small" icon={<EditOutlined style={{ color: '#2563eb' }} />} onClick={() => handleOpenEditModal(record)} />
+            </Tooltip>
+
             <Tooltip title={t('webhooks.testPingHelp', 'Gửi Test Ping (Không ghi rác Audit Log)')}>
-              <Button size="small" icon={<SendOutlined style={{ color: '#2563eb' }} />} onClick={() => handleTestPing(record.id)} />
+              <Button size="small" icon={<SendOutlined style={{ color: '#059669' }} />} onClick={() => handleTestPing(record.id)} />
             </Tooltip>
 
             <Popconfirm title={t('webhooks.deleteConfirm', 'Xóa Webhook endpoint này?')} onConfirm={() => handleDeleteWebhook(record.id)} okText={t('common.delete', 'Xóa')} cancelText={t('common.cancel', 'Hủy')}>
@@ -250,6 +282,49 @@ export default function WebhooksModule() {
                 </Select.OptGroup>
               ))}
             </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Modal Chỉnh Sửa Webhook */}
+      <Modal
+        title={t('webhooks.editModalTitle', 'Chỉnh Sửa Cấu Hình Webhook Endpoint')}
+        open={isEditModalOpen}
+        onCancel={() => setIsEditModalOpen(false)}
+        onOk={() => editForm.submit()}
+        okText={t('common.save', 'Lưu Cập Nhật')}
+        cancelText={t('common.cancel', 'Hủy')}
+        width={580}
+      >
+        <Form form={editForm} layout="vertical" onFinish={handleEditWebhook} style={{ marginTop: 16 }}>
+          <Form.Item name="name" label={t('webhooks.fieldName', 'Tên Tích Hợp / Tên Hệ Thống Nhận')} rules={[{ required: true, message: 'Vui lòng nhập tên!' }]}>
+            <Input placeholder="n8n Automation / Zapier Endpoint / Customer System" style={{ borderRadius: 6 }} />
+          </Form.Item>
+
+          <Form.Item name="url" label={t('webhooks.fieldUrl', 'URL Đích (HTTP/HTTPS Target URL)')} rules={[{ required: true, type: 'url', message: 'URL không hợp lệ!' }]}>
+            <Input placeholder="https://api.thirdparty.com/webhooks/ecomcx" style={{ borderRadius: 6 }} />
+          </Form.Item>
+
+          <Form.Item name="events" label={t('webhooks.fieldEvents', 'Các Sự Kiện Đăng Ký Lắng Nghe (Tự Động Phân Theo Module)')} rules={[{ required: true, message: 'Vui lòng chọn sự kiện!' }]}>
+            <Select
+              mode="multiple"
+              placeholder={t('webhooks.selectEventsPlaceholder', 'Chọn các sự kiện cần đăng ký...')}
+              style={{ borderRadius: 6 }}
+            >
+              {availableEvents.map((group, idx) => (
+                <Select.OptGroup key={idx} label={group.module}>
+                  {group.events.map((ev) => (
+                    <Select.Option key={ev.value} value={ev.value}>
+                      {ev.label}
+                    </Select.Option>
+                  ))}
+                </Select.OptGroup>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item name="isActive" label={t('table.status', 'Trạng Thái Active')} valuePropName="checked">
+            <Switch checkedChildren={t('table.active', 'Hoạt Động')} unCheckedChildren={t('table.disabled', 'Tắt')} />
           </Form.Item>
         </Form>
       </Modal>

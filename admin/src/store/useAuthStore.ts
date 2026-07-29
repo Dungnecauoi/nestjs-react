@@ -62,7 +62,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     } catch (err) {
       // Refresh cookie invalid/expired -> Clear RAM store
-      console.log('Chưa có phiên HttpOnly Refresh Cookie hoặc đã hết hạn');
     }
 
     set({

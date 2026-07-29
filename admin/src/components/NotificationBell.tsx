@@ -40,9 +40,7 @@ export const NotificationBell: React.FC = () => {
       transports: ['websocket', 'polling'],
     });
 
-    socket.on('connect', () => {
-      console.log('⚡ [WebSocket] Connected to Notifications Gateway');
-    });
+    socket.on('connect', () => {});
 
     socket.on('notification', (newNotify: NotificationItem) => {
       // Invalidate queries so UI updates instantly

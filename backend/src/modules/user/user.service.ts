@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../core/database/prisma.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { AssignUserRolesDto } from './dto/assign-user-roles.dto';
 import { AssignUserPermissionsDto } from './dto/assign-user-permissions.dto';
 import { AssignUserDepartmentsDto } from './dto/assign-user-departments.dto';
@@ -143,7 +145,7 @@ export class UserService {
     return user;
   }
 
-  async create(dto: any) {
+  async create(dto: CreateUserDto) {
     const existing = await this.prisma.user.findUnique({
       where: { email: dto.email, deletedAt: null },
     });
@@ -226,7 +228,7 @@ export class UserService {
     return created;
   }
 
-  async update(id: string, dto: any) {
+  async update(id: string, dto: UpdateUserDto) {
     const existingUser = await this.prisma.user.findUnique({
       where: { id, deletedAt: null },
       select: { id: true, password: true },

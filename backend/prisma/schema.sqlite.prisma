@@ -35,6 +35,7 @@ model Department {
 
   users       UserDepartment[]
 
+  @@index([deletedAt])
   @@map("departments")
 }
 
@@ -69,6 +70,8 @@ model User {
   auditLogs   AuditLog[]
   tokens      UserToken[]
 
+  @@index([deletedAt])
+  @@index([isActive])
   @@map("users")
 }
 
@@ -84,6 +87,7 @@ model UserToken {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([expiresAt])
   @@map("user_tokens")
 }
 
@@ -102,6 +106,8 @@ model UserSession {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([expiresAt])
+  @@index([isRevoked])
   @@map("user_sessions")
 }
 
@@ -118,6 +124,7 @@ model Role {
   users       UserRole[]
   permissions RolePermission[]
 
+  @@index([deletedAt])
   @@map("roles")
 }
 
@@ -213,6 +220,8 @@ model Media {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
+  @@index([deletedAt])
+  @@index([createdAt])
   @@map("media")
 }
 
@@ -280,6 +289,7 @@ model AuditLog {
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  @@index([createdAt])
   @@map("audit_logs")
 }
 

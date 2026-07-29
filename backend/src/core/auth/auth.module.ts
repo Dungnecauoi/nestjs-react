@@ -28,7 +28,7 @@ import { MediaModule } from '../../modules/media/media.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('auth.jwtSecret') || 'super_secret_key',
+        secret: config.get<string>('auth.jwtSecret'),
         signOptions: {
           expiresIn: (config.get<string>('auth.jwtExpiresIn') || '7d') as any,
         },

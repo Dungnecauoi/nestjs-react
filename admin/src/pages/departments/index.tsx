@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Table, Tag, Button, Modal, Form, Input, Space, Card, Popconfirm, Tooltip, message, Grid, List } from 'antd';
+import { Table, Tag, Button, Dropdown, Modal, Form, Input, Space, Card, Popconfirm, Tooltip, message, Grid, List } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   EditOutlined,
@@ -9,12 +9,16 @@ import {
   ApartmentOutlined,
   PlusOutlined,
   ReloadOutlined,
+  DownloadOutlined,
+  FileExcelOutlined,
 } from '@ant-design/icons';
 import { departmentsApi } from '../../api/modules/departments.api';
+import { importExportApi } from '../../api/modules/importExport.api';
 import { Department } from '../../types/auth.types';
 import { Can } from '../../components/common/Can';
 import { useAuthStore } from '../../store/useAuthStore';
 import { ResponsiveTable } from '../../components/common/ResponsiveTable';
+import { notify } from '../../utils/notify';
 
 export default function DepartmentsModule() {
   const { t } = useTranslation();
@@ -168,6 +172,43 @@ export default function DepartmentsModule() {
           </div>
 
           <Space wrap size="middle">
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'csv',
+                    icon: <DownloadOutlined />,
+                    label: t('departments.exportCsv', 'Xuất CSV'),
+                    onClick: async () => {
+                      try {
+                        await importExportApi.exportDepartmentsCsv();
+                        notify.success('departments.exportSuccess', 'Đã tải xuống file CSV!');
+                      } catch (err) {
+                        notify.error(err, 'Không thể xuất file CSV!');
+                      }
+                    },
+                  },
+                  {
+                    key: 'excel',
+                    icon: <FileExcelOutlined style={{ color: '#16a34a' }} />,
+                    label: t('departments.exportExcel', 'Xuất Excel (.xlsx)'),
+                    onClick: async () => {
+                      try {
+                        await importExportApi.exportDepartmentsExcel();
+                        notify.success('departments.exportSuccess', 'Đã tải xuống file Excel!');
+                      } catch (err) {
+                        notify.error(err, 'Không thể xuất file Excel!');
+                      }
+                    },
+                  },
+                ],
+              }}
+            >
+              <Button icon={<DownloadOutlined />} style={{ borderRadius: 8, fontWeight: 600 }}>
+                {t('departments.export', 'Xuất File')}
+              </Button>
+            </Dropdown>
+
             <Button
               icon={<ReloadOutlined spin={isRefetching} />}
               onClick={() => refetch()}

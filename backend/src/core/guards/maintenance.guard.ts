@@ -56,7 +56,7 @@ export class MaintenanceGuard implements CanActivate {
       }
 
       if (token) {
-        const secret = this.configService.get<string>('auth.jwtSecret') || 'super_secret_key';
+        const secret = this.configService.get<string>('auth.jwtSecret');
         const decoded = this.jwtService.verify(token, { secret });
         if (decoded && decoded.roles && (decoded.roles.includes('super-admin') || decoded.roles.includes('admin'))) {
           return true;

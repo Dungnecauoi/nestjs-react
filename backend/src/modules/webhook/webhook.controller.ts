@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Delete,
   Body,
   Param,
@@ -10,6 +11,7 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiSecurity } from '@nestjs/swagger';
 import { WebhookService } from './webhook.service';
 import { CreateWebhookDto } from './dto/create-webhook.dto';
+import { UpdateWebhookDto } from './dto/update-webhook.dto';
 import { JwtOrApiKeyGuard } from '../../core/auth/guards/jwt-or-api-key.guard';
 import { PermissionGuard } from '../../core/auth/guards/permission.guard';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
@@ -41,6 +43,13 @@ export class WebhookController {
   @ApiOperation({ summary: 'Tạo mới Webhook Endpoint' })
   create(@Body() dto: CreateWebhookDto) {
     return this.webhookService.create(dto);
+  }
+
+  @Patch(':id')
+  @RequirePermissions('setting:update')
+  @ApiOperation({ summary: 'Cập nhật Webhook Endpoint' })
+  update(@Param('id') id: string, @Body() dto: UpdateWebhookDto) {
+    return this.webhookService.update(id, dto);
   }
 
   @Post(':id/ping')

@@ -13,6 +13,11 @@ export const auditApi = {
     };
   },
 
+  getDashboardStats: async () => {
+    const res = await api.get<ApiResponse<{ totalUsers: number; activeUsers: number; pendingUsers: number; totalDepartments: number }>>('/audit-logs/stats');
+    return res.data?.data || res.data;
+  },
+
   getAuditLogById: async (id: string): Promise<AuditLogItem> => {
     const res = await api.get<ApiResponse<AuditLogItem>>(`/audit-logs/${id}`);
     return res.data?.data || res.data;
