@@ -46,7 +46,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
         errorCode = this.getDefaultErrorCode(status);
       }
     } else if (exception instanceof Error) {
-      message = exception.message;
+      // Trong môi trường production hoặc với lỗi 500 không xử lý, không rò rỉ raw DB/System message
+      if (process.env.NODE_ENV === 'production') {
+        message = 'Internal server error';
+      } else {
+        message = exception.message;
+      }
     }
 
     const logMessage = `HTTP ${status} [${errorCode}] [${request.method}] ${request.url} - ${message}`;

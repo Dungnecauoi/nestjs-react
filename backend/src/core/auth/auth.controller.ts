@@ -162,6 +162,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @UseGuards(JwtRefreshGuard)
   @Post('refresh')
   @ApiBearerAuth()
@@ -219,6 +220,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('verify-email')
   @ApiOperation({
     summary: 'Xác minh địa chỉ email bằng token nhận được qua email',
@@ -247,9 +249,7 @@ export class AuthController {
     const refreshToken = req.cookies?.[this.getCookieName()];
     const userId = (req as any).user?.id || (req as any).user?.sub;
 
-    if (userId) {
-      await this.authService.logoutSession(userId, refreshToken);
-    }
+    await this.authService.logoutSession(userId, refreshToken);
 
     res.clearCookie(this.getCookieName(), { path: '/api/auth' });
     return { success: true, message: 'Đã đăng xuất thành công' };

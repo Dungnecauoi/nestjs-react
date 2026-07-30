@@ -50,12 +50,21 @@ async function bootstrap() {
 
   if (corsAllowedOrigins.length === 0) {
     logger.warn(
-      'CORS_ALLOWED_ORIGINS chưa được cấu hình — đang cho phép mọi Origin (chỉ nên dùng ở development).',
+      'CORS_ALLOWED_ORIGINS chưa được cấu hình — cho phép localhost/môi trường dev.',
     );
   }
 
   app.enableCors({
-    origin: corsAllowedOrigins.length > 0 ? corsAllowedOrigins : true,
+    origin: (origin, callback) => {
+      if (!origin || corsAllowedOrigins.length === 0) {
+        // Dev mode hoặc cùng domain
+        return callback(null, true);
+      }
+      if (corsAllowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('CORS Not Allowed'), false);
+    },
     credentials: true,
   });
 
@@ -66,6 +75,16 @@ async function bootstrap() {
     await redisIoAdapter.connectToRedis();
     app.useWebSocketAdapter(redisIoAdapter);
   }
+
+  // Security headers riêng cho đường dẫn uploads (chặn script execution trong SVG/uploaded files)
+  app.use('/uploads', (req, res, next) => {
+    res.setHeader(
+      'Content-Security-Policy',
+      "default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self';",
+    );
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    next();
+  });
 
   // 4. Static File Serving (Laravel Storage Link & Public Assets Equivalent)
   app.useStaticAssets(join(__dirname, '..', 'public'), {

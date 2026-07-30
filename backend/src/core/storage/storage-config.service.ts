@@ -67,12 +67,14 @@ export class StorageConfigService {
 
     if (dto.s3) {
       next.s3 = {
-        accessKeyIdEncrypted: dto.s3.accessKeyId
-          ? encrypt(dto.s3.accessKeyId, this.appKey)
-          : (existing.s3?.accessKeyIdEncrypted ?? ''),
-        secretAccessKeyEncrypted: dto.s3.secretAccessKey
-          ? encrypt(dto.s3.secretAccessKey, this.appKey)
-          : (existing.s3?.secretAccessKeyEncrypted ?? ''),
+        accessKeyIdEncrypted:
+          dto.s3.accessKeyId && !dto.s3.accessKeyId.includes('*')
+            ? encrypt(dto.s3.accessKeyId, this.appKey)
+            : (existing.s3?.accessKeyIdEncrypted ?? ''),
+        secretAccessKeyEncrypted:
+          dto.s3.secretAccessKey && !dto.s3.secretAccessKey.includes('*')
+            ? encrypt(dto.s3.secretAccessKey, this.appKey)
+            : (existing.s3?.secretAccessKeyEncrypted ?? ''),
         region: dto.s3.region ?? existing.s3?.region ?? 'us-east-1',
         bucket: dto.s3.bucket ?? existing.s3?.bucket ?? '',
         endpoint: dto.s3.endpoint ?? existing.s3?.endpoint,

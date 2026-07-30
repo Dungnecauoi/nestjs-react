@@ -588,12 +588,12 @@ export class AuthService {
     };
   }
 
-  async logoutSession(userId: string, refreshToken?: string) {
-    if (!userId) return;
+  async logoutSession(userId?: string, refreshToken?: string) {
+    if (!refreshToken && !userId) return;
 
     if (refreshToken) {
       const activeSessions = await this.prisma.userSession.findMany({
-        where: { userId, isRevoked: false },
+        where: userId ? { userId, isRevoked: false } : { isRevoked: false },
       });
 
       for (const session of activeSessions) {
@@ -718,6 +718,12 @@ export class AuthService {
     type: UserTokenType,
     ttlMinutes: number,
   ): Promise<string> {
+    // Hủy vô hiệu hóa toàn bộ token cũ chưa dùng cùng loại của user này
+    await this.prisma.userToken.updateMany({
+      where: { userId, type, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+
     const rawToken = crypto.randomBytes(32).toString('hex');
     const tokenHash = this.hashToken(rawToken);
     const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);

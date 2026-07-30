@@ -22,6 +22,7 @@ import {
   ApiSecurity,
 } from '@nestjs/swagger';
 import { I18nContext, I18nService } from 'nestjs-i18n';
+import { Throttle } from '@nestjs/throttler';
 import { MediaService } from './media.service';
 import { QueryMediaDto } from './dto/query-media.dto';
 import { JwtOrApiKeyGuard } from '../../core/auth/guards/jwt-or-api-key.guard';
@@ -57,6 +58,7 @@ export class MediaController {
   }
 
   @Post('upload')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @RequirePermissions('media:create')
   @UseInterceptors(FileInterceptor('file', StorageService.getMulterConfig()))
   @ApiConsumes('multipart/form-data')
@@ -78,6 +80,7 @@ export class MediaController {
   }
 
   @Post('upload-multiple')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @RequirePermissions('media:create')
   @UseInterceptors(
     FilesInterceptor('files', 10, StorageService.getMulterConfig()),

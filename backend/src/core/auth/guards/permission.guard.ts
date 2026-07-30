@@ -42,13 +42,12 @@ export class PermissionGuard implements CanActivate {
       throw new ForbiddenException(message);
     }
 
-    // Super Admin & Wildcard bypass
+    // Chỉ Super Admin (role code: super-admin) hoặc Wildcard permission (* / *:*) mới được bypass kiểm tra
     const userRoles: string[] = user.roles || [];
     const userPermissions: string[] = user.permissions || [];
 
     if (
       userRoles.includes('super-admin') ||
-      userRoles.includes('admin') ||
       userPermissions.includes('*') ||
       userPermissions.includes('*:*')
     ) {

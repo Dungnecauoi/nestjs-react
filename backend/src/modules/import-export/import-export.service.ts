@@ -11,6 +11,15 @@ export class ImportExportService {
     private readonly configService: ConfigService,
   ) {}
 
+  private sanitizeCell(val: any): string {
+    if (val === null || val === undefined) return '';
+    const str = String(val);
+    if (/^[=+\-@\t\r]/.test(str)) {
+      return `'${str}`;
+    }
+    return str;
+  }
+
   // ──────────────────────────────────────────────
   // CSV
   // ──────────────────────────────────────────────
@@ -19,12 +28,12 @@ export class ImportExportService {
     const users = await this.fetchUsersData();
     const headers = ['ID', 'Email', 'Name', 'Phone', 'IdentityCard', 'Gender', 'IsActive', 'Roles', 'Departments', 'CreatedAt'];
     const rows = users.map((u) => [
-      `"${u.id}"`,
-      `"${u.email}"`,
-      `"${u.name.replace(/"/g, '""')}"`,
-      `"${u.phone || ''}"`,
-      `"${u.identityCard || ''}"`,
-      `"${u.gender || ''}"`,
+      `"${this.sanitizeCell(u.id)}"`,
+      `"${this.sanitizeCell(u.email)}"`,
+      `"${this.sanitizeCell(u.name).replace(/"/g, '""')}"`,
+      `"${this.sanitizeCell(u.phone)}"`,
+      `"${this.sanitizeCell(u.identityCard)}"`,
+      `"${this.sanitizeCell(u.gender)}"`,
       `"${u.isActive ? 'Active' : 'Pending'}"`,
       `"${u.roles.map((r: any) => r.role.code).join(';')}"`,
       `"${u.departments.map((d: any) => d.department.code).join(';')}"`,
@@ -38,11 +47,11 @@ export class ImportExportService {
     const depts = await this.fetchDepartmentsData();
     const headers = ['ID', 'Code', 'Name', 'Description', 'ParentCode', 'CreatedAt'];
     const rows = depts.map((d) => [
-      `"${d.id}"`,
-      `"${d.code}"`,
-      `"${d.name.replace(/"/g, '""')}"`,
-      `"${(d.description || '').replace(/"/g, '""')}"`,
-      `"${(d as any).parent?.code || ''}"`,
+      `"${this.sanitizeCell(d.id)}"`,
+      `"${this.sanitizeCell(d.code)}"`,
+      `"${this.sanitizeCell(d.name).replace(/"/g, '""')}"`,
+      `"${this.sanitizeCell(d.description).replace(/"/g, '""')}"`,
+      `"${this.sanitizeCell((d as any).parent?.code)}"`,
       `"${d.createdAt.toISOString()}"`,
     ].join(','));
 

@@ -126,23 +126,59 @@ export class TranslationService {
     return result;
   }
 
+  private sanitizeParam(param: string): string {
+    if (!param || typeof param !== 'string' || !/^[a-zA-Z0-9_-]{1,50}$/.test(param)) {
+      throw new BadRequestException('Tham số đường dẫn không hợp lệ hoặc chứa ký tự cấm!');
+    }
+    return param.toLowerCase();
+  }
+
+  private assertPathInDirectory(filePath: string, allowedDir: string) {
+    const resolvedFile = path.resolve(filePath);
+    const resolvedDir = path.resolve(allowedDir);
+    if (!resolvedFile.startsWith(resolvedDir)) {
+      throw new BadRequestException('Truy cập tệp nằm ngoài thư mục quy định!');
+    }
+  }
+
+  private parseTsLocaleObject(content: string): Record<string, any> {
+    const jsonMatch = content.match(/export\s+default\s+({[\s\S]*});?/);
+    if (!jsonMatch || !jsonMatch[1]) return {};
+    const objectStr = jsonMatch[1];
+    try {
+      return JSON.parse(objectStr);
+    } catch {
+      try {
+        const jsonValidStr = objectStr
+          .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')
+          .replace(/,\s*([}\]])/g, '$1');
+        return JSON.parse(jsonValidStr);
+      } catch {
+        return {};
+      }
+    }
+  }
+
   async getTranslations(scope: string, domain: string, lang: string) {
-    const targetLang = (lang || 'vi').toLowerCase();
+    const targetLang = this.sanitizeParam(lang || 'vi');
+    const cleanDomain = this.sanitizeParam(domain || 'locales');
 
     if (scope === 'backend') {
       const filePath = path.join(
         this.backendI18nPath,
         targetLang,
-        `${domain}.json`,
+        `${cleanDomain}.json`,
       );
+      this.assertPathInDirectory(filePath, this.backendI18nPath);
+
       if (!fs.existsSync(filePath)) {
-        return { scope, domain, lang: targetLang, data: {} };
+        return { scope, domain: cleanDomain, lang: targetLang, data: {} };
       }
       try {
         const content = fs.readFileSync(filePath, 'utf-8');
         const rawJson = JSON.parse(content);
         const flatData = this.flattenObject(rawJson);
-        return { scope, domain, lang: targetLang, data: flatData };
+        return { scope, domain: cleanDomain, lang: targetLang, data: flatData };
       } catch (err: any) {
         throw new BadRequestException(`Không thể đọc tệp dịch: ${err.message}`);
       }
@@ -150,18 +186,16 @@ export class TranslationService {
 
     if (scope === 'frontend') {
       const filePath = path.join(this.frontendLocalesPath, `${targetLang}.ts`);
+      this.assertPathInDirectory(filePath, this.frontendLocalesPath);
+
       if (!fs.existsSync(filePath)) {
         return { scope, domain: 'locales', lang: targetLang, data: {} };
       }
       try {
         const content = fs.readFileSync(filePath, 'utf-8');
-        const jsonMatch = content.match(/export\s+default\s+({[\s\S]*});?/);
-        if (jsonMatch && jsonMatch[1]) {
-          const rawObj = Function(`"use strict"; return (${jsonMatch[1]})`)();
-          const flatData = this.flattenObject(rawObj);
-          return { scope, domain: 'locales', lang: targetLang, data: flatData };
-        }
-        return { scope, domain: 'locales', lang: targetLang, data: {} };
+        const rawObj = this.parseTsLocaleObject(content);
+        const flatData = this.flattenObject(rawObj);
+        return { scope, domain: 'locales', lang: targetLang, data: flatData };
       } catch (err: any) {
         throw new BadRequestException(
           `Không thể đọc tệp dịch Frontend: ${err.message}`,
@@ -178,28 +212,35 @@ export class TranslationService {
     lang: string,
     flatPayload: Record<string, string>,
   ) {
-    const targetLang = (lang || 'vi').toLowerCase();
+    const targetLang = this.sanitizeParam(lang || 'vi');
+    const cleanDomain = this.sanitizeParam(domain || 'locales');
 
     if (scope === 'backend') {
       const dirPath = path.join(this.backendI18nPath, targetLang);
+      this.assertPathInDirectory(dirPath, this.backendI18nPath);
+
       if (!fs.existsSync(dirPath)) {
         fs.mkdirSync(dirPath, { recursive: true });
       }
-      const filePath = path.join(dirPath, `${domain}.json`);
+      const filePath = path.join(dirPath, `${cleanDomain}.json`);
+      this.assertPathInDirectory(filePath, this.backendI18nPath);
+
       const nestedObj = this.unflattenObject(flatPayload);
       fs.writeFileSync(filePath, JSON.stringify(nestedObj, null, 2), 'utf-8');
       return {
         success: true,
-        message: `Đã cập nhật tệp dịch Backend ${domain}.json cho ngôn ngữ ${targetLang} thành công!`,
+        message: `Đã cập nhật tệp dịch Backend ${cleanDomain}.json cho ngôn ngữ ${targetLang} thành công!`,
       };
     }
 
     if (scope === 'frontend') {
       const dirPath = this.frontendLocalesPath;
+      const filePath = path.join(dirPath, `${targetLang}.ts`);
+      this.assertPathInDirectory(filePath, this.frontendLocalesPath);
+
       if (!fs.existsSync(dirPath)) {
         fs.mkdirSync(dirPath, { recursive: true });
       }
-      const filePath = path.join(dirPath, `${targetLang}.ts`);
       const nestedObj = this.unflattenObject(flatPayload);
       const tsContent = `export default ${JSON.stringify(nestedObj, null, 2)};\n`;
       fs.writeFileSync(filePath, tsContent, 'utf-8');

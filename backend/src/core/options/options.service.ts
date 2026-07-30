@@ -81,6 +81,29 @@ export class OptionsService {
     return result;
   }
 
+  async getPublicOptions() {
+    const all = await this.getAllOptions();
+    const publicKeys = [
+      'site_title',
+      'site_description',
+      'site_logo',
+      'site_favicon',
+      'maintenance_mode',
+      'active_languages',
+      'dateFormat',
+      'timeFormat',
+      'timezone',
+    ];
+
+    const publicData: Record<string, any> = {};
+    for (const key of publicKeys) {
+      if (key in all) {
+        publicData[key] = all[key];
+      }
+    }
+    return publicData;
+  }
+
   async setMultipleOptions(options: Record<string, any>) {
     const promises = Object.entries(options).map(([key, val]) =>
       this.setOption(key, val),

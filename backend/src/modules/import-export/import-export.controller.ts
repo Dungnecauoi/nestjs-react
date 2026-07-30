@@ -11,6 +11,7 @@ import {
 import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiSecurity, ApiConsumes } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { ImportExportService } from './import-export.service';
 import { JwtOrApiKeyGuard } from '../../core/auth/guards/jwt-or-api-key.guard';
 import { PermissionGuard } from '../../core/auth/guards/permission.guard';
@@ -87,6 +88,7 @@ export class ImportExportController {
   // ────────────────────────────────────────────────────
 
   @Post('import/users')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @RequirePermissions('user:create')
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')

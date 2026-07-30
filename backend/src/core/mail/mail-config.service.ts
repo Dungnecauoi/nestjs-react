@@ -87,46 +87,52 @@ export class MailConfigService {
         port: dto.smtp.port ?? existing.smtp?.port ?? 587,
         secure: dto.smtp.secure ?? existing.smtp?.secure,
         username: dto.smtp.username ?? existing.smtp?.username,
-        passwordEncrypted: dto.smtp.password
-          ? encrypt(dto.smtp.password, this.appKey)
-          : existing.smtp?.passwordEncrypted,
+        passwordEncrypted:
+          dto.smtp.password && !dto.smtp.password.includes('*')
+            ? encrypt(dto.smtp.password, this.appKey)
+            : existing.smtp?.passwordEncrypted,
       };
     }
 
     if (dto.resend) {
       next.resend = {
-        apiKeyEncrypted: dto.resend.apiKey
-          ? encrypt(dto.resend.apiKey, this.appKey)
-          : existing.resend?.apiKeyEncrypted ?? '',
+        apiKeyEncrypted:
+          dto.resend.apiKey && !dto.resend.apiKey.includes('*')
+            ? encrypt(dto.resend.apiKey, this.appKey)
+            : existing.resend?.apiKeyEncrypted ?? '',
       };
     }
 
     if (dto.ses) {
       next.ses = {
-        accessKeyIdEncrypted: dto.ses.accessKeyId
-          ? encrypt(dto.ses.accessKeyId, this.appKey)
-          : existing.ses?.accessKeyIdEncrypted ?? '',
-        secretAccessKeyEncrypted: dto.ses.secretAccessKey
-          ? encrypt(dto.ses.secretAccessKey, this.appKey)
-          : existing.ses?.secretAccessKeyEncrypted ?? '',
+        accessKeyIdEncrypted:
+          dto.ses.accessKeyId && !dto.ses.accessKeyId.includes('*')
+            ? encrypt(dto.ses.accessKeyId, this.appKey)
+            : existing.ses?.accessKeyIdEncrypted ?? '',
+        secretAccessKeyEncrypted:
+          dto.ses.secretAccessKey && !dto.ses.secretAccessKey.includes('*')
+            ? encrypt(dto.ses.secretAccessKey, this.appKey)
+            : existing.ses?.secretAccessKeyEncrypted ?? '',
         region: dto.ses.region ?? existing.ses?.region ?? 'us-east-1',
       };
     }
 
     if (dto.mailgun) {
       next.mailgun = {
-        apiKeyEncrypted: dto.mailgun.apiKey
-          ? encrypt(dto.mailgun.apiKey, this.appKey)
-          : existing.mailgun?.apiKeyEncrypted ?? '',
+        apiKeyEncrypted:
+          dto.mailgun.apiKey && !dto.mailgun.apiKey.includes('*')
+            ? encrypt(dto.mailgun.apiKey, this.appKey)
+            : existing.mailgun?.apiKeyEncrypted ?? '',
         domain: dto.mailgun.domain ?? existing.mailgun?.domain ?? '',
       };
     }
 
     if (dto.sendgrid) {
       next.sendgrid = {
-        apiKeyEncrypted: dto.sendgrid.apiKey
-          ? encrypt(dto.sendgrid.apiKey, this.appKey)
-          : existing.sendgrid?.apiKeyEncrypted ?? '',
+        apiKeyEncrypted:
+          dto.sendgrid.apiKey && !dto.sendgrid.apiKey.includes('*')
+            ? encrypt(dto.sendgrid.apiKey, this.appKey)
+            : existing.sendgrid?.apiKeyEncrypted ?? '',
       };
     }
 

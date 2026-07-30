@@ -23,9 +23,23 @@ export class OptionsController {
   ) {}
 
   @Public()
+  @Get('public')
+  @ApiOperation({
+    summary: 'Lấy thông tin cấu hình công khai (Tiêu đề trang, logo, ngôn ngữ...)',
+  })
+  async getPublicOptions() {
+    const data = await this.optionsService.getPublicOptions();
+    return {
+      success: true,
+      data,
+    };
+  }
+
+  @ApiBearerAuth()
+  @RequirePermissions('setting:read')
   @Get()
   @ApiOperation({
-    summary: 'Lấy toàn bộ cấu hình hệ thống (wp_options architecture)',
+    summary: 'Lấy toàn bộ cấu hình hệ thống (Dành cho Quản trị viên)',
   })
   async getAllOptions() {
     const data = await this.optionsService.getAllOptions();
