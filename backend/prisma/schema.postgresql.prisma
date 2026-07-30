@@ -204,6 +204,7 @@ model Media {
   caption     String?
   description String?
   createdById String?
+  hash        String?
 
   // Xử lý nền (convert WebP cho ảnh, thumbnail cho video) qua queue 'media-processing' —
   // pending ngay sau upload, completed/failed khi worker xử lý xong (hoặc xử lý đồng bộ ngay

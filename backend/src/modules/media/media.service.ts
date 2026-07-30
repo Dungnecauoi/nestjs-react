@@ -6,6 +6,7 @@ import { QueryMediaDto } from './dto/query-media.dto';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import sharp from 'sharp';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
@@ -151,6 +152,22 @@ export class MediaService {
 
   async createMedia(file: Express.Multer.File, createdById?: string) {
     await this.enforceUploadLimits(file);
+    const options = await this.optionsService.getAllOptions();
+
+    // 1. DEDUPLICATION VIA SHA-256 (Tùy chỉnh bật/tắt qua Option `media_enable_sha256_deduplication`)
+    const enableDeduplication = options.media_enable_sha256_deduplication ?? true;
+    let fileHash: string | undefined;
+    if (enableDeduplication && file.path && fs.existsSync(file.path)) {
+      const buffer = fs.readFileSync(file.path);
+      fileHash = crypto.createHash('sha256').update(buffer).digest('hex');
+      const existingMedia = await this.prisma.media.findFirst({
+        where: { hash: fileHash, deletedAt: null },
+      });
+      if (existingMedia) {
+        this.deleteTempFile(file);
+        return existingMedia; // Tái sử dụng Media tệp trùng lặp
+      }
+    }
 
     // File đã được multer ghi tạm ra ./uploads/<file.filename>; driver quyết định nơi lưu
     // CHÍNH THỨC (Local: giữ nguyên tại đó; S3: stream lên bucket rồi xoá file tạm local).
@@ -159,8 +176,7 @@ export class MediaService {
 
     const isImage = file.mimetype.startsWith('image/');
     const isVideo = file.mimetype.startsWith('video/');
-    const options = await this.optionsService.getAllOptions();
-    const needsProcessing = (isImage && !!options.convertToWebp) || isVideo;
+    const needsProcessing = (isImage && (!!options.convertToWebp || !!options.media_auto_webp_conversion)) || isVideo;
 
     const created = await this.prisma.media.create({
       data: {
@@ -170,6 +186,7 @@ export class MediaService {
         mimetype: file.mimetype,
         size: file.size,
         disk,
+        hash: fileHash || null,
         title: file.originalname,
         altText: file.originalname,
         createdById: createdById || null,
@@ -243,9 +260,18 @@ export class MediaService {
     const inputPath = path.join(process.cwd(), filepath.replace(/^\//, ''));
     if (!fs.existsSync(inputPath)) return undefined;
 
+    const options = await this.optionsService.getAllOptions();
+    const quality = options.media_compression_quality ? Number(options.media_compression_quality) : 80;
+    const stripExif = options.media_strip_exif_metadata ?? true;
+
     const outputFilename = `webp-${Date.now()}-${Math.round(Math.random() * 1e9)}.webp`;
     const outputPath = path.join(process.cwd(), 'uploads', outputFilename);
-    await sharp(inputPath).webp({ quality: 80 }).toFile(outputPath);
+
+    let sharpInstance = sharp(inputPath);
+    if (!stripExif) {
+      sharpInstance = sharpInstance.withMetadata();
+    }
+    await sharpInstance.webp({ quality }).toFile(outputPath);
 
     const host = process.env.APP_URL || 'http://localhost:3000';
     return `${host}/uploads/${outputFilename}`;

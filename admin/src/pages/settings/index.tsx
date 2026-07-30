@@ -620,6 +620,11 @@ export default function SettingsModule() {
           allowedImageTypes: options.allowedImageTypes || ['jpg', 'png', 'webp', 'gif', 'svg'],
           maxImageSizeMb: options.maxImageSizeMb || 10,
           convertToWebp: options.convertToWebp !== false,
+          media_strip_exif_metadata: options.media_strip_exif_metadata !== false,
+          media_enable_sha256_deduplication: options.media_enable_sha256_deduplication !== false,
+          media_compression_quality: options.media_compression_quality || 80,
+          media_enable_watermark: !!options.media_enable_watermark,
+          media_watermark_text: options.media_watermark_text || 'ECOMCX ERP',
           allowedVideoTypes: options.allowedVideoTypes || ['mp4', 'webm', 'mov'],
           maxVideoSizeMb: options.maxVideoSizeMb || 100,
 
@@ -814,7 +819,7 @@ export default function SettingsModule() {
           </Form.Item>
         </Col>
 
-        <Col xs={24}>
+        <Col xs={24} md={12}>
           <Form.Item
             name="convertToWebp"
             label={t('settings.convertToWebp')}
@@ -822,6 +827,50 @@ export default function SettingsModule() {
             extra={t('settings.convertToWebpHelp')}
           >
             <Switch />
+          </Form.Item>
+        </Col>
+
+        <Col xs={24} md={12}>
+          <Form.Item name="media_compression_quality" label={t('settings.mediaCompressionQuality')}>
+            <InputNumber min={50} max={100} style={{ width: '100%' }} addonAfter="%" />
+          </Form.Item>
+        </Col>
+
+        <Col xs={24} md={12}>
+          <Form.Item
+            name="media_enable_sha256_deduplication"
+            label={t('settings.mediaDeduplication')}
+            valuePropName="checked"
+            extra={t('settings.mediaDeduplicationHelp')}
+          >
+            <Switch />
+          </Form.Item>
+        </Col>
+
+        <Col xs={24} md={12}>
+          <Form.Item
+            name="media_strip_exif_metadata"
+            label={t('settings.mediaStripExif')}
+            valuePropName="checked"
+            extra={t('settings.mediaStripExifHelp')}
+          >
+            <Switch />
+          </Form.Item>
+        </Col>
+
+        <Col xs={24} md={12}>
+          <Form.Item
+            name="media_enable_watermark"
+            label={t('settings.mediaEnableWatermark')}
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+        </Col>
+
+        <Col xs={24} md={12}>
+          <Form.Item name="media_watermark_text" label={t('settings.mediaWatermarkText')}>
+            <Input placeholder="ECOMCX ERP" />
           </Form.Item>
         </Col>
 
