@@ -104,6 +104,50 @@ export class MediaController {
     return Promise.all(promises);
   }
 
+  @Post('upload-chunk/init')
+  @RequirePermissions('media:create')
+  @ApiOperation({ summary: 'Khởi tạo phiên upload-chunk tệp lớn (Init Chunked Upload)' })
+  async initChunkUpload(
+    @Body() dto: { filename: string; totalChunks: number; totalSize: number; mimetype?: string },
+  ) {
+    return this.mediaService.initChunkUpload(dto);
+  }
+
+  @Post('upload-chunk/chunk')
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
+  @RequirePermissions('media:create')
+  @UseInterceptors(FileInterceptor('chunk', StorageService.getMulterConfig()))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Tải lên 1 mảnh chunk của tệp lớn' })
+  async uploadChunkSlice(
+    @UploadedFile() chunk: Express.Multer.File,
+    @Body('uploadId') uploadId: string,
+    @Body('chunkIndex') chunkIndex: number,
+  ) {
+    if (!chunk || !uploadId) {
+      throw new CustomApiException(
+        ErrorCode.MEDIA_TYPE_NOT_ALLOWED,
+        'Thiếu file chunk hoặc uploadId',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    return this.mediaService.saveChunkSlice(chunk, uploadId, Number(chunkIndex));
+  }
+
+  @Post('upload-chunk/complete')
+  @RequirePermissions('media:create')
+  @ApiOperation({ summary: 'Hoàn tất ghép nối tất cả mảnh chunk thành tệp Media hoàn chỉnh' })
+  async completeChunkUpload(@Body('uploadId') uploadId: string) {
+    if (!uploadId) {
+      throw new CustomApiException(
+        ErrorCode.MEDIA_TYPE_NOT_ALLOWED,
+        'Thiếu uploadId',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    return this.mediaService.completeChunkUpload(uploadId);
+  }
+
   @Patch(':id')
   @RequirePermissions('media:update')
   @ApiOperation({

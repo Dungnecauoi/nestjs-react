@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { ConfigProvider, theme as antdTheme } from 'antd';
+import { ConfigProvider, App as AntdApp, theme as antdTheme } from 'antd';
 import viVN from 'antd/locale/vi_VN';
 import enUS from 'antd/locale/en_US';
 import { useTranslation } from 'react-i18next';
@@ -151,8 +151,21 @@ export const AntdThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           },
         }}
       >
-        {children}
+        <AntdApp>
+          <AntdAppBridge />
+          {children}
+        </AntdApp>
       </ConfigProvider>
     </AntdThemeContext.Provider>
   );
+};
+
+import { setGlobalMessageInstance } from '../utils/notify';
+
+const AntdAppBridge: React.FC = () => {
+  const { message } = AntdApp.useApp();
+  useEffect(() => {
+    setGlobalMessageInstance(message);
+  }, [message]);
+  return null;
 };

@@ -320,7 +320,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         placement="left"
         open={isMobileOpen}
         onClose={onCloseMobile}
-        bodyStyle={{ padding: 0, backgroundColor: isDark ? '#121215' : '#ffffff' }}
+        styles={{ body: { padding: 0, backgroundColor: isDark ? '#121215' : '#ffffff' } }}
         width={260}
       >
         {sidebarContent}

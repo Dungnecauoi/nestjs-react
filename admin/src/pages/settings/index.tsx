@@ -159,9 +159,9 @@ function MailConfigTabContent() {
 
       const updated = await mailConfigApi.saveMailConfig(dto);
       setConfig(updated);
-      message.success('Đã lưu cấu hình gửi mail thành công!');
+      notify.success('Đã lưu cấu hình gửi mail thành công!');
     } catch (err: any) {
-      message.error(err.response?.data?.message || 'Không thể lưu cấu hình gửi mail!');
+      notify.error(err, 'Không thể lưu cấu hình gửi mail!');
     } finally {
       setSaving(false);
     }
@@ -169,15 +169,15 @@ function MailConfigTabContent() {
 
   const handleTestSend = async () => {
     if (!testEmail) {
-      message.warning('Vui lòng nhập email nhận thử nghiệm!');
+      notify.warning('Vui lòng nhập email nhận thử nghiệm!');
       return;
     }
     setTesting(true);
     try {
       await mailConfigApi.sendTestEmail(testEmail);
-      message.success(`Đã gửi email thử nghiệm tới ${testEmail}!`);
+      notify.success(`Đã gửi email thử nghiệm tới ${testEmail}!`);
     } catch (err: any) {
-      message.error(err.response?.data?.message || 'Gửi email thử nghiệm thất bại!');
+      notify.error(err, 'Gửi email thử nghiệm thất bại!');
     } finally {
       setTesting(false);
     }
@@ -208,7 +208,7 @@ function MailConfigTabContent() {
 
   return (
     <Spin spinning={loading}>
-      <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
+      <Card variant="borderless" style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
         <Form
           form={mailForm}
           layout="vertical"
@@ -474,9 +474,9 @@ function StorageConfigTabContent() {
       }
       const updated = await storageConfigApi.saveStorageConfig(dto);
       setConfig(updated);
-      message.success('Đã lưu cấu hình lưu trữ media thành công!');
+      notify.success('Đã lưu cấu hình lưu trữ media thành công!');
     } catch (err: any) {
-      message.error(err.response?.data?.message || 'Không thể lưu cấu hình lưu trữ!');
+      notify.error(err, 'Không thể lưu cấu hình lưu trữ!');
     } finally {
       setSaving(false);
     }
@@ -486,9 +486,9 @@ function StorageConfigTabContent() {
     setTesting(true);
     try {
       await storageConfigApi.testConnection();
-      message.success('Kết nối S3/MinIO thành công!');
+      notify.success('Kết nối S3/MinIO thành công!');
     } catch (err: any) {
-      message.error(err.response?.data?.message || 'Kết nối thất bại!');
+      notify.error(err, 'Kết nối thất bại!');
     } finally {
       setTesting(false);
     }
@@ -496,7 +496,7 @@ function StorageConfigTabContent() {
 
   return (
     <Spin spinning={loading}>
-      <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
+      <Card variant="borderless" style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
         <Form
           form={storageForm}
           layout="vertical"
@@ -625,6 +625,7 @@ export default function SettingsModule() {
           media_compression_quality: options.media_compression_quality || 80,
           media_enable_watermark: !!options.media_enable_watermark,
           media_watermark_text: options.media_watermark_text || 'ECOMCX ERP',
+          media_enable_chunked_upload: options.media_enable_chunked_upload !== false,
           allowedVideoTypes: options.allowedVideoTypes || ['mp4', 'webm', 'mov'],
           maxVideoSizeMb: options.maxVideoSizeMb || 100,
 
@@ -663,7 +664,7 @@ export default function SettingsModule() {
       await queryClient.invalidateQueries({ queryKey: SYSTEM_OPTIONS_QUERY_KEY });
 
       setSaved(true);
-      message.success(t('settings.savedSuccessDatabase'));
+      notify.success(t('settings.savedSuccessDatabase', 'Đã lưu toàn bộ cấu hình hệ thống vào Database thành công!'));
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
       notify.error(err, 'Không thể lưu cấu hình vào Database!');
@@ -673,7 +674,7 @@ export default function SettingsModule() {
   };
 
   const generalTabContent = (
-    <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
+    <Card variant="borderless" style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
       <Row gutter={[24, 16]}>
         <Col xs={24} md={12}>
           <Form.Item name="siteTitle" label={t('settings.siteTitle')} rules={[{ required: true }]}>
@@ -795,7 +796,7 @@ export default function SettingsModule() {
   );
 
   const mediaTabContent = (
-    <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
+    <Card variant="borderless" style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
       <Row gutter={[24, 16]}>
         <Col xs={24} md={12}>
           <Form.Item name="allowedImageTypes" label={t('settings.allowedImageTypes')}>
@@ -815,7 +816,7 @@ export default function SettingsModule() {
 
         <Col xs={24} md={12}>
           <Form.Item name="maxImageSizeMb" label={t('settings.maxImageSizeMb')}>
-            <InputNumber min={1} max={100} style={{ width: '100%' }} addonAfter="MB" />
+            <InputNumber min={1} max={100} style={{ width: '100%' }} suffix="MB" />
           </Form.Item>
         </Col>
 
@@ -832,7 +833,7 @@ export default function SettingsModule() {
 
         <Col xs={24} md={12}>
           <Form.Item name="media_compression_quality" label={t('settings.mediaCompressionQuality')}>
-            <InputNumber min={50} max={100} style={{ width: '100%' }} addonAfter="%" />
+            <InputNumber min={50} max={100} style={{ width: '100%' }} suffix="%" />
           </Form.Item>
         </Col>
 
@@ -875,6 +876,17 @@ export default function SettingsModule() {
         </Col>
 
         <Col xs={24}>
+          <Form.Item
+            name="media_enable_chunked_upload"
+            label={t('settings.mediaChunkedUpload')}
+            valuePropName="checked"
+            extra={t('settings.mediaChunkedUploadHelp')}
+          >
+            <Switch />
+          </Form.Item>
+        </Col>
+
+        <Col xs={24}>
           <Divider style={{ margin: '8px 0 16px 0' }} />
         </Col>
 
@@ -895,7 +907,7 @@ export default function SettingsModule() {
 
         <Col xs={24} md={12}>
           <Form.Item name="maxVideoSizeMb" label={t('settings.maxVideoSizeMb')}>
-            <InputNumber min={10} max={1000} style={{ width: '100%' }} addonAfter="MB" />
+            <InputNumber min={10} max={1000} style={{ width: '100%' }} suffix="MB" />
           </Form.Item>
         </Col>
       </Row>
@@ -903,7 +915,7 @@ export default function SettingsModule() {
   );
 
   const readingTabContent = (
-    <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
+    <Card variant="borderless" style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
       <Row gutter={[24, 16]}>
         <Col xs={24}>
           <Form.Item name="homepageType" label={t('settings.homepageType')}>
@@ -970,7 +982,7 @@ export default function SettingsModule() {
   );
 
   const writingTabContent = (
-    <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
+    <Card variant="borderless" style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
       <Row gutter={[24, 16]}>
         <Col xs={24} md={12}>
           <Form.Item name="defaultCategory" label={t('settings.defaultCategory')}>
@@ -1063,10 +1075,10 @@ export default function SettingsModule() {
   ];
 
   return (
-    <Spin spinning={loading} tip={t('settings.loadingFromDatabase')}>
+    <Spin spinning={loading}>
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* Header Card */}
-        <Card bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
+        <Card variant="borderless" style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
             <div>
               <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{t('settings.title')}</h1>

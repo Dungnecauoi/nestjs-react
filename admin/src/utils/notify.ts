@@ -1,5 +1,13 @@
-import { message } from 'antd';
+import { message as staticMessage } from 'antd';
 import i18n from '../i18n/config';
+
+let messageInstance: any = staticMessage;
+
+export const setGlobalMessageInstance = (inst: any) => {
+  if (inst) {
+    messageInstance = inst;
+  }
+};
 
 /**
  * Utility Toast & Notification toàn cục tích hợp sẵn i18n
@@ -8,20 +16,14 @@ import i18n from '../i18n/config';
 export const notify = {
   /**
    * Hiển thị thông báo thành công
-   * @param keyOrMsg Mã i18n key (ví dụ 'messages.SUCCESS') hoặc câu thông báo trực tiếp
-   * @param fallback Mẫu văn bản mặc định nếu chưa khai báo key trong i18n
-   * @param params Tham số biến số truyền vào i18n (nếu có)
    */
   success: (keyOrMsg: string, fallback?: string, params?: Record<string, any>) => {
     const text = i18n.t(keyOrMsg, { defaultValue: fallback || keyOrMsg, ...params });
-    message.success(text);
+    messageInstance.success(text);
   },
 
   /**
    * Hiển thị thông báo lỗi
-   * @param errorOrKey Object lỗi Axios, mã i18n key hoặc văn bản lỗi
-   * @param fallback Mẫu văn bản mặc định
-   * @param params Tham số biến số truyền vào i18n
    */
   error: (errorOrKey: any, fallback?: string, params?: Record<string, any>) => {
     let msgText = '';
@@ -34,7 +36,7 @@ export const notify = {
     } else {
       msgText = fallback || 'Đã có lỗi xảy ra, vui lòng thử lại sau!';
     }
-    message.error(msgText);
+    messageInstance.error(msgText);
   },
 
   /**
@@ -42,7 +44,7 @@ export const notify = {
    */
   warning: (keyOrMsg: string, fallback?: string, params?: Record<string, any>) => {
     const text = i18n.t(keyOrMsg, { defaultValue: fallback || keyOrMsg, ...params });
-    message.warning(text);
+    messageInstance.warning(text);
   },
 
   /**
@@ -50,6 +52,6 @@ export const notify = {
    */
   info: (keyOrMsg: string, fallback?: string, params?: Record<string, any>) => {
     const text = i18n.t(keyOrMsg, { defaultValue: fallback || keyOrMsg, ...params });
-    message.info(text);
+    messageInstance.info(text);
   },
 };

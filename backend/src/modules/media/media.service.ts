@@ -411,4 +411,96 @@ export class MediaService {
       data: { deletedAt: null },
     });
   }
+
+  // ─── CHUNKED / RESUMABLE UPLOAD ENGINE ─────────────────────────────
+  async initChunkUpload(dto: { filename: string; totalChunks: number; totalSize: number; mimetype?: string }) {
+    const uploadId = `chunk_${Date.now()}_${Math.round(Math.random() * 1e9)}`;
+    const chunkDir = path.join(process.cwd(), 'uploads', 'chunks', uploadId);
+    fs.mkdirSync(chunkDir, { recursive: true });
+
+    const manifest = {
+      uploadId,
+      filename: dto.filename,
+      totalChunks: dto.totalChunks,
+      totalSize: dto.totalSize,
+      mimetype: dto.mimetype || 'application/octet-stream',
+      createdAt: new Date().toISOString(),
+    };
+    fs.writeFileSync(path.join(chunkDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
+
+    return {
+      uploadId,
+      totalChunks: dto.totalChunks,
+    };
+  }
+
+  async saveChunkSlice(file: Express.Multer.File, uploadId: string, chunkIndex: number) {
+    const chunkDir = path.join(process.cwd(), 'uploads', 'chunks', uploadId);
+    if (!fs.existsSync(chunkDir)) {
+      throw new BadRequestException('Mã phiên upload-chunk không tồn tại hoặc đã hết hạn.');
+    }
+
+    const chunkPath = path.join(chunkDir, `chunk_${chunkIndex}`);
+    if (file.path && fs.existsSync(file.path)) {
+      fs.copyFileSync(file.path, chunkPath);
+      this.deleteTempFile(file);
+    }
+
+    const files = fs.readdirSync(chunkDir).filter((f) => f.startsWith('chunk_'));
+    const manifestRaw = fs.readFileSync(path.join(chunkDir, 'manifest.json'), 'utf-8');
+    const manifest = JSON.parse(manifestRaw);
+
+    return {
+      uploadId,
+      chunkIndex,
+      receivedChunks: files.length,
+      totalChunks: manifest.totalChunks,
+      progress: Math.round((files.length / manifest.totalChunks) * 100),
+    };
+  }
+
+  async completeChunkUpload(uploadId: string, createdById?: string) {
+    const chunkDir = path.join(process.cwd(), 'uploads', 'chunks', uploadId);
+    if (!fs.existsSync(chunkDir)) {
+      throw new BadRequestException('Mã phiên upload-chunk không tồn tại.');
+    }
+
+    const manifestRaw = fs.readFileSync(path.join(chunkDir, 'manifest.json'), 'utf-8');
+    const manifest = JSON.parse(manifestRaw);
+
+    const mergedFilename = `merged_${Date.now()}_${manifest.filename.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const mergedPath = path.join(process.cwd(), 'uploads', mergedFilename);
+
+    const writeStream = fs.createWriteStream(mergedPath);
+    for (let i = 0; i < manifest.totalChunks; i++) {
+      const chunkPath = path.join(chunkDir, `chunk_${i}`);
+      if (!fs.existsSync(chunkPath)) {
+        writeStream.close();
+        throw new BadRequestException(`Thiếu mảnh chunk index #${i}. Không thể hoàn tất ghép nối.`);
+      }
+      const data = fs.readFileSync(chunkPath);
+      writeStream.write(data);
+    }
+    writeStream.end();
+
+    try {
+      fs.rmSync(chunkDir, { recursive: true, force: true });
+    } catch {}
+
+    const stats = fs.statSync(mergedPath);
+    const mockFile: Express.Multer.File = {
+      fieldname: 'file',
+      originalname: manifest.filename,
+      encoding: '7bit',
+      mimetype: manifest.mimetype,
+      size: stats.size,
+      destination: path.join(process.cwd(), 'uploads'),
+      filename: mergedFilename,
+      path: mergedPath,
+      buffer: Buffer.from([]),
+      stream: null as any,
+    };
+
+    return this.createMedia(mockFile, createdById);
+  }
 }
