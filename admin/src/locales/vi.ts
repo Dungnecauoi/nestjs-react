@@ -236,7 +236,17 @@ export default {
     "description": "Mô Tả (Description)",
     "deletePermanently": "Xóa Vĩnh Viễn",
     "confirmDeletePermanently": "Bạn có chắc chắn muốn xóa vĩnh viễn tập tin này khỏi đĩa và Database?",
-    "saveUpdates": "Lưu Cập Nhật"
+    "saveUpdates": "Lưu Cập Nhật",
+    "totalFiles": "Tổng Số Tập Tin",
+    "totalSize": "Tổng Dung Lượng Đã Dùng",
+    "batchSelect": "Chọn Hàng Loạt",
+    "selectedItems": "Đã chọn {{count}} tập tin",
+    "batchDelete": "Xóa Hàng Loạt",
+    "batchCopyUrl": "Sao Chép Mảng URL",
+    "dragDropTip": "Kéo & thả tập tin vào đây để tải lên ngay lập tức",
+    "filterSize": "Dung Lượng Tập Tin",
+    "filterAspect": "Tỷ Lệ Khung Hình",
+    "downloadOriginal": "Tải Xuất Gốc"
   },
   "theme": {
     "title": "Cấu Hình Giao Diện Hệ Thống",

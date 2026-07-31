@@ -47,7 +47,11 @@
       "Bash(node -pe 'const d=JSON.parse\\(require\\(\"fs\"\\).readFileSync\\(0\\)\\).data.data; \\({siteFavicon:d.siteFavicon, siteLogo:d.siteLogo}\\)')",
       "Bash(rm -f /tmp/nest-final-check.log)",
       "Bash(lsof -ti:5173)",
-      "Bash(rm -f /tmp/vite-final-check.log)"
+      "Bash(rm -f /tmp/vite-final-check.log)",
+      "Bash(xargs -I{} sh -c 'echo ==={}===; cat {}')",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }
