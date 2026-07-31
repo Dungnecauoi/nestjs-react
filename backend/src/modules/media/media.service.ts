@@ -1,4 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException, Optional } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+  Optional,
+} from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectQueue } from '@nestjs/bullmq';
 import type { Queue } from 'bullmq';
 import { PrismaService } from '../../core/database/prisma.service';
@@ -413,9 +420,41 @@ export class MediaService {
   }
 
   // ─── CHUNKED / RESUMABLE UPLOAD ENGINE ─────────────────────────────
-  async initChunkUpload(dto: { filename: string; totalChunks: number; totalSize: number; mimetype?: string }) {
+  // uploadId luôn do server tự sinh theo đúng pattern này (initChunkUpload) — mọi endpoint
+  // nhận uploadId từ client (chunk/complete) PHẢI validate lại format trước khi ghép vào
+  // path.join, vì đây là input người dùng gửi lên và path đó còn bị rmSync xoá đệ quy sau
+  // này (completeChunkUpload) — không chặn thì mở đường path traversal / xoá thư mục tuỳ ý.
+  private static readonly UPLOAD_ID_PATTERN = /^chunk_\d+_\d+$/;
+
+  private validateUploadId(uploadId: string): void {
+    if (!uploadId || !MediaService.UPLOAD_ID_PATTERN.test(uploadId)) {
+      throw new BadRequestException('uploadId không hợp lệ.');
+    }
+  }
+
+  private getChunkDir(uploadId: string): string {
+    return path.join(process.cwd(), 'uploads', 'chunks', uploadId);
+  }
+
+  private readManifest(chunkDir: string): any {
+    return JSON.parse(fs.readFileSync(path.join(chunkDir, 'manifest.json'), 'utf-8'));
+  }
+
+  // Phiên upload-chunk gắn với đúng người khởi tạo nó (manifest.createdById). Không có check
+  // này thì bất kỳ ai có quyền media:create và đoán/nghe lén được uploadId của người khác đều
+  // ghi chunk hoặc complete được vào phiên không phải của mình.
+  private assertChunkOwnership(manifest: { createdById?: string | null }, requestUserId?: string): void {
+    if (manifest.createdById && manifest.createdById !== requestUserId) {
+      throw new ForbiddenException('Không có quyền thao tác trên phiên upload-chunk này.');
+    }
+  }
+
+  async initChunkUpload(
+    dto: { filename: string; totalChunks: number; totalSize: number; mimetype?: string },
+    createdById?: string,
+  ) {
     const uploadId = `chunk_${Date.now()}_${Math.round(Math.random() * 1e9)}`;
-    const chunkDir = path.join(process.cwd(), 'uploads', 'chunks', uploadId);
+    const chunkDir = this.getChunkDir(uploadId);
     fs.mkdirSync(chunkDir, { recursive: true });
 
     const manifest = {
@@ -424,6 +463,7 @@ export class MediaService {
       totalChunks: dto.totalChunks,
       totalSize: dto.totalSize,
       mimetype: dto.mimetype || 'application/octet-stream',
+      createdById: createdById || null,
       createdAt: new Date().toISOString(),
     };
     fs.writeFileSync(path.join(chunkDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
@@ -434,10 +474,25 @@ export class MediaService {
     };
   }
 
-  async saveChunkSlice(file: Express.Multer.File, uploadId: string, chunkIndex: number) {
-    const chunkDir = path.join(process.cwd(), 'uploads', 'chunks', uploadId);
+  async saveChunkSlice(
+    file: Express.Multer.File,
+    uploadId: string,
+    chunkIndex: number,
+    requestUserId?: string,
+  ) {
+    this.validateUploadId(uploadId);
+    const chunkDir = this.getChunkDir(uploadId);
     if (!fs.existsSync(chunkDir)) {
+      this.deleteTempFile(file);
       throw new BadRequestException('Mã phiên upload-chunk không tồn tại hoặc đã hết hạn.');
+    }
+
+    const manifest = this.readManifest(chunkDir);
+    try {
+      this.assertChunkOwnership(manifest, requestUserId);
+    } catch (err) {
+      this.deleteTempFile(file);
+      throw err;
     }
 
     const chunkPath = path.join(chunkDir, `chunk_${chunkIndex}`);
@@ -447,8 +502,6 @@ export class MediaService {
     }
 
     const files = fs.readdirSync(chunkDir).filter((f) => f.startsWith('chunk_'));
-    const manifestRaw = fs.readFileSync(path.join(chunkDir, 'manifest.json'), 'utf-8');
-    const manifest = JSON.parse(manifestRaw);
 
     return {
       uploadId,
@@ -459,14 +512,15 @@ export class MediaService {
     };
   }
 
-  async completeChunkUpload(uploadId: string, createdById?: string) {
-    const chunkDir = path.join(process.cwd(), 'uploads', 'chunks', uploadId);
+  async completeChunkUpload(uploadId: string, requestUserId?: string) {
+    this.validateUploadId(uploadId);
+    const chunkDir = this.getChunkDir(uploadId);
     if (!fs.existsSync(chunkDir)) {
       throw new BadRequestException('Mã phiên upload-chunk không tồn tại.');
     }
 
-    const manifestRaw = fs.readFileSync(path.join(chunkDir, 'manifest.json'), 'utf-8');
-    const manifest = JSON.parse(manifestRaw);
+    const manifest = this.readManifest(chunkDir);
+    this.assertChunkOwnership(manifest, requestUserId);
 
     const mergedFilename = `merged_${Date.now()}_${manifest.filename.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
     const mergedPath = path.join(process.cwd(), 'uploads', mergedFilename);
@@ -501,6 +555,35 @@ export class MediaService {
       stream: null as any,
     };
 
-    return this.createMedia(mockFile, createdById);
+    return this.createMedia(mockFile, requestUserId);
+  }
+
+  // uploads/chunks/<uploadId>/ mồ côi khi client bỏ dở phiên (đóng tab, mất mạng...) và
+  // không bao giờ gọi complete — không dọn thì tích tụ vô hạn trên đĩa. Quét mỗi giờ, xoá
+  // phiên quá 24h dựa theo manifest.createdAt (fallback mtime thư mục nếu manifest hỏng/thiếu).
+  @Cron(CronExpression.EVERY_HOUR)
+  async cleanupOrphanedChunkUploads(): Promise<void> {
+    const chunksRoot = path.join(process.cwd(), 'uploads', 'chunks');
+    if (!fs.existsSync(chunksRoot)) return;
+
+    const maxAgeMs = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+
+    for (const uploadId of fs.readdirSync(chunksRoot)) {
+      const dir = path.join(chunksRoot, uploadId);
+      try {
+        let createdAtMs = fs.statSync(dir).mtimeMs;
+        const manifestPath = path.join(dir, 'manifest.json');
+        if (fs.existsSync(manifestPath)) {
+          const manifest = this.readManifest(dir);
+          if (manifest?.createdAt) createdAtMs = new Date(manifest.createdAt).getTime();
+        }
+        if (now - createdAtMs > maxAgeMs) {
+          fs.rmSync(dir, { recursive: true, force: true });
+        }
+      } catch {
+        // best-effort cleanup, bỏ qua thư mục lỗi/đang ghi dở
+      }
+    }
   }
 }

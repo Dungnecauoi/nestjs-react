@@ -25,9 +25,15 @@ import { I18nContext, I18nService } from 'nestjs-i18n';
 import { Throttle } from '@nestjs/throttler';
 import { MediaService } from './media.service';
 import { QueryMediaDto } from './dto/query-media.dto';
+import {
+  InitChunkUploadDto,
+  UploadChunkDto,
+  CompleteChunkUploadDto,
+} from './dto/chunk-upload.dto';
 import { JwtOrApiKeyGuard } from '../../core/auth/guards/jwt-or-api-key.guard';
 import { PermissionGuard } from '../../core/auth/guards/permission.guard';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CustomApiException } from '../../common/exceptions/custom-api.exception';
 import { ErrorCode } from '../../common/enums/error-code.enum';
 import { StorageService } from '../../core/storage/storage.service';
@@ -42,6 +48,13 @@ export class MediaController {
     private readonly mediaService: MediaService,
     private readonly i18n: I18nService,
   ) {}
+
+  // API key (m2m) trả về id của record ApiKey, không phải id của bảng User — không được
+  // gán thẳng vào Media.createdById kẻo gán nhầm chủ sở hữu. Chỉ user đăng nhập JWT thật
+  // mới được gán attribution.
+  private resolveCreatedById(user: any): string | undefined {
+    return user && !user.isApiKey ? user.id : undefined;
+  }
 
   @Get()
   @RequirePermissions('media:read')
@@ -63,7 +76,10 @@ export class MediaController {
   @UseInterceptors(FileInterceptor('file', StorageService.getMulterConfig()))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Tải lên 1 tập tin Media mới' })
-  async uploadFile(@UploadedFile() file: Express.Multer.File) {
+  async uploadFile(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: any,
+  ) {
     if (!file) {
       const lang = I18nContext.current()?.lang;
       const message = this.i18n.t('media.FILE_REQUIRED', {
@@ -76,7 +92,7 @@ export class MediaController {
         HttpStatus.BAD_REQUEST,
       );
     }
-    return this.mediaService.createMedia(file);
+    return this.mediaService.createMedia(file, this.resolveCreatedById(user));
   }
 
   @Post('upload-multiple')
@@ -87,7 +103,10 @@ export class MediaController {
   )
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Tải lên nhiều tập tin Media cùng lúc (Tối đa 10)' })
-  async uploadMultipleFiles(@UploadedFiles() files: Express.Multer.File[]) {
+  async uploadMultipleFiles(
+    @UploadedFiles() files: Express.Multer.File[],
+    @CurrentUser() user: any,
+  ) {
     if (!files || files.length === 0) {
       const lang = I18nContext.current()?.lang;
       const message = this.i18n.t('media.FILE_REQUIRED', {
@@ -100,17 +119,16 @@ export class MediaController {
         HttpStatus.BAD_REQUEST,
       );
     }
-    const promises = files.map((file) => this.mediaService.createMedia(file));
+    const createdById = this.resolveCreatedById(user);
+    const promises = files.map((file) => this.mediaService.createMedia(file, createdById));
     return Promise.all(promises);
   }
 
   @Post('upload-chunk/init')
   @RequirePermissions('media:create')
   @ApiOperation({ summary: 'Khởi tạo phiên upload-chunk tệp lớn (Init Chunked Upload)' })
-  async initChunkUpload(
-    @Body() dto: { filename: string; totalChunks: number; totalSize: number; mimetype?: string },
-  ) {
-    return this.mediaService.initChunkUpload(dto);
+  async initChunkUpload(@Body() dto: InitChunkUploadDto, @CurrentUser() user: any) {
+    return this.mediaService.initChunkUpload(dto, this.resolveCreatedById(user));
   }
 
   @Post('upload-chunk/chunk')
@@ -121,31 +139,29 @@ export class MediaController {
   @ApiOperation({ summary: 'Tải lên 1 mảnh chunk của tệp lớn' })
   async uploadChunkSlice(
     @UploadedFile() chunk: Express.Multer.File,
-    @Body('uploadId') uploadId: string,
-    @Body('chunkIndex') chunkIndex: number,
+    @Body() dto: UploadChunkDto,
+    @CurrentUser() user: any,
   ) {
-    if (!chunk || !uploadId) {
+    if (!chunk) {
       throw new CustomApiException(
         ErrorCode.MEDIA_TYPE_NOT_ALLOWED,
-        'Thiếu file chunk hoặc uploadId',
+        'Thiếu file chunk',
         HttpStatus.BAD_REQUEST,
       );
     }
-    return this.mediaService.saveChunkSlice(chunk, uploadId, Number(chunkIndex));
+    return this.mediaService.saveChunkSlice(
+      chunk,
+      dto.uploadId,
+      dto.chunkIndex,
+      this.resolveCreatedById(user),
+    );
   }
 
   @Post('upload-chunk/complete')
   @RequirePermissions('media:create')
   @ApiOperation({ summary: 'Hoàn tất ghép nối tất cả mảnh chunk thành tệp Media hoàn chỉnh' })
-  async completeChunkUpload(@Body('uploadId') uploadId: string) {
-    if (!uploadId) {
-      throw new CustomApiException(
-        ErrorCode.MEDIA_TYPE_NOT_ALLOWED,
-        'Thiếu uploadId',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-    return this.mediaService.completeChunkUpload(uploadId);
+  async completeChunkUpload(@Body() dto: CompleteChunkUploadDto, @CurrentUser() user: any) {
+    return this.mediaService.completeChunkUpload(dto.uploadId, this.resolveCreatedById(user));
   }
 
   @Patch(':id')
