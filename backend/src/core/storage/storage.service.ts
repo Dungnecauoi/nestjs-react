@@ -1,10 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { existsSync, mkdirSync } from 'fs';
-import { randomUUID } from 'crypto';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 // Đây chỉ là lưới an toàn NGOÀI CÙNG (superset của mọi loại Settings có thể cho phép) — vì
 // multer's FileInterceptor được Nest resolve 1 lần lúc load module, không đọc DB động per-request
@@ -41,32 +38,12 @@ export const ALLOWED_UPLOAD_EXTENSIONS = [
   '.xlsx',
 ];
 
+// Chỉ còn cấu hình multer (đọc lưới an toàn tĩnh ở trên) — driver lưu trữ THẬT (local/S3/MinIO)
+// do StorageConfigService quyết định lúc runtime từ config DB, xem MediaService.createMedia().
+// Trước đây có thêm 1 đường S3 riêng dựa env (FILESYSTEM_DISK/AWS_*) không ai gọi tới
+// (uploadToS3()) — 2 cơ chế cấu hình storage song song dễ gây nhầm lẫn nên đã bỏ.
 @Injectable()
 export class StorageService {
-  private disk: string;
-  private s3Client?: S3Client;
-
-  constructor(private readonly configService: ConfigService) {
-    this.disk = this.configService.get<string>('storage.disk') || 'local';
-
-    if (this.disk === 's3' || this.disk === 'minio') {
-      const accessKeyId = this.configService.get<string>(
-        'storage.aws.accessKeyId',
-      );
-      const secretAccessKey = this.configService.get<string>(
-        'storage.aws.secretAccessKey',
-      );
-      const region = this.configService.get<string>('storage.aws.region');
-
-      if (accessKeyId && secretAccessKey) {
-        this.s3Client = new S3Client({
-          region,
-          credentials: { accessKeyId, secretAccessKey },
-        });
-      }
-    }
-  }
-
   // Multer Storage Configuration Generator for Local Disk
   static getMulterConfig(uploadSubFolder = '') {
     return {
@@ -108,29 +85,5 @@ export class StorageService {
         callback(null, true);
       },
     };
-  }
-
-  async uploadToS3(
-    file: Express.Multer.File,
-    keyPrefix = 'uploads',
-  ): Promise<string> {
-    if (!this.s3Client) {
-      throw new Error('S3 Client chưa được cấu hình AWS credentials');
-    }
-
-    const bucket = this.configService.get<string>('storage.aws.bucket');
-    const ext = extname(file.originalname).toLowerCase();
-    const key = `${keyPrefix}/${randomUUID()}${ext}`;
-
-    await this.s3Client.send(
-      new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        Body: file.buffer,
-        ContentType: file.mimetype,
-      }),
-    );
-
-    return `https://${bucket}.s3.amazonaws.com/${key}`;
   }
 }

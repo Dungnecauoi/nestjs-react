@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
 import { Modal, Space, Button } from 'antd';
-import { DownloadOutlined, CopyOutlined, LeftOutlined, RightOutlined, FileTextOutlined } from '@ant-design/icons';
+import { DownloadOutlined, CopyOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { MediaItem } from '../../../api/modules/media.api';
-import { CustomAudioPlayer } from './CustomAudioPlayer';
+import { MediaPreview } from './MediaPreview';
 
 interface MediaLightboxModalProps {
   isOpen: boolean;
@@ -73,7 +73,7 @@ export const MediaLightboxModal: React.FC<MediaLightboxModalProps> = ({
 
           <Space style={{ marginRight: 40 }}>
             <Button size="small" icon={<CopyOutlined />} onClick={() => onCopyUrl(currentItem.url)}>
-              Sao Chép Link
+              {t('media.copyLink', 'Sao Chép Link')}
             </Button>
             <a href={currentItem.url} download target="_blank" rel="noreferrer">
               <Button type="primary" icon={<DownloadOutlined />} size="small">
@@ -87,7 +87,7 @@ export const MediaLightboxModal: React.FC<MediaLightboxModalProps> = ({
                 onOpenDetail(currentItem);
               }}
             >
-              Sửa Chi Tiết
+              {t('media.editDetails', 'Sửa Chi Tiết')}
             </Button>
           </Space>
         </div>
@@ -106,27 +106,7 @@ export const MediaLightboxModal: React.FC<MediaLightboxModalProps> = ({
             />
           )}
 
-          {currentItem.mimetype?.startsWith('image/') ? (
-            <img
-              src={currentItem.url}
-              alt={currentItem.filename}
-              style={{ maxHeight: 540, maxWidth: '100%', objectFit: 'contain', borderRadius: 8 }}
-            />
-          ) : currentItem.mimetype?.startsWith('video/') ? (
-            <video
-              src={currentItem.url}
-              controls
-              autoPlay
-              style={{ maxHeight: 540, maxWidth: '100%', borderRadius: 8 }}
-            />
-          ) : currentItem.mimetype?.startsWith('audio/') ? (
-            <CustomAudioPlayer url={currentItem.url} filename={currentItem.filename} />
-          ) : (
-            <div style={{ color: '#ffffff', textAlign: 'center', padding: 40 }}>
-              <FileTextOutlined style={{ fontSize: 64, color: '#6366f1' }} />
-              <p style={{ marginTop: 12, fontSize: 14 }}>Tập tin tài liệu ({currentItem.mimetype})</p>
-            </div>
-          )}
+          <MediaPreview item={currentItem} variant="lightbox" />
 
           {currentIndex < totalCount - 1 && (
             <Button

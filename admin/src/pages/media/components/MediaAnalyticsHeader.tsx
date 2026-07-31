@@ -49,11 +49,11 @@ export const MediaAnalyticsHeader: React.FC<MediaAnalyticsHeaderProps> = ({
       <Col xs={24} sm={12} md={6}>
         <Card variant="borderless" style={{ borderRadius: 12, boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>Phân Loại Tập Tin</span>
+            <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>{t('media.fileTypeBreakdown', 'Phân Loại Tập Tin')}</span>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
-              <Tag color="blue">{imageCount} Ảnh</Tag>
-              <Tag color="cyan">{videoCount} Video</Tag>
-              <Tag color="purple">{docCount} Tài Liệu</Tag>
+              <Tag color="blue">{imageCount} {t('media.imageCountLabel', 'Ảnh')}</Tag>
+              <Tag color="cyan">{videoCount} {t('media.videoCountLabel', 'Video')}</Tag>
+              <Tag color="purple">{docCount} {t('media.docCountLabel', 'Tài Liệu')}</Tag>
             </div>
           </div>
         </Card>
@@ -62,8 +62,8 @@ export const MediaAnalyticsHeader: React.FC<MediaAnalyticsHeaderProps> = ({
       <Col xs={24} sm={12} md={6}>
         <Card variant="borderless" style={{ borderRadius: 12, boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>Kéo & Thả Tại Chỗ</span>
-            <span style={{ fontSize: 11, color: '#94a3b8' }}>Thả tệp trực tiếp vào màn hình để upload</span>
+            <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>{t('media.dragDropTitle', 'Kéo & Thả Tại Chỗ')}</span>
+            <span style={{ fontSize: 11, color: '#94a3b8' }}>{t('media.dragDropSubtitle', 'Thả tệp trực tiếp vào màn hình để upload')}</span>
           </div>
         </Card>
       </Col>

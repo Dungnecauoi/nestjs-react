@@ -91,6 +91,18 @@ export class MediaService {
     }
   }
 
+  // Stream qua file thay vì readFileSync toàn bộ vào RAM — mục tiêu chunked upload là file lớn
+  // (tới ~5GB), đọc hết vào memory để hash mỗi lần upload/dedup-check sẽ tốn RAM không cần thiết.
+  private computeFileHash(filePath: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const hash = crypto.createHash('sha256');
+      const stream = fs.createReadStream(filePath);
+      stream.on('data', (chunk) => hash.update(chunk));
+      stream.on('end', () => resolve(hash.digest('hex')));
+      stream.on('error', reject);
+    });
+  }
+
   async findAll(query: QueryMediaDto = {}) {
     const {
       page = 1,
@@ -165,8 +177,7 @@ export class MediaService {
     const enableDeduplication = options.media_enable_sha256_deduplication ?? true;
     let fileHash: string | undefined;
     if (enableDeduplication && file.path && fs.existsSync(file.path)) {
-      const buffer = fs.readFileSync(file.path);
-      fileHash = crypto.createHash('sha256').update(buffer).digest('hex');
+      fileHash = await this.computeFileHash(file.path);
       const existingMedia = await this.prisma.media.findFirst({
         where: { hash: fileHash, deletedAt: null },
       });
@@ -487,36 +498,35 @@ export class MediaService {
     chunkIndex: number,
     requestUserId?: string,
   ) {
-    this.validateUploadId(uploadId);
-    const chunkDir = this.getChunkDir(uploadId);
-    if (!fs.existsSync(chunkDir)) {
-      this.deleteTempFile(file);
-      throw new BadRequestException('Mã phiên upload-chunk không tồn tại hoặc đã hết hạn.');
-    }
-
-    const manifest = this.readManifest(chunkDir);
+    // `finally` xoá temp file multer ghi ở mọi nhánh thoát (kể cả validateUploadId/ownership
+    // reject sớm) — trước đây 2 nhánh lỗi đó không dọn, để rác trong uploads/ mỗi lần bị từ chối.
     try {
+      this.validateUploadId(uploadId);
+      const chunkDir = this.getChunkDir(uploadId);
+      if (!fs.existsSync(chunkDir)) {
+        throw new BadRequestException('Mã phiên upload-chunk không tồn tại hoặc đã hết hạn.');
+      }
+
+      const manifest = this.readManifest(chunkDir);
       this.assertChunkOwnership(manifest, requestUserId);
-    } catch (err) {
+
+      const chunkPath = path.join(chunkDir, `chunk_${chunkIndex}`);
+      if (file.path && fs.existsSync(file.path)) {
+        fs.copyFileSync(file.path, chunkPath);
+      }
+
+      const files = fs.readdirSync(chunkDir).filter((f) => f.startsWith('chunk_'));
+
+      return {
+        uploadId,
+        chunkIndex,
+        receivedChunks: files.length,
+        totalChunks: manifest.totalChunks,
+        progress: Math.round((files.length / manifest.totalChunks) * 100),
+      };
+    } finally {
       this.deleteTempFile(file);
-      throw err;
     }
-
-    const chunkPath = path.join(chunkDir, `chunk_${chunkIndex}`);
-    if (file.path && fs.existsSync(file.path)) {
-      fs.copyFileSync(file.path, chunkPath);
-      this.deleteTempFile(file);
-    }
-
-    const files = fs.readdirSync(chunkDir).filter((f) => f.startsWith('chunk_'));
-
-    return {
-      uploadId,
-      chunkIndex,
-      receivedChunks: files.length,
-      totalChunks: manifest.totalChunks,
-      progress: Math.round((files.length / manifest.totalChunks) * 100),
-    };
   }
 
   async completeChunkUpload(uploadId: string, requestUserId?: string) {
@@ -532,24 +542,28 @@ export class MediaService {
     const mergedFilename = `merged_${Date.now()}_${manifest.filename.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
     const mergedPath = path.join(process.cwd(), 'uploads', mergedFilename);
 
-    const writeStream = fs.createWriteStream(mergedPath);
-    for (let i = 0; i < manifest.totalChunks; i++) {
-      const chunkPath = path.join(chunkDir, `chunk_${i}`);
-      if (!fs.existsSync(chunkPath)) {
-        writeStream.close();
-        throw new BadRequestException(`Thiếu mảnh chunk index #${i}. Không thể hoàn tất ghép nối.`);
+    // Ghép hoàn toàn ĐỒNG BỘ (openSync/writeSync/closeSync) thay vì createWriteStream — stream
+    // ghi bất đồng bộ từng khiến statSync ngay sau đó bị ENOENT (file chưa flush xong ra đĩa),
+    // và khi throw giữa chừng do thiếu chunk, file merge dở dang bị rớt lại async SAU CẢ lúc
+    // mình cố unlink nó (fd chưa kịp mở xong tại thời điểm unlink). Đồng bộ hoá hoàn toàn tránh
+    // được cả 2 kiểu race condition này — không có timing nào để trật.
+    try {
+      const fd = fs.openSync(mergedPath, 'w');
+      try {
+        for (let i = 0; i < manifest.totalChunks; i++) {
+          const chunkPath = path.join(chunkDir, `chunk_${i}`);
+          if (!fs.existsSync(chunkPath)) {
+            throw new BadRequestException(`Thiếu mảnh chunk index #${i}. Không thể hoàn tất ghép nối.`);
+          }
+          fs.writeSync(fd, fs.readFileSync(chunkPath));
+        }
+      } finally {
+        fs.closeSync(fd);
       }
-      const data = fs.readFileSync(chunkPath);
-      writeStream.write(data);
+    } catch (err) {
+      fs.rmSync(mergedPath, { force: true });
+      throw err;
     }
-    // writeStream.end() KHÔNG đợi buffer flush xong ra đĩa — statSync ngay sau đó (không await)
-    // từng bị ENOENT vì file merge chưa kịp ghi hết. Phải chờ event 'finish' mới đọc stats/dùng
-    // file được.
-    await new Promise<void>((resolve, reject) => {
-      writeStream.on('finish', () => resolve());
-      writeStream.on('error', reject);
-      writeStream.end();
-    });
 
     try {
       fs.rmSync(chunkDir, { recursive: true, force: true });

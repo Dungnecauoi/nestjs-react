@@ -18,7 +18,6 @@ import appConfig from './config/app.config';
 import authConfig from './config/auth.config';
 import databaseConfig from './config/database.config';
 import cacheConfig from './config/cache.config';
-import storageConfig from './config/storage.config';
 import mailConfig from './config/mail.config';
 import loggingConfig from './config/logging.config';
 
@@ -50,7 +49,6 @@ import { TransformInterceptor } from './interceptors/transform.interceptor';
         authConfig,
         databaseConfig,
         cacheConfig,
-        storageConfig,
         mailConfig,
         loggingConfig,
       ],

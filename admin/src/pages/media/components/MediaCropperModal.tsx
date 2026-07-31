@@ -92,14 +92,14 @@ export const MediaCropperModal: React.FC<MediaCropperModalProps> = ({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div>
-              <span style={{ color: '#94a3b8' }}>Ảnh gốc: </span>
+              <span style={{ color: '#94a3b8' }}>{t('media.cropperOriginalSize', 'Ảnh gốc')}: </span>
               <strong style={{ color: '#f8fafc' }}>
-                {originalSize.width > 0 ? `${originalSize.width} × ${originalSize.height} px` : 'Đang đo...'}
+                {originalSize.width > 0 ? `${originalSize.width} × ${originalSize.height} px` : t('media.cropperMeasuring', 'Đang đo...')}
               </strong>
             </div>
 
             <div>
-              <span style={{ color: '#94a3b8' }}>Tọa độ (X, Y): </span>
+              <span style={{ color: '#94a3b8' }}>{t('media.cropperCoordinates', 'Tọa độ (X, Y)')}: </span>
               <span style={{ color: '#f8fafc', fontFamily: 'monospace', fontWeight: 700 }}>
                 ({cropCoords.x}, {cropCoords.y})
               </span>
@@ -108,7 +108,7 @@ export const MediaCropperModal: React.FC<MediaCropperModalProps> = ({
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <CompressOutlined style={{ color: '#38bdf8' }} />
-            <span style={{ color: '#94a3b8' }}>Khung cắt hiện tại: </span>
+            <span style={{ color: '#94a3b8' }}>{t('media.cropperCurrentBox', 'Khung cắt hiện tại')}: </span>
             <Tag color="blue" style={{ fontSize: 13, fontWeight: 800, padding: '2px 10px', borderRadius: 6, margin: 0 }}>
               {cropCoords.width} × {cropCoords.height} px
             </Tag>
@@ -119,7 +119,7 @@ export const MediaCropperModal: React.FC<MediaCropperModalProps> = ({
         <Card size="small" style={{ backgroundColor: '#f8fafc', borderRadius: 8, borderColor: '#e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#334155' }}>Kích Thước Xuất Tùy Chỉnh:</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#334155' }}>{t('media.cropperCustomSize', 'Kích Thước Xuất Tùy Chỉnh')}:</span>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <InputNumber
@@ -128,7 +128,7 @@ export const MediaCropperModal: React.FC<MediaCropperModalProps> = ({
                   min={10}
                   max={8000}
                   suffix="px"
-                  placeholder="Rộng"
+                  placeholder={t('media.cropperWidthPlaceholder', 'Rộng')}
                   style={{ width: 130 }}
                 />
 
@@ -140,11 +140,17 @@ export const MediaCropperModal: React.FC<MediaCropperModalProps> = ({
                   min={10}
                   max={8000}
                   suffix="px"
-                  placeholder="Cao"
+                  placeholder={t('media.cropperHeightPlaceholder', 'Cao')}
                   style={{ width: 130 }}
                 />
 
-                <Tooltip title={lockAspect ? 'Đang khóa tỷ lệ khung hình' : 'Đang mở tỷ lệ tự do'}>
+                <Tooltip
+                  title={
+                    lockAspect
+                      ? t('media.cropperAspectLocked', 'Đang khóa tỷ lệ khung hình')
+                      : t('media.cropperAspectUnlocked', 'Đang mở tỷ lệ tự do')
+                  }
+                >
                   <Button
                     type={lockAspect ? 'primary' : 'default'}
                     icon={lockAspect ? <LockOutlined /> : <UnlockOutlined />}
@@ -163,7 +169,7 @@ export const MediaCropperModal: React.FC<MediaCropperModalProps> = ({
 
             {/* Preset Aspect Ratios */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>Tỷ lệ:</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>{t('media.filterAspect', 'Tỷ lệ')}:</span>
               <Button.Group size="small">
                 <Button
                   type={aspect === undefined ? 'primary' : 'default'}
@@ -172,7 +178,7 @@ export const MediaCropperModal: React.FC<MediaCropperModalProps> = ({
                     cropperRef.current?.cropper.setAspectRatio(NaN);
                   }}
                 >
-                  Tự Do
+                  {t('media.cropperRatioFree', 'Tự Do')}
                 </Button>
                 <Button
                   type={aspect === 1 ? 'primary' : 'default'}
@@ -181,7 +187,7 @@ export const MediaCropperModal: React.FC<MediaCropperModalProps> = ({
                     cropperRef.current?.cropper.setAspectRatio(1);
                   }}
                 >
-                  1:1 (Vuông)
+                  {t('media.cropperRatioSquare', '1:1 (Vuông)')}
                 </Button>
                 <Button
                   type={aspect === 16 / 9 ? 'primary' : 'default'}
@@ -190,7 +196,7 @@ export const MediaCropperModal: React.FC<MediaCropperModalProps> = ({
                     cropperRef.current?.cropper.setAspectRatio(16 / 9);
                   }}
                 >
-                  16:9 (Ngang)
+                  {t('media.cropperRatioWide', '16:9 (Ngang)')}
                 </Button>
                 <Button
                   type={aspect === 4 / 3 ? 'primary' : 'default'}
@@ -199,7 +205,7 @@ export const MediaCropperModal: React.FC<MediaCropperModalProps> = ({
                     cropperRef.current?.cropper.setAspectRatio(4 / 3);
                   }}
                 >
-                  4:3
+                  {t('media.cropperRatioStandard', '4:3')}
                 </Button>
               </Button.Group>
             </div>
@@ -242,14 +248,14 @@ export const MediaCropperModal: React.FC<MediaCropperModalProps> = ({
               icon={<RotateLeftOutlined />}
               onClick={() => cropperRef.current?.cropper.rotate(-90)}
             >
-              Xoay Trái 90°
+              {t('media.cropperRotateLeft', 'Xoay Trái 90°')}
             </Button>
             <Button
               size="small"
               icon={<RotateRightOutlined />}
               onClick={() => cropperRef.current?.cropper.rotate(90)}
             >
-              Xoay Phải 90°
+              {t('media.cropperRotateRight', 'Xoay Phải 90°')}
             </Button>
           </div>
 
@@ -259,14 +265,14 @@ export const MediaCropperModal: React.FC<MediaCropperModalProps> = ({
               icon={<ZoomInOutlined />}
               onClick={() => cropperRef.current?.cropper.zoom(0.1)}
             >
-              Phóng To
+              {t('media.cropperZoomIn', 'Phóng To')}
             </Button>
             <Button
               size="small"
               icon={<ZoomOutOutlined />}
               onClick={() => cropperRef.current?.cropper.zoom(-0.1)}
             >
-              Thu Nhỏ
+              {t('media.cropperZoomOut', 'Thu Nhỏ')}
             </Button>
             <Button
               size="small"
@@ -278,7 +284,7 @@ export const MediaCropperModal: React.FC<MediaCropperModalProps> = ({
                 }
               }}
             >
-              Đặt Lai Mặc Định
+              {t('media.cropperReset', 'Đặt Lại Mặc Định')}
             </Button>
           </div>
         </div>

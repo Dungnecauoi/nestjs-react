@@ -9,7 +9,6 @@ import {
   Upload,
   Space,
   Card,
-  Image,
   Select,
   Input,
   Row,
@@ -31,8 +30,6 @@ import {
   UnorderedListOutlined,
   DeleteOutlined,
   UploadOutlined,
-  VideoCameraOutlined,
-  CustomerServiceOutlined,
   FileOutlined,
   CheckSquareOutlined,
   EyeOutlined,
@@ -52,6 +49,7 @@ import { MediaBatchActionBar } from './components/MediaBatchActionBar';
 import { MediaLightboxModal } from './components/MediaLightboxModal';
 import { MediaCropperModal } from './components/MediaCropperModal';
 import { MediaDetailsDrawer } from './components/MediaDetailsDrawer';
+import { MediaThumbnail } from './components/MediaThumbnail';
 
 export default function MediaModule() {
   const { t } = useTranslation();
@@ -223,7 +221,7 @@ export default function MediaModule() {
     const selectedItems = mediaList.filter((m) => selectedIds.includes(m.id));
     const urls = selectedItems.map((m) => m.url).join('\n');
     navigator.clipboard.writeText(urls);
-    notify.success(`Đã sao chép ${selectedIds.length} đường dẫn URL vào clipboard!`);
+    notify.success(t('media.batchCopyUrlSuccess', `Đã sao chép ${selectedIds.length} đường dẫn URL vào clipboard!`, { count: selectedIds.length }));
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -274,7 +272,7 @@ export default function MediaModule() {
       );
       refetch();
     } catch (err) {
-      notify.error(err, 'Không thể tải tệp lên!');
+      notify.error(err, t('media.uploadError', 'Không thể tải lên tập tin!'));
     } finally {
       setUploading(false);
       setUploadProgress(null);
@@ -403,7 +401,7 @@ export default function MediaModule() {
     });
 
     if (!canvas) {
-      notify.error('Không thể cắt hình ảnh!');
+      notify.error(t('media.cropFailedError', 'Không thể cắt hình ảnh!'));
       setSavingCrop(false);
       return;
     }
@@ -411,7 +409,7 @@ export default function MediaModule() {
     canvas.toBlob(
       async (blob) => {
         if (!blob) {
-          notify.error('Không thể tạo file ảnh sau khi cắt!');
+          notify.error(t('media.cropBlobError', 'Không thể tạo file ảnh sau khi cắt!'));
           setSavingCrop(false);
           return;
         }
@@ -422,14 +420,19 @@ export default function MediaModule() {
           });
 
           const updatedMedia = await mediaApi.replaceMedia(selectedMedia.id, croppedFile);
-          notify.success(`Đã cắt & resize ảnh chuẩn WordPress thành công (${canvas.width} × ${canvas.height} px)!`);
+          notify.success(
+            t('media.cropSaveSuccess', `Đã cắt & resize ảnh chuẩn WordPress thành công (${canvas.width} × ${canvas.height} px)!`, {
+              width: canvas.width,
+              height: canvas.height,
+            }),
+          );
           if (updatedMedia) {
             setSelectedMedia(updatedMedia);
           }
           setIsCropModalOpen(false);
           refetch();
         } catch (err: any) {
-          notify.error(err, 'Không thể lưu ảnh đã cắt!');
+          notify.error(err, t('media.cropSaveError', 'Không thể lưu ảnh đã cắt!'));
         } finally {
           setSavingCrop(false);
         }
@@ -489,35 +492,8 @@ export default function MediaModule() {
       dataIndex: 'url',
       key: 'url',
       width: 90,
-      render: (url: string, record: MediaItem) => (
-        record.mimetype?.startsWith('image/') ? (
-          <Image src={url} width={48} height={48} style={{ objectFit: 'cover', borderRadius: 6 }} preview={false} onClick={() => handleOpenDetail(record)} />
-        ) : record.mimetype?.startsWith('video/') ? (
-          record.thumbnailUrl ? (
-            <Image src={record.thumbnailUrl} width={48} height={48} style={{ objectFit: 'cover', borderRadius: 6 }} preview={false} onClick={() => handleOpenDetail(record)} />
-          ) : (
-            <div
-              onClick={() => handleOpenDetail(record)}
-              style={{ width: 48, height: 48, backgroundColor: '#0f172a', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-            >
-              <VideoCameraOutlined style={{ fontSize: 24, color: '#38bdf8' }} />
-            </div>
-          )
-        ) : record.mimetype?.startsWith('audio/') ? (
-          <div
-            onClick={() => handleOpenDetail(record)}
-            style={{ width: 48, height: 48, backgroundColor: '#18181b', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-          >
-            <CustomerServiceOutlined style={{ fontSize: 24, color: '#ec4899' }} />
-          </div>
-        ) : (
-          <div
-            onClick={() => handleOpenDetail(record)}
-            style={{ width: 48, height: 48, backgroundColor: '#f1f5f9', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-          >
-            <FileOutlined style={{ fontSize: 24, color: '#64748b' }} />
-          </div>
-        )
+      render: (_url: string, record: MediaItem) => (
+        <MediaThumbnail item={record} size={48} iconSize={24} borderRadius={6} onClick={() => handleOpenDetail(record)} />
       ),
     },
     {
@@ -704,6 +680,7 @@ export default function MediaModule() {
             value={sizeFilter}
             onChange={setSizeFilter}
             style={{ width: 170, borderRadius: 6 }}
+            aria-label={t('media.filterSize', 'Dung Lượng Tập Tin')}
             options={[
               { value: 'all', label: t('media.filterSizeAll', 'Tất Cả Dung Lượng') },
               { value: 'small', label: t('media.filterSizeSmall', 'Nhỏ (< 1 MB)') },
@@ -810,43 +787,7 @@ export default function MediaModule() {
                         </Tag>
                       )}
 
-                      {item.mimetype?.startsWith('image/') ? (
-                        <img
-                          src={item.url}
-                          alt={item.altText || item.filename}
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                          }}
-                        />
-                      ) : item.mimetype?.startsWith('video/') ? (
-                        item.thumbnailUrl ? (
-                          <img
-                            src={item.thumbnailUrl}
-                            alt={item.altText || item.filename}
-                            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
-                        ) : (
-                          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a' }}>
-                            <VideoCameraOutlined style={{ fontSize: 40, color: '#38bdf8' }} />
-                            <span style={{ fontSize: 11, marginTop: 6, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Video</span>
-                          </div>
-                        )
-                      ) : item.mimetype?.startsWith('audio/') ? (
-                        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#18181b' }}>
-                          <CustomerServiceOutlined style={{ fontSize: 40, color: '#ec4899' }} />
-                          <span style={{ fontSize: 11, marginTop: 6, fontWeight: 700, color: '#a1a1aa', textTransform: 'uppercase' }}>Audio</span>
-                        </div>
-                      ) : (
-                        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc' }}>
-                          <FileOutlined style={{ fontSize: 40, color: '#64748b' }} />
-                          <span style={{ fontSize: 11, marginTop: 6, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Document</span>
-                        </div>
-                      )}
+                      <MediaThumbnail item={item} fill iconSize={40} showLabel />
 
                       {/* Title Bar Overlay */}
                       <div

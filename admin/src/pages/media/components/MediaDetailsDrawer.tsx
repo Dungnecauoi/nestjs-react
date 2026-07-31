@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Drawer,
-  Image,
   Space,
   Button,
   Upload,
@@ -9,12 +8,9 @@ import {
   Input,
   Divider,
   Popconfirm,
-  Tag,
   FormInstance,
 } from 'antd';
 import {
-  CustomerServiceOutlined,
-  FileTextOutlined,
   ScissorOutlined,
   SwapOutlined,
   CopyOutlined,
@@ -24,7 +20,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { MediaItem } from '../../../api/modules/media.api';
 import { Can } from '../../../components/common/Can';
-import { CustomAudioPlayer } from './CustomAudioPlayer';
+import { MediaPreview } from './MediaPreview';
 
 interface MediaDetailsDrawerProps {
   isOpen: boolean;
@@ -72,15 +68,7 @@ export const MediaDetailsDrawer: React.FC<MediaDetailsDrawerProps> = ({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* Preview Box for Image, Video, Audio & File */}
         <div style={{ width: '100%', backgroundColor: '#09090b', borderRadius: 8, padding: 16, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 12 }}>
-          {selectedMedia.mimetype?.startsWith('image/') ? (
-            <Image src={selectedMedia.url} style={{ maxHeight: 240, objectFit: 'contain' }} />
-          ) : selectedMedia.mimetype?.startsWith('video/') ? (
-            <video src={selectedMedia.url} controls style={{ maxWidth: '100%', maxHeight: 240 }} />
-          ) : selectedMedia.mimetype?.startsWith('audio/') ? (
-            <CustomAudioPlayer url={selectedMedia.url} filename={selectedMedia.filename} />
-          ) : (
-            <FileTextOutlined style={{ fontSize: 64, color: '#ffffff' }} />
-          )}
+          <MediaPreview item={selectedMedia} variant="drawer" />
 
           {/* Action Buttons: Crop Image & Replace File */}
           <Can permission="media:update">
@@ -122,7 +110,7 @@ export const MediaDetailsDrawer: React.FC<MediaDetailsDrawerProps> = ({
             onClick={() => onCopyUrl(selectedMedia.url)}
             style={{ fontWeight: 600 }}
           >
-            {copiedUrl ? 'Đã Chép' : t('media.copyUrl', 'Sao Chép')}
+            {copiedUrl ? t('media.copied', 'Đã Chép') : t('media.copyUrl', 'Sao Chép')}
           </Button>
         </div>
 
@@ -131,19 +119,19 @@ export const MediaDetailsDrawer: React.FC<MediaDetailsDrawerProps> = ({
         {/* Attachment Properties Form */}
         <Form form={detailForm} layout="vertical" onFinish={onSaveDetail}>
           <Form.Item name="altText" label={t('media.altText', 'Văn Bản Thay Thế (Alt Text)')} extra={t('media.altTextHelp')}>
-            <Input placeholder="Mô tả hình ảnh..." />
+            <Input placeholder={t('media.altTextPlaceholder', 'Mô tả hình ảnh...')} />
           </Form.Item>
 
           <Form.Item name="title" label={t('media.fileTitle', 'Tiêu Đề (Title)')}>
-            <Input placeholder="Tiêu đề hình ảnh..." />
+            <Input placeholder={t('media.titlePlaceholder', 'Tiêu đề hình ảnh...')} />
           </Form.Item>
 
           <Form.Item name="caption" label={t('media.caption', 'Chú Thích (Caption)')}>
-            <Input.TextArea rows={2} placeholder="Chú thích..." />
+            <Input.TextArea rows={2} placeholder={t('media.captionPlaceholder', 'Chú thích...')} />
           </Form.Item>
 
           <Form.Item name="description" label={t('media.description', 'Mô Tả (Description)')}>
-            <Input.TextArea rows={3} placeholder="Mô tả..." />
+            <Input.TextArea rows={3} placeholder={t('media.descriptionPlaceholder', 'Mô tả...')} />
           </Form.Item>
 
           <Can permission="media:update">
