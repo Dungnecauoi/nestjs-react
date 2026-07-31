@@ -42,7 +42,9 @@ export const MediaBatchActionBar: React.FC<MediaBatchActionBarProps> = ({
             {t('media.selectedItems', `Đã chọn ${selectedCount} tập tin`, { count: selectedCount })}
           </Tag>
           <Button size="small" type="link" onClick={onSelectAll} style={{ color: '#38bdf8', fontWeight: 700 }}>
-            {selectedCount === totalFilteredCount ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+            {selectedCount === totalFilteredCount
+              ? t('media.deselectAll', 'Bỏ chọn tất cả')
+              : t('media.selectAll', 'Chọn tất cả')}
           </Button>
         </div>
 
@@ -53,10 +55,10 @@ export const MediaBatchActionBar: React.FC<MediaBatchActionBarProps> = ({
 
           <Can permission="media:delete">
             <Popconfirm
-              title={`Xóa vĩnh viễn ${selectedCount} tập tin đã chọn khỏi đĩa?`}
+              title={t('media.confirmBatchDelete', `Xóa ${selectedCount} tập tin đã chọn khỏi thư viện?`, { count: selectedCount })}
               onConfirm={onBatchDelete}
-              okText="Xóa Hàng Loạt"
-              cancelText="Hủy"
+              okText={t('media.batchDelete', 'Xóa Hàng Loạt')}
+              cancelText={t('common.cancel', 'Hủy')}
             >
               <Button type="primary" danger icon={<DeleteOutlined />} style={{ fontWeight: 700 }}>
                 {t('media.batchDelete', 'Xóa Hàng Loạt')} ({selectedCount})

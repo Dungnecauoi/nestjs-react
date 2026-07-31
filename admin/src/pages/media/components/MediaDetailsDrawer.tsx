@@ -157,13 +157,13 @@ export const MediaDetailsDrawer: React.FC<MediaDetailsDrawerProps> = ({
 
         <Can permission="media:delete">
           <Popconfirm
-            title={t('media.confirmDeletePermanently', 'Bạn có chắc chắn muốn xóa vĩnh viễn tệp này?')}
+            title={t('media.confirmDeletePermanently', 'Xóa tập tin này khỏi thư viện?')}
             onConfirm={() => onDeleteMedia(selectedMedia.id)}
             okText={t('table.delete', 'Xóa')}
             cancelText={t('common.cancel', 'Hủy')}
           >
             <Button danger block icon={<DeleteOutlined />} style={{ fontWeight: 700 }}>
-              {t('media.deletePermanently', 'Xóa Vĩnh Viễn khỏi Hệ Thống')}
+              {t('media.deletePermanently', 'Xóa Tập Tin')}
             </Button>
           </Popconfirm>
         </Can>

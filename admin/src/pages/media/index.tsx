@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { ReactCropperElement } from 'react-cropper';
@@ -19,8 +19,13 @@ import {
   Tooltip,
   Pagination,
   Checkbox,
+  Progress,
+  Alert,
+  Spin,
+  Tag,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import type { AxiosProgressEvent } from 'axios';
 import {
   AppstoreOutlined,
   UnorderedListOutlined,
@@ -32,11 +37,13 @@ import {
   CheckSquareOutlined,
   EyeOutlined,
   InboxOutlined,
+  SyncOutlined,
 } from '@ant-design/icons';
-import { mediaApi, MediaItem } from '../../api/modules/media.api';
+import { mediaApi, MediaItem, UploadProgress } from '../../api/modules/media.api';
 import { RefreshCw, Search } from 'lucide-react';
 import { Can } from '../../components/common/Can';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useSystemOptions } from '../../hooks/useSystemOptions';
 import { notify } from '../../utils/notify';
 
 // Modular Child Components
@@ -57,11 +64,13 @@ export default function MediaModule() {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [sizeFilter, setSizeFilter] = useState<string>('all');
+  const [searchInput, setSearchInput] = useState<string>('');
   const [searchText, setSearchText] = useState<string>('');
 
   // Upload & Drag-Drop State
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [replacing, setReplacing] = useState(false);
   const [isDragging, setIsDragging] = useState<boolean>(false);
 
@@ -95,8 +104,19 @@ export default function MediaModule() {
   const [savingCrop, setSavingCrop] = useState(false);
 
   const { isAuthenticated } = useAuthStore();
+  const { data: systemOptions } = useSystemOptions();
 
-  const { data: mediaResponse, isLoading, isRefetching, refetch } = useQuery({
+  // Search nằm trong queryKey nên gõ không debounce sẽ bắn 1 query API mỗi ký tự — chờ 400ms
+  // sau lần gõ cuối mới đẩy searchInput vào searchText (giá trị thật sự dùng để query).
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchText(searchInput);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  const { data: mediaResponse, isLoading, isRefetching, isError, refetch } = useQuery({
     queryKey: ['media', page, pageSize, typeFilter, searchText],
     queryFn: () =>
       mediaApi.getMediaList({
@@ -107,6 +127,14 @@ export default function MediaModule() {
       }),
     enabled: isAuthenticated,
   });
+
+  // getMediaList giờ throw thật khi API lỗi (không còn nuốt lỗi trả rỗng) — báo rõ cho user
+  // thay vì im lặng hiện "không có media nào" như trước.
+  useEffect(() => {
+    if (isError) {
+      notify.error(null, t('media.fetchError', 'Không thể tải danh sách media. Vui lòng thử lại.'));
+    }
+  }, [isError, t]);
 
   const mediaList = mediaResponse?.data || [];
   const total = mediaResponse?.meta?.total || 0;
@@ -125,6 +153,12 @@ export default function MediaModule() {
     if (sizeFilter === 'large') return item.size > 10 * 1024 * 1024;
     return true;
   });
+
+  // Server không hỗ trợ lọc theo dung lượng — sizeFilter chỉ lọc được trong phạm vi trang
+  // hiện tại. Khi đang lọc, không dùng `total` gốc của server cho Pagination nữa (số
+  // trang/tổng sẽ lệch với số item thực sự hiển thị, có thể ra trang trống).
+  const isSizeFilterActive = sizeFilter !== 'all';
+  const paginationTotal = isSizeFilterActive ? filteredMediaList.length : total;
 
   const totalCalculatedBytes = mediaList.reduce((acc, curr) => acc + (curr.size || 0), 0);
   const imageCount = mediaList.filter((m) => m.mimetype?.startsWith('image/')).length;
@@ -145,15 +179,43 @@ export default function MediaModule() {
     }
   };
 
+  // Đối chiếu file với allowedImageTypes/maxImageSizeMb/allowedVideoTypes/maxVideoSizeMb đọc
+  // từ Settings — báo lỗi NGAY trên client trước khi tốn băng thông upload, thay vì để user
+  // chỉ biết bị từ chối sau khi submit xong (backend vẫn tự enforce lại, đây chỉ là early-exit).
+  // pdf/docx/... không có giới hạn cấu hình riêng ở backend nên bỏ qua, để backend tự xử lý.
+  const validateFileBeforeUpload = (file: File): string | null => {
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+    if (!isImage && !isVideo) return null;
+
+    const opts: Record<string, any> = systemOptions || {};
+    const allowedTypes: string[] = (isVideo ? opts.allowedVideoTypes : opts.allowedImageTypes) || [];
+    const maxSizeMb: number = (isVideo ? opts.maxVideoSizeMb : opts.maxImageSizeMb) || (isVideo ? 100 : 10);
+
+    let ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (ext === 'jpeg') ext = 'jpg';
+
+    if (allowedTypes.length && !allowedTypes.map((x) => x.toLowerCase()).includes(ext)) {
+      return t('media.fileTypeNotAllowed', `Định dạng .${ext} không được phép (chỉ chấp nhận: ${allowedTypes.join(', ')})`, {
+        ext,
+        allowed: allowedTypes.join(', '),
+      });
+    }
+    if (file.size > maxSizeMb * 1024 * 1024) {
+      return t('media.fileTooLarge', `Tập tin vượt quá dung lượng cho phép (${maxSizeMb}MB)`, { max: maxSizeMb });
+    }
+    return null;
+  };
+
   const handleBatchDelete = async () => {
     if (selectedIds.length === 0) return;
     try {
       await Promise.all(selectedIds.map((id) => mediaApi.deleteMedia(id)));
-      notify.success(`Đã xóa vĩnh viễn ${selectedIds.length} tập tin media!`);
+      notify.success(t('media.batchDeleteSuccess', `Đã xóa ${selectedIds.length} tập tin media!`, { count: selectedIds.length }));
       setSelectedIds([]);
       refetch();
     } catch {
-      notify.error('Không thể xóa hàng loạt tập tin!');
+      notify.error(t('media.batchDeleteError', 'Không thể xóa hàng loạt tập tin!'));
     }
   };
 
@@ -180,17 +242,42 @@ export default function MediaModule() {
     const files = Array.from(e.dataTransfer.files);
     if (files.length === 0) return;
 
+    const validFiles = files.filter((file) => {
+      const err = validateFileBeforeUpload(file);
+      if (err) notify.error(`${file.name}: ${err}`);
+      return !err;
+    });
+    if (validFiles.length === 0) return;
+
     setUploading(true);
+    let duplicateCount = 0;
     try {
-      for (const file of files) {
-        await mediaApi.uploadMedia(file);
+      for (let i = 0; i < validFiles.length; i++) {
+        const file = validFiles[i];
+        const uploaded = await mediaApi.smartUpload(file, {
+          onProgress: (p) =>
+            setUploadProgress({
+              percent: Math.round(((i + p.percent / 100) / validFiles.length) * 100),
+              stage: p.stage,
+            }),
+        });
+        if (uploaded.deduplicated) duplicateCount += 1;
       }
-      notify.success(`Đã tải lên ${files.length} tập tin thành công!`);
+      notify.success(
+        duplicateCount > 0
+          ? t(
+              'media.uploadMixedSuccess',
+              `Đã tải lên ${validFiles.length} tập tin (${duplicateCount} tập tin trùng đã dùng lại bản có sẵn)!`,
+              { count: validFiles.length, duplicateCount },
+            )
+          : t('media.uploadMultipleSuccess', `Đã tải lên ${validFiles.length} tập tin thành công!`, { count: validFiles.length }),
+      );
       refetch();
     } catch (err) {
       notify.error(err, 'Không thể tải tệp lên!');
     } finally {
       setUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -258,17 +345,31 @@ export default function MediaModule() {
     }
   };
 
-  const handleCustomUpload = async ({ file }: any) => {
+  const handleCustomUpload = async ({ file, onError }: any) => {
+    const validationError = validateFileBeforeUpload(file);
+    if (validationError) {
+      notify.error(validationError);
+      onError?.(new Error(validationError));
+      return;
+    }
+
     setUploading(true);
+    setUploadProgress({ percent: 0, stage: 'uploading' });
     try {
-      await mediaApi.uploadMedia(file);
-      notify.success(t('media.uploadSuccess', 'Tải lên tập tin mới thành công!'));
+      const uploaded = await mediaApi.smartUpload(file, { onProgress: setUploadProgress });
+      notify.success(
+        uploaded.deduplicated
+          ? t('media.uploadDuplicateSuccess', 'Tập tin đã tồn tại — đã dùng lại bản có sẵn, không tạo bản sao mới!')
+          : t('media.uploadSuccess', 'Tải lên tập tin mới thành công!'),
+      );
       setIsUploadModalOpen(false);
       refetch();
     } catch (err: any) {
       notify.error(err, t('media.uploadError', 'Không thể tải lên tập tin!'));
+      onError?.(err);
     } finally {
       setUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -392,12 +493,16 @@ export default function MediaModule() {
         record.mimetype?.startsWith('image/') ? (
           <Image src={url} width={48} height={48} style={{ objectFit: 'cover', borderRadius: 6 }} preview={false} onClick={() => handleOpenDetail(record)} />
         ) : record.mimetype?.startsWith('video/') ? (
-          <div
-            onClick={() => handleOpenDetail(record)}
-            style={{ width: 48, height: 48, backgroundColor: '#0f172a', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-          >
-            <VideoCameraOutlined style={{ fontSize: 24, color: '#38bdf8' }} />
-          </div>
+          record.thumbnailUrl ? (
+            <Image src={record.thumbnailUrl} width={48} height={48} style={{ objectFit: 'cover', borderRadius: 6 }} preview={false} onClick={() => handleOpenDetail(record)} />
+          ) : (
+            <div
+              onClick={() => handleOpenDetail(record)}
+              style={{ width: 48, height: 48, backgroundColor: '#0f172a', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+            >
+              <VideoCameraOutlined style={{ fontSize: 24, color: '#38bdf8' }} />
+            </div>
+          )
         ) : record.mimetype?.startsWith('audio/') ? (
           <div
             onClick={() => handleOpenDetail(record)}
@@ -424,6 +529,11 @@ export default function MediaModule() {
           <a onClick={() => handleOpenDetail(record)} style={{ fontWeight: 700, color: '#0f172a' }}>
             {record.title || text}
           </a>
+          {(record.processingStatus === 'pending' || record.processingStatus === 'processing') && (
+            <Tag icon={<SyncOutlined spin />} color="processing" style={{ marginLeft: 8 }}>
+              {t('media.processing', 'Đang xử lý')}
+            </Tag>
+          )}
           <div style={{ fontSize: 11, color: '#64748b' }}>{text}</div>
         </div>
       ),
@@ -456,7 +566,7 @@ export default function MediaModule() {
       render: (_: any, record: MediaItem) => (
         <Can permission="media:delete">
           <Popconfirm
-            title={t('media.confirmDeletePermanently', 'Xóa vĩnh viễn tập tin này?')}
+            title={t('media.confirmDeletePermanently', 'Xóa tập tin này khỏi thư viện?')}
             onConfirm={() => handleDeleteMedia(record.id)}
             okText={t('table.delete', 'Xóa')}
             cancelText={t('common.cancel', 'Hủy')}
@@ -595,34 +705,43 @@ export default function MediaModule() {
             onChange={setSizeFilter}
             style={{ width: 170, borderRadius: 6 }}
             options={[
-              { value: 'all', label: 'Tất Cả Dung Lượng' },
-              { value: 'small', label: 'Nhỏ (< 1 MB)' },
-              { value: 'medium', label: 'Vừa (1 MB - 10 MB)' },
-              { value: 'large', label: 'Lớn (> 10 MB)' },
+              { value: 'all', label: t('media.filterSizeAll', 'Tất Cả Dung Lượng') },
+              { value: 'small', label: t('media.filterSizeSmall', 'Nhỏ (< 1 MB)') },
+              { value: 'medium', label: t('media.filterSizeMedium', 'Vừa (1 MB - 10 MB)') },
+              { value: 'large', label: t('media.filterSizeLarge', 'Lớn (> 10 MB)') },
             ]}
           />
 
           <Input
             prefix={<Search style={{ width: 14, height: 14, color: '#94a3b8' }} />}
             placeholder={t('media.searchPlaceholder', 'Tìm kiếm theo tên tập tin, tiêu đề...')}
-            value={searchText}
-            onChange={(e) => {
-              setSearchText(e.target.value);
-              setPage(1);
-            }}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             style={{ width: 240, borderRadius: 8 }}
             allowClear
           />
+
+          {isSizeFilterActive && (
+            <span style={{ fontSize: 12, color: '#94a3b8' }}>
+              {t('media.sizeFilterPageOnlyHint', 'Lọc dung lượng chỉ áp dụng trong trang hiện tại')}
+            </span>
+          )}
         </div>
       </Card>
 
       {/* Main View: Grid vs Table */}
       {viewMode === 'grid' ? (
         <Card variant="borderless" style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', borderRadius: 12 }}>
-          {filteredMediaList.length === 0 ? (
+          <Spin spinning={isLoading}>
+          {isError ? (
+            <div style={{ padding: '40px 0', textAlign: 'center' }}>
+              <FileOutlined style={{ fontSize: 48, color: '#f87171', marginBottom: 12 }} />
+              <p style={{ color: '#ef4444', fontSize: 14 }}>{t('media.fetchError', 'Không thể tải danh sách media. Vui lòng thử lại.')}</p>
+            </div>
+          ) : filteredMediaList.length === 0 ? (
             <div style={{ padding: '40px 0', textAlign: 'center' }}>
               <FileOutlined style={{ fontSize: 48, color: '#cbd5e1', marginBottom: 12 }} />
-              <p style={{ color: '#64748b', fontSize: 14 }}>Không tìm thấy tập tin media nào trong thư viện</p>
+              <p style={{ color: '#64748b', fontSize: 14 }}>{t('media.emptyState', 'Không tìm thấy tập tin media nào trong thư viện')}</p>
             </div>
           ) : (
             <Row gutter={[20, 20]}>
@@ -681,6 +800,16 @@ export default function MediaModule() {
                         <EyeOutlined />
                       </div>
 
+                      {(item.processingStatus === 'pending' || item.processingStatus === 'processing') && (
+                        <Tag
+                          icon={<SyncOutlined spin />}
+                          color="processing"
+                          style={{ position: 'absolute', top: 40, right: 8, zIndex: 10 }}
+                        >
+                          {t('media.processing', 'Đang xử lý')}
+                        </Tag>
+                      )}
+
                       {item.mimetype?.startsWith('image/') ? (
                         <img
                           src={item.url}
@@ -695,10 +824,18 @@ export default function MediaModule() {
                           }}
                         />
                       ) : item.mimetype?.startsWith('video/') ? (
-                        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a' }}>
-                          <VideoCameraOutlined style={{ fontSize: 40, color: '#38bdf8' }} />
-                          <span style={{ fontSize: 11, marginTop: 6, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Video</span>
-                        </div>
+                        item.thumbnailUrl ? (
+                          <img
+                            src={item.thumbnailUrl}
+                            alt={item.altText || item.filename}
+                            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a' }}>
+                            <VideoCameraOutlined style={{ fontSize: 40, color: '#38bdf8' }} />
+                            <span style={{ fontSize: 11, marginTop: 6, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Video</span>
+                          </div>
+                        )
                       ) : item.mimetype?.startsWith('audio/') ? (
                         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#18181b' }}>
                           <CustomerServiceOutlined style={{ fontSize: 40, color: '#ec4899' }} />
@@ -745,7 +882,7 @@ export default function MediaModule() {
             <Pagination
               current={page}
               pageSize={pageSize}
-              total={total}
+              total={paginationTotal}
               showSizeChanger
               onChange={(p, ps) => {
                 setPage(p);
@@ -753,6 +890,7 @@ export default function MediaModule() {
               }}
             />
           </div>
+          </Spin>
         </Card>
       ) : (
         <Card variant="borderless" style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)', borderRadius: 12 }}>
@@ -772,7 +910,7 @@ export default function MediaModule() {
             pagination={{
               current: page,
               pageSize: pageSize,
-              total: total,
+              total: paginationTotal,
               showSizeChanger: true,
               onChange: (p, ps) => {
                 setPage(p);
@@ -802,6 +940,32 @@ export default function MediaModule() {
           <p className="ant-upload-text">{t('media.dragDropText', 'Nhấp hoặc kéo thả tập tin vào đây để tải lên')}</p>
           <p className="ant-upload-hint">{t('media.dragDropHint', 'Hỗ trợ tải lên nhiều tập tin cùng lúc.')}</p>
         </Upload.Dragger>
+
+        {systemOptions && (
+          <p style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', margin: '8px 0 0 0' }}>
+            {t(
+              'media.uploadLimitsHint',
+              `Ảnh: ${(systemOptions.allowedImageTypes || []).join(', ')} (tối đa ${systemOptions.maxImageSizeMb || 10}MB) · Video: ${(systemOptions.allowedVideoTypes || []).join(', ')} (tối đa ${systemOptions.maxVideoSizeMb || 100}MB)`,
+              {
+                imageTypes: (systemOptions.allowedImageTypes || []).join(', '),
+                maxImageSizeMb: systemOptions.maxImageSizeMb || 10,
+                videoTypes: (systemOptions.allowedVideoTypes || []).join(', '),
+                maxVideoSizeMb: systemOptions.maxVideoSizeMb || 100,
+              },
+            )}
+          </p>
+        )}
+
+        {uploading && uploadProgress && (
+          <div style={{ marginTop: 16 }}>
+            <Progress percent={uploadProgress.percent} status="active" />
+            <p style={{ fontSize: 12, color: '#64748b', textAlign: 'center', margin: '4px 0 0 0' }}>
+              {uploadProgress.stage === 'processing'
+                ? t('media.processing', 'Đang xử lý')
+                : t('media.uploading', 'Đang tải lên...')}
+            </p>
+          </div>
+        )}
       </Modal>
 
       {/* 3. Fullscreen Lightbox Modal */}

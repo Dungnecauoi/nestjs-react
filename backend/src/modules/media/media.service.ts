@@ -172,7 +172,9 @@ export class MediaService {
       });
       if (existingMedia) {
         this.deleteTempFile(file);
-        return existingMedia; // Tái sử dụng Media tệp trùng lặp
+        // `deduplicated: true` KHÔNG phải cột DB — chỉ gắn thêm vào response để FE phân biệt
+        // được "tái sử dụng file trùng" với "upload file mới", tránh hiểu lầm là mất dữ liệu.
+        return { ...existingMedia, deduplicated: true };
       }
     }
 
@@ -216,7 +218,7 @@ export class MediaService {
     }
 
     this.webhookService.triggerWebhooks('media.uploaded', finalMedia).catch(() => {});
-    return finalMedia;
+    return { ...finalMedia, deduplicated: false };
   }
 
   /**
@@ -453,6 +455,11 @@ export class MediaService {
     dto: { filename: string; totalChunks: number; totalSize: number; mimetype?: string },
     createdById?: string,
   ) {
+    const options = await this.optionsService.getAllOptions();
+    if (options.media_enable_chunked_upload === false) {
+      throw new BadRequestException('Tính năng tải tệp phân đoạn (chunked upload) đang bị tắt trong Cài đặt hệ thống.');
+    }
+
     const uploadId = `chunk_${Date.now()}_${Math.round(Math.random() * 1e9)}`;
     const chunkDir = this.getChunkDir(uploadId);
     fs.mkdirSync(chunkDir, { recursive: true });
@@ -535,7 +542,14 @@ export class MediaService {
       const data = fs.readFileSync(chunkPath);
       writeStream.write(data);
     }
-    writeStream.end();
+    // writeStream.end() KHÔNG đợi buffer flush xong ra đĩa — statSync ngay sau đó (không await)
+    // từng bị ENOENT vì file merge chưa kịp ghi hết. Phải chờ event 'finish' mới đọc stats/dùng
+    // file được.
+    await new Promise<void>((resolve, reject) => {
+      writeStream.on('finish', () => resolve());
+      writeStream.on('error', reject);
+      writeStream.end();
+    });
 
     try {
       fs.rmSync(chunkDir, { recursive: true, force: true });
