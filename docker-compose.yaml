@@ -1,6 +1,23 @@
 version: '3.8'
 
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: ecomcx_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: ecomcx_erp
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   backend:
     build:
       context: ./backend
@@ -12,8 +29,12 @@ services:
     environment:
       - PORT=3000
       - NODE_ENV=production
-    env_file:
-      - ./backend/.env
+      - DATABASE_URL=mysql://root:rootpassword@mysql:3306/ecomcx_erp
+      - JWT_SECRET=c06734389fab4f0afa9bcbcba8c22f2715cf383e0e926c38120c9ddbb3be53a41132a2ef236326fbdd0d3b868a9a1548c109903ea19fde1465c58910dd434fdc
+      - JWT_REFRESH_SECRET=8a4b4fbaff93765851f0de228a2201a045448474f955ac5a84bdc91039a44261deff86aec3c1ed602b12148e97cb058e07e002631652481b5ca289c7f7d867ea
+    depends_on:
+      mysql:
+        condition: service_healthy
 
   admin:
     build:
@@ -25,3 +46,6 @@ services:
       - "3001:80"
     depends_on:
       - backend
+
+volumes:
+  mysql_data:
