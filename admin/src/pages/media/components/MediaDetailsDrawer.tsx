@@ -55,7 +55,7 @@ export const MediaDetailsDrawer: React.FC<MediaDetailsDrawerProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  if (!selectedMedia) return null;
+  if (!isOpen || !selectedMedia) return null;
 
   return (
     <Drawer
@@ -64,6 +64,7 @@ export const MediaDetailsDrawer: React.FC<MediaDetailsDrawerProps> = ({
       width={540}
       onClose={onClose}
       open={isOpen}
+      destroyOnClose={true}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* Preview Box for Image, Video, Audio & File */}

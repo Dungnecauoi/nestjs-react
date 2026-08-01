@@ -2,8 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from '@nestjs/cache-manager';
 import { PrismaService } from '../database/prisma.service';
-
-const ALL_OPTIONS_CACHE_KEY = 'options:all';
+import { CacheKeyEnum } from '../../common/enums/cache-key.enum';
 
 @Injectable()
 export class OptionsService {
@@ -11,6 +10,31 @@ export class OptionsService {
     private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
+
+  /**
+   * Xóa cache targeted theo đúng key của tab/mô-đun đang lưu (Targeted Cache Invalidation)
+   * Giúp tối ưu hiệu năng: tab nào thay đổi chỉ xóa cache tab đó + key tổng ALL_OPTIONS
+   */
+  async clearOptionsCache(specificKey?: CacheKeyEnum): Promise<void> {
+    if (specificKey) {
+      await Promise.all([
+        this.cacheManager.del(specificKey).catch(() => {}),
+        this.cacheManager.del(CacheKeyEnum.ALL_OPTIONS).catch(() => {}),
+      ]);
+      return;
+    }
+
+    const keysToInvalidate = [
+      CacheKeyEnum.ALL_OPTIONS,
+      CacheKeyEnum.MEDIA_OPTIONS,
+      CacheKeyEnum.GENERAL_OPTIONS,
+      CacheKeyEnum.READING_OPTIONS,
+      CacheKeyEnum.WRITING_OPTIONS,
+      CacheKeyEnum.MAIL_CONFIG,
+      CacheKeyEnum.STORAGE_CONFIG,
+    ];
+    await Promise.all(keysToInvalidate.map((key) => this.cacheManager.del(key).catch(() => {})));
+  }
 
   async getOption(optionName: string, defaultValue: any = null) {
     const record = await this.prisma.option.findUnique({
@@ -34,9 +58,9 @@ export class OptionsService {
     autoload: boolean = true,
   ) {
     const valueStr =
-      typeof optionValue === 'object'
+      typeof optionValue === 'object' && optionValue !== null
         ? JSON.stringify(optionValue)
-        : String(optionValue);
+        : String(optionValue ?? '');
 
     const result = await this.prisma.option.upsert({
       where: { optionName },
@@ -44,7 +68,7 @@ export class OptionsService {
       create: { optionName, optionValue: valueStr, autoload },
     });
 
-    await this.cacheManager.del(ALL_OPTIONS_CACHE_KEY);
+    await this.clearOptionsCache();
     return result;
   }
 
@@ -57,7 +81,7 @@ export class OptionsService {
   }
 
   async getAllOptions() {
-    const cached = await this.cacheManager.get<Record<string, any>>(ALL_OPTIONS_CACHE_KEY);
+    const cached = await this.cacheManager.get<Record<string, any>>(CacheKeyEnum.ALL_OPTIONS);
     if (cached) {
       return cached;
     }
@@ -69,15 +93,21 @@ export class OptionsService {
     const result: Record<string, any> = {};
     for (const item of records) {
       if (item.optionValue !== null) {
-        try {
-          result[item.optionName] = JSON.parse(item.optionValue);
-        } catch {
-          result[item.optionName] = item.optionValue;
+        if (item.optionValue === 'true') {
+          result[item.optionName] = true;
+        } else if (item.optionValue === 'false') {
+          result[item.optionName] = false;
+        } else {
+          try {
+            result[item.optionName] = JSON.parse(item.optionValue);
+          } catch {
+            result[item.optionName] = item.optionValue;
+          }
         }
       }
     }
 
-    await this.cacheManager.set(ALL_OPTIONS_CACHE_KEY, result);
+    await this.cacheManager.set(CacheKeyEnum.ALL_OPTIONS, result);
     return result;
   }
 
@@ -105,10 +135,19 @@ export class OptionsService {
   }
 
   async setMultipleOptions(options: Record<string, any>) {
-    const promises = Object.entries(options).map(([key, val]) =>
-      this.setOption(key, val),
-    );
-    await Promise.all(promises);
+    for (const [key, val] of Object.entries(options)) {
+      const valueStr =
+        typeof val === 'object' && val !== null
+          ? JSON.stringify(val)
+          : String(val ?? '');
+
+      await this.prisma.option.upsert({
+        where: { optionName: key },
+        update: { optionValue: valueStr, autoload: true },
+        create: { optionName: key, optionValue: valueStr, autoload: true },
+      });
+    }
+    await this.clearOptionsCache();
     return this.getAllOptions();
   }
 }

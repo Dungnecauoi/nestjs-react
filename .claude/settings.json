@@ -51,7 +51,25 @@
       "Bash(xargs -I{} sh -c 'echo ==={}===; cat {}')",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(timeout 90 npx vite build)",
+      "Bash(npx vite *)",
+      "Bash(npm ls *)",
+      "Bash(nc -z -w2 127.0.0.1 3306)",
+      "Bash(curl -s http://localhost:3000/api/docs -o /dev/null -w \"swagger docs http status: %{http_code}\\\\n\")",
+      "Bash(curl -s http://localhost:3000/api/media -H \"Content-Type: application/json\" -o /dev/null -w \"media list \\(no auth\\) http status: %{http_code}\\\\n\")",
+      "Bash(lsof -i :3000 -sTCP:LISTEN)",
+      "Bash(cp /tmp/claude-501-chunk0.bin /tmp/claude-501-chunk0.jpg)",
+      "Bash(curl -s -X POST http://localhost:3099/api/media/upload-chunk/chunk -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -F uploadId=../../../etc -F chunkIndex=0 -F chunk=@/tmp/claude-501-chunk0.jpg -w '\\\\nstatus: %{http_code}\\\\n')",
+      "Bash(curl -s -X POST http://localhost:3099/api/media/upload-chunk/chunk -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -F uploadId=chunk_1111111111111_222222222 -F chunkIndex=0 -F chunk=@/tmp/claude-501-chunk0.jpg -w '\\\\nstatus: %{http_code}\\\\n')",
+      "Bash(curl -s -X POST http://localhost:3099/api/media/upload -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -F 'file=@/tmp/claude-501-real.jpg;filename=claude-real-copy.jpg;type=image/jpeg')",
+      "Bash(git ls-tree *)",
+      "Bash(npx jest *)",
+      "Bash(python3 -c \"import PIL; print\\('PIL available:', PIL.__version__\\)\")",
+      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\);process.stdin.on\\('end',\\(\\)=>{const j=JSON.parse\\(d\\);console.log\\('rows found:', j.data.data.length\\)}\\)\")",
+      "Bash(grep -n \"notify\\\\.\\\\\\(success\\\\|error\\\\|warning\\\\|info\\\\\\)\\(\\\\`\\\\|notify\\\\.\\\\\\(success\\\\|error\\\\|warning\\\\|info\\\\\\)\\('\" /Volumes/SSD-1/core/nestjs/admin/src/pages/media/index.tsx)",
+      "Bash(grep -vE \"^\\\\.gitkeep$\")",
+      "Bash(grep -v \"^\\\\.gitkeep$\")"
     ]
   }
 }

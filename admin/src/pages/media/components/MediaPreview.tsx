@@ -23,7 +23,16 @@ interface MediaPreviewProps {
 // MediaThumbnail.tsx cho việc đó.
 export const MediaPreview: React.FC<MediaPreviewProps> = ({ item, variant }) => {
   const { t } = useTranslation();
+  const videoRef = React.useRef<HTMLVideoElement>(null);
   const isLightbox = variant === 'lightbox';
+
+  React.useEffect(() => {
+    return () => {
+      if (videoRef.current) {
+        videoRef.current.pause();
+      }
+    };
+  }, [item.url]);
 
   if (item.mimetype?.startsWith('image/')) {
     return isLightbox ? (
@@ -35,9 +44,9 @@ export const MediaPreview: React.FC<MediaPreviewProps> = ({ item, variant }) => 
 
   if (item.mimetype?.startsWith('video/')) {
     return isLightbox ? (
-      <video src={item.url} controls autoPlay style={{ maxHeight: 540, maxWidth: '100%', borderRadius: 8 }} />
+      <video ref={videoRef} src={item.url} controls autoPlay style={{ maxHeight: 540, maxWidth: '100%', borderRadius: 8 }} />
     ) : (
-      <video src={item.url} controls style={{ maxWidth: '100%', maxHeight: 240 }} />
+      <video ref={videoRef} src={item.url} controls style={{ maxWidth: '100%', maxHeight: 240 }} />
     );
   }
 

@@ -47,12 +47,13 @@ export const MediaLightboxModal: React.FC<MediaLightboxModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onPrev, onNext]);
 
-  if (!currentItem) return null;
+  if (!isOpen || !currentItem) return null;
 
   return (
     <Modal
       open={isOpen}
       onCancel={onClose}
+      destroyOnClose={true}
       footer={null}
       width={920}
       centered

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, UseGuards, Header } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { OptionsService } from './options.service';
 import { MailConfigService } from '../mail/mail-config.service';
@@ -24,6 +24,7 @@ export class OptionsController {
 
   @Public()
   @Get('public')
+  @Header('Cache-Control', 'no-store, no-cache, must-revalidate')
   @ApiOperation({
     summary: 'Lấy thông tin cấu hình công khai (Tiêu đề trang, logo, ngôn ngữ...)',
   })
@@ -38,6 +39,7 @@ export class OptionsController {
   @ApiBearerAuth()
   @RequirePermissions('setting:read')
   @Get()
+  @Header('Cache-Control', 'no-store, no-cache, must-revalidate')
   @ApiOperation({
     summary: 'Lấy toàn bộ cấu hình hệ thống (Dành cho Quản trị viên)',
   })

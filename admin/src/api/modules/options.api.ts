@@ -4,7 +4,9 @@ import { ApiResponse } from '../../types/auth.types';
 // API Module for System Options
 export const optionsApi = {
   getOptions: async (): Promise<Record<string, any>> => {
-    const res = await api.get<ApiResponse<Record<string, any>>>('/options');
+    const res = await api.get<ApiResponse<Record<string, any>>>('/options', {
+      params: { _t: Date.now() },
+    });
     return res.data?.data || {};
   },
 

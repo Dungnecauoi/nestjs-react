@@ -1,614 +1,117 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, Form, Input, Switch, Button, Row, Col, Select, Tabs, Radio, InputNumber, Space, Divider, Spin, Alert, message } from 'antd';
-import { SaveOutlined, CheckOutlined, SettingOutlined, PictureOutlined, ReadOutlined, EditOutlined, UploadOutlined, DeleteOutlined, MailOutlined, GoogleOutlined, SendOutlined, CloudServerOutlined } from '@ant-design/icons';
+import { useSearchParams } from 'react-router-dom';
+import { Card, Form, Button, Tabs, Space, Spin, Modal } from 'antd';
+import {
+  SaveOutlined,
+  CheckOutlined,
+  SettingOutlined,
+  PictureOutlined,
+  ReadOutlined,
+  EditOutlined,
+  MailOutlined,
+} from '@ant-design/icons';
 import { optionsApi } from '../../api/modules/options.api';
-import { mailConfigApi, MailConfigResponse, MailConfigSaveDto, MailDriverName } from '../../api/modules/mail-config.api';
-import { storageConfigApi, StorageConfigResponse, StorageConfigSaveDto, StorageDriverName } from '../../api/modules/storage-config.api';
-import { MediaPickerModal } from '../../components/common/MediaPickerModal';
-import { MediaItem } from '../../api/modules/media.api';
+import { storageConfigApi } from '../../api/modules/storage-config.api';
 import { queryClient } from '../../lib/query-client';
 import { SYSTEM_OPTIONS_QUERY_KEY } from '../../hooks/useSystemOptions';
 import { notify } from '../../utils/notify';
+import { GeneralTab } from './components/GeneralTab';
+import { MediaTab } from './components/MediaTab';
+import { ReadingTab } from './components/ReadingTab';
+import { WritingTab } from './components/WritingTab';
+import { MailConfigTabContent } from './components/MailConfigTabContent';
 
-// Field ảnh dùng chung cho Favicon/Logo — tích hợp trực tiếp với AntD Form (nhận value/onChange
-// từ Form.Item), mở MediaPickerModal thật (chọn từ thư viện media có sẵn hoặc tải mới), thay cho
-// <Upload action="#"> trước đây (decorative, action="#" không trỏ tới API thật nên luôn lỗi).
-function ImagePickerField({
-  value,
-  onChange,
-  pickerTitle,
-}: {
-  value?: string;
-  onChange?: (url: string) => void;
-  pickerTitle: string;
-}) {
-  const [pickerOpen, setPickerOpen] = useState(false);
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      {value ? (
-        <img
-          src={value}
-          alt=""
-          style={{ width: 48, height: 48, objectFit: 'contain', border: '1px solid #e2e8f0', borderRadius: 6, background: '#fff' }}
-        />
-      ) : (
-        <div
-          style={{
-            width: 48,
-            height: 48,
-            border: '1px dashed #cbd5e1',
-            borderRadius: 6,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#94a3b8',
-            fontSize: 10,
-          }}
-        >
-          Chưa có
-        </div>
-      )}
-      <Button icon={<UploadOutlined />} onClick={() => setPickerOpen(true)}>
-        Chọn Ảnh
-      </Button>
-      {value && (
-        <Button danger type="text" size="small" icon={<DeleteOutlined />} onClick={() => onChange?.('')} />
-      )}
-      <MediaPickerModal
-        open={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-        onSelect={(media: MediaItem) => {
-          onChange?.(media.url);
-          setPickerOpen(false);
-        }}
-        accept="image"
-        title={pickerTitle}
-      />
-    </div>
-  );
-}
-
-type SmtpProviderPreset = 'gmail' | 'outlook' | 'yahoo' | 'custom';
-
-const SMTP_PROVIDER_PRESETS: Record<Exclude<SmtpProviderPreset, 'custom'>, { host: string; port: number }> = {
-  gmail: { host: 'smtp.gmail.com', port: 587 },
-  outlook: { host: 'smtp.office365.com', port: 587 },
-  yahoo: { host: 'smtp.mail.yahoo.com', port: 587 },
+const TAB_SLUG_MAP: Record<string, string> = {
+  general: '1',
+  media: '2',
+  storage: '2',
+  reading: '3',
+  writing: '4',
+  email: '5',
 };
 
-function MailConfigTabContent() {
-  const [mailForm] = Form.useForm();
-  const [driver, setDriver] = useState<MailDriverName>('log');
-  const [smtpProvider, setSmtpProvider] = useState<SmtpProviderPreset>('gmail');
-  const [config, setConfig] = useState<MailConfigResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [connectingGmail, setConnectingGmail] = useState(false);
-  const [testEmail, setTestEmail] = useState('');
+const TAB_KEY_TO_SLUG: Record<string, string> = {
+  '1': 'general',
+  '2': 'media',
+  '3': 'reading',
+  '4': 'writing',
+  '5': 'email',
+};
 
-  const loadConfig = async () => {
-    setLoading(true);
+const toBoolean = (val: any): boolean | undefined => {
+  if (val === true || val === 'true' || val === 1 || val === '1') return true;
+  if (val === false || val === 'false' || val === 0 || val === '0') return false;
+  return undefined;
+};
+
+const toNumber = (val: any): number | undefined => {
+  if (val === undefined || val === null || val === '') return undefined;
+  const num = Number(val);
+  return isNaN(num) ? undefined : num;
+};
+
+const toArray = (val: any): string[] => {
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string' && val.trim() !== '') {
     try {
-      const data = await mailConfigApi.getMailConfig();
-      setConfig(data);
-      setDriver(data.driver);
-      mailForm.setFieldsValue({
-        driver: data.driver,
-        fromAddress: data.fromAddress,
-        fromName: data.fromName,
-        smtpHost: data.smtp?.host,
-        smtpPort: data.smtp?.port,
-        smtpUsername: data.smtp?.username,
-        sesRegion: data.ses?.region || 'us-east-1',
-        mailgunDomain: data.mailgun?.domain,
-      });
-    } catch (err) {
-      notify.error(err, 'Không thể tải cấu hình email. Vui lòng thử lại.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadConfig();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleProviderChange = (value: SmtpProviderPreset) => {
-    setSmtpProvider(value);
-    if (value !== 'custom') {
-      mailForm.setFieldsValue(SMTP_PROVIDER_PRESETS[value]);
-    }
-  };
-
-  const handleSave = async (values: any) => {
-    setSaving(true);
-    try {
-      const dto: MailConfigSaveDto = {
-        driver: values.driver,
-        fromAddress: values.fromAddress,
-        fromName: values.fromName,
-      };
-
-      if (values.driver === 'smtp') {
-        dto.smtp = {
-          host: values.smtpHost,
-          port: values.smtpPort,
-          username: values.smtpUsername,
-          password: values.smtpPassword || undefined,
-        };
-      } else if (values.driver === 'resend') {
-        dto.resend = { apiKey: values.resendApiKey || undefined };
-      } else if (values.driver === 'ses') {
-        dto.ses = {
-          accessKeyId: values.sesAccessKeyId || undefined,
-          secretAccessKey: values.sesSecretAccessKey || undefined,
-          region: values.sesRegion,
-        };
-      } else if (values.driver === 'mailgun') {
-        dto.mailgun = {
-          apiKey: values.mailgunApiKey || undefined,
-          domain: values.mailgunDomain,
-        };
-      } else if (values.driver === 'sendgrid') {
-        dto.sendgrid = { apiKey: values.sendgridApiKey || undefined };
-      }
-
-      const updated = await mailConfigApi.saveMailConfig(dto);
-      setConfig(updated);
-      notify.success('Đã lưu cấu hình gửi mail thành công!');
-    } catch (err: any) {
-      notify.error(err, 'Không thể lưu cấu hình gửi mail!');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleTestSend = async () => {
-    if (!testEmail) {
-      notify.warning('Vui lòng nhập email nhận thử nghiệm!');
-      return;
-    }
-    setTesting(true);
-    try {
-      await mailConfigApi.sendTestEmail(testEmail);
-      notify.success(`Đã gửi email thử nghiệm tới ${testEmail}!`);
-    } catch (err: any) {
-      notify.error(err, 'Gửi email thử nghiệm thất bại!');
-    } finally {
-      setTesting(false);
-    }
-  };
-
-  const handleConnectGmail = async () => {
-    setConnectingGmail(true);
-    try {
-      const url = await mailConfigApi.getGmailConnectUrl();
-      window.location.href = url;
-    } catch (err: any) {
-      message.error(err.response?.data?.message || 'Không thể lấy URL kết nối Google!');
-      setConnectingGmail(false);
-    }
-  };
-
-  const handleDisconnectGmail = async () => {
-    try {
-      const updated = await mailConfigApi.disconnectGmail();
-      setConfig(updated);
-      setDriver(updated.driver);
-      mailForm.setFieldValue('driver', updated.driver);
-      message.success('Đã ngắt kết nối Gmail!');
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed)) return parsed;
     } catch {
-      message.error('Không thể ngắt kết nối Gmail!');
+      return val.split(',').map((s) => s.trim()).filter(Boolean);
     }
-  };
-
-  return (
-    <Spin spinning={loading}>
-      <Card variant="borderless" style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
-        <Form
-          form={mailForm}
-          layout="vertical"
-          onFinish={handleSave}
-          initialValues={{ driver: 'log', sesRegion: 'us-east-1' }}
-          component={false}
-        >
-          <Form.Item
-            name="driver"
-            label="Nhà Cung Cấp Gửi Mail (Driver)"
-            rules={[{ required: true }]}
-          >
-            <Select
-              onChange={(value) => setDriver(value)}
-              options={[
-                { value: 'log', label: 'Ghi Log (Development — không gửi mail thật)' },
-                { value: 'smtp', label: 'SMTP (App Password)' },
-                { value: 'gmail_oauth', label: 'Gmail — Kết Nối Google (Khuyến Nghị)' },
-                { value: 'resend', label: 'Resend' },
-                { value: 'ses', label: 'Amazon SES' },
-                { value: 'mailgun', label: 'Mailgun' },
-                { value: 'sendgrid', label: 'SendGrid' },
-              ]}
-            />
-          </Form.Item>
-
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Form.Item name="fromAddress" label="Email Người Gửi (From Address)">
-                <Input placeholder="no-reply@yourdomain.com" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item name="fromName" label="Tên Người Gửi (From Name)">
-                <Input placeholder="ECOMCX ERP" />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          {driver === 'smtp' && (
-            <>
-              <Divider style={{ margin: '8px 0 16px 0' }} />
-              <Form.Item label="Nhà Cung Cấp SMTP">
-                <Select
-                  value={smtpProvider}
-                  onChange={handleProviderChange}
-                  options={[
-                    { value: 'gmail', label: 'Gmail' },
-                    { value: 'outlook', label: 'Outlook / Office365' },
-                    { value: 'yahoo', label: 'Yahoo Mail' },
-                    { value: 'custom', label: 'Custom SMTP Server' },
-                  ]}
-                />
-              </Form.Item>
-              <Row gutter={16}>
-                <Col xs={24} md={12}>
-                  <Form.Item name="smtpHost" label="SMTP Host" rules={[{ required: true }]}>
-                    <Input disabled={smtpProvider !== 'custom'} placeholder="smtp.gmail.com" />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item name="smtpPort" label="SMTP Port" rules={[{ required: true }]}>
-                    <InputNumber style={{ width: '100%' }} disabled={smtpProvider !== 'custom'} />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item name="smtpUsername" label="Email / Username">
-                    <Input placeholder="you@gmail.com" />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item
-                    name="smtpPassword"
-                    label="Mật Khẩu Ứng Dụng (App Password)"
-                    extra={
-                      config?.smtp?.configured
-                        ? 'Đã lưu — để trống nếu không muốn đổi'
-                        : 'Gmail: tạo tại myaccount.google.com/apppasswords (bật xác minh 2 bước trước)'
-                    }
-                  >
-                    <Input.Password placeholder={config?.smtp?.configured ? '••••••••' : ''} />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </>
-          )}
-
-          {driver === 'gmail_oauth' && (
-            <>
-              <Divider style={{ margin: '8px 0 16px 0' }} />
-              {config?.gmailOauth?.configured ? (
-                <Alert
-                  type="success"
-                  showIcon
-                  message={`Đã kết nối: ${config.gmailOauth.email}`}
-                  description="Hệ thống sẽ gửi mail qua Gmail API bằng tài khoản đã kết nối, không cần mật khẩu."
-                  action={
-                    <Button danger size="small" onClick={handleDisconnectGmail}>
-                      Ngắt Kết Nối
-                    </Button>
-                  }
-                />
-              ) : (
-                <Button
-                  icon={<GoogleOutlined />}
-                  loading={connectingGmail}
-                  onClick={handleConnectGmail}
-                  style={{ fontWeight: 700 }}
-                >
-                  Kết Nối Với Google
-                </Button>
-              )}
-            </>
-          )}
-
-          {driver === 'resend' && (
-            <>
-              <Divider style={{ margin: '8px 0 16px 0' }} />
-              <Form.Item
-                name="resendApiKey"
-                label="Resend API Key"
-                extra={config?.resend?.configured ? 'Đã lưu — để trống nếu không muốn đổi' : 'Lấy tại resend.com/api-keys'}
-              >
-                <Input.Password placeholder={config?.resend?.configured ? '••••••••' : 're_xxxxxxxxxxxx'} />
-              </Form.Item>
-            </>
-          )}
-
-          {driver === 'ses' && (
-            <>
-              <Divider style={{ margin: '8px 0 16px 0' }} />
-              <Row gutter={16}>
-                <Col xs={24} md={8}>
-                  <Form.Item
-                    name="sesAccessKeyId"
-                    label="AWS Access Key ID"
-                    extra={config?.ses?.configured ? 'Đã lưu — để trống nếu không muốn đổi' : undefined}
-                  >
-                    <Input.Password />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={8}>
-                  <Form.Item name="sesSecretAccessKey" label="AWS Secret Access Key">
-                    <Input.Password />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={8}>
-                  <Form.Item name="sesRegion" label="AWS Region" rules={[{ required: true }]}>
-                    <Input placeholder="us-east-1" />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </>
-          )}
-
-          {driver === 'mailgun' && (
-            <>
-              <Divider style={{ margin: '8px 0 16px 0' }} />
-              <Row gutter={16}>
-                <Col xs={24} md={12}>
-                  <Form.Item
-                    name="mailgunApiKey"
-                    label="Mailgun API Key"
-                    extra={config?.mailgun?.configured ? 'Đã lưu — để trống nếu không muốn đổi' : undefined}
-                  >
-                    <Input.Password />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item name="mailgunDomain" label="Mailgun Domain" rules={[{ required: true }]}>
-                    <Input placeholder="mg.yourdomain.com" />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </>
-          )}
-
-          {driver === 'sendgrid' && (
-            <>
-              <Divider style={{ margin: '8px 0 16px 0' }} />
-              <Form.Item
-                name="sendgridApiKey"
-                label="SendGrid API Key"
-                extra={config?.sendgrid?.configured ? 'Đã lưu — để trống nếu không muốn đổi' : undefined}
-              >
-                <Input.Password placeholder={config?.sendgrid?.configured ? '••••••••' : 'SG.xxxxxxxxxxxx'} />
-              </Form.Item>
-            </>
-          )}
-
-          <Divider style={{ margin: '16px 0' }} />
-          <Button type="primary" onClick={() => mailForm.submit()} loading={saving} icon={<SaveOutlined />} style={{ fontWeight: 700 }}>
-            Lưu Cấu Hình Email
-          </Button>
-        </Form>
-
-        <Divider style={{ margin: '24px 0 16px 0' }} />
-
-        <div>
-          <div style={{ fontWeight: 700, marginBottom: 8, fontSize: 13 }}>Gửi Email Thử Nghiệm</div>
-          <Space.Compact style={{ width: '100%', maxWidth: 440 }}>
-            <Input
-              placeholder="nhap-email-nhan@example.com"
-              value={testEmail}
-              onChange={(e) => setTestEmail(e.target.value)}
-            />
-            <Button type="primary" icon={<SendOutlined />} loading={testing} onClick={handleTestSend}>
-              Gửi Thử
-            </Button>
-          </Space.Compact>
-        </div>
-      </Card>
-    </Spin>
-  );
-}
-
-function StorageConfigTabContent() {
-  const [storageForm] = Form.useForm();
-  const [disk, setDisk] = useState<StorageDriverName>('local');
-  const [config, setConfig] = useState<StorageConfigResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
-
-  const loadConfig = async () => {
-    setLoading(true);
-    try {
-      const data = await storageConfigApi.getStorageConfig();
-      setConfig(data);
-      setDisk(data.disk);
-      storageForm.setFieldsValue({
-        disk: data.disk,
-        s3Region: data.s3?.region || 'us-east-1',
-        s3Bucket: data.s3?.bucket,
-        s3Endpoint: data.s3?.endpoint,
-        s3ForcePathStyle: data.s3?.forcePathStyle,
-      });
-    } catch (err) {
-      notify.error(err, 'Không thể tải cấu hình lưu trữ. Vui lòng thử lại.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadConfig();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleSave = async (values: any) => {
-    setSaving(true);
-    try {
-      const dto: StorageConfigSaveDto = { disk: values.disk };
-      if (values.disk === 's3') {
-        dto.s3 = {
-          accessKeyId: values.s3AccessKeyId || undefined,
-          secretAccessKey: values.s3SecretAccessKey || undefined,
-          region: values.s3Region,
-          bucket: values.s3Bucket,
-          endpoint: values.s3Endpoint || undefined,
-          forcePathStyle: values.s3ForcePathStyle,
-        };
-      }
-      const updated = await storageConfigApi.saveStorageConfig(dto);
-      setConfig(updated);
-      notify.success('Đã lưu cấu hình lưu trữ media thành công!');
-    } catch (err: any) {
-      notify.error(err, 'Không thể lưu cấu hình lưu trữ!');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleTestConnection = async () => {
-    setTesting(true);
-    try {
-      await storageConfigApi.testConnection();
-      notify.success('Kết nối S3/MinIO thành công!');
-    } catch (err: any) {
-      notify.error(err, 'Kết nối thất bại!');
-    } finally {
-      setTesting(false);
-    }
-  };
-
-  return (
-    <Spin spinning={loading}>
-      <Card variant="borderless" style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
-        <Form
-          form={storageForm}
-          layout="vertical"
-          onFinish={handleSave}
-          initialValues={{ disk: 'local', s3Region: 'us-east-1' }}
-          component={false}
-        >
-          <Form.Item name="disk" label="Nơi Lưu Trữ Media (Driver)" rules={[{ required: true }]}>
-            <Select
-              onChange={(value) => setDisk(value)}
-              options={[
-                { value: 'local', label: 'Local Disk (Lưu trên server, mặc định)' },
-                { value: 's3', label: 'Amazon S3 / MinIO / S3-Compatible' },
-              ]}
-            />
-          </Form.Item>
-
-          {disk === 's3' && (
-            <>
-              <Divider style={{ margin: '8px 0 16px 0' }} />
-              <Row gutter={16}>
-                <Col xs={24} md={12}>
-                  <Form.Item
-                    name="s3AccessKeyId"
-                    label="Access Key ID"
-                    extra={config?.s3?.configured ? 'Đã lưu — để trống nếu không muốn đổi' : undefined}
-                  >
-                    <Input.Password />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item name="s3SecretAccessKey" label="Secret Access Key">
-                    <Input.Password />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item name="s3Region" label="Region" rules={[{ required: true }]}>
-                    <Input placeholder="us-east-1" />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item name="s3Bucket" label="Bucket" rules={[{ required: true }]}>
-                    <Input placeholder="my-app-media" />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={16}>
-                  <Form.Item
-                    name="s3Endpoint"
-                    label="Endpoint (chỉ cần cho MinIO / S3-Compatible khác AWS)"
-                  >
-                    <Input placeholder="https://minio.yourdomain.com" />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={8}>
-                  <Form.Item
-                    name="s3ForcePathStyle"
-                    label="Path-Style Access"
-                    valuePropName="checked"
-                    extra="Bật khi dùng MinIO"
-                  >
-                    <Switch />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </>
-          )}
-
-          <Divider style={{ margin: '16px 0' }} />
-          <Space>
-            <Button type="primary" onClick={() => storageForm.submit()} loading={saving} icon={<SaveOutlined />} style={{ fontWeight: 700 }}>
-              Lưu Cấu Hình Lưu Trữ
-            </Button>
-            {disk === 's3' && (
-              <Button icon={<CloudServerOutlined />} loading={testing} onClick={handleTestConnection}>
-                Kiểm Tra Kết Nối
-              </Button>
-            )}
-          </Space>
-        </Form>
-      </Card>
-    </Spin>
-  );
-}
+  }
+  return [];
+};
 
 export default function SettingsModule() {
   const { t, i18n } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [activeTab, setActiveTab] = useState('1');
-  const [homepageDisplayType, setHomepageDisplayType] = useState<'latest' | 'static'>('latest');
+  const [homepageDisplayType, setHomepageDisplayType] = useState<string>('latest');
+
+  // Đọc tab slug từ URL (?tab=general, ?tab=media, ?tab=email...)
+  const currentTabSlug = searchParams.get('tab') || 'general';
+  const activeTab = TAB_SLUG_MAP[currentTabSlug] || '1';
+  const handleTabChange = (key: string) => {
+    const slug = TAB_KEY_TO_SLUG[key] || 'general';
+    setSearchParams({ tab: slug }, { replace: true });
+  };
 
   // Tab '1'-'4' dùng form chung (General, Media, Reading, Writing)
-  // Tab '5' (Email) và '6' (Storage) có form + nút Lưu riêng trong component con
+  // Tab '5' (Email) có form + nút Lưu riêng
   const isGeneralFormTab = ['1', '2', '3', '4'].includes(activeTab);
 
-  // Load all settings live from NestJS Options API
   useEffect(() => {
     const loadSettings = async () => {
       setLoading(true);
       try {
-        const options = await optionsApi.getOptions();
+        const [options, storageConfig] = await Promise.all([
+          optionsApi.getOptions(),
+          storageConfigApi.getStorageConfig().catch(() => null),
+        ]);
 
-        form.setFieldsValue({
+        const rawAllowedImages = toArray(options.allowedImageTypes);
+        const rawAllowedVideos = toArray(options.allowedVideoTypes);
+
+        const valuesToSet = {
+          // Storage Config
+          disk: storageConfig?.disk || 'local',
+          s3Region: storageConfig?.s3?.region || 'us-east-1',
+          s3Bucket: storageConfig?.s3?.bucket || '',
+          s3Endpoint: storageConfig?.s3?.endpoint || '',
+          s3ForcePathStyle: storageConfig?.s3?.forcePathStyle ?? false,
+
           // General Settings
           siteTitle: options.siteTitle || 'ECOMCX Enterprise ERP Core',
           siteTagline: options.siteTagline || 'Nền Tảng Quản Trị Doanh Nghiệp Tối Ưu',
           siteFavicon: options.siteFavicon || '',
           siteLogo: options.siteLogo || '',
           adminEmail: options.adminEmail || 'admin@ecomcx.com',
-          enableDepartments: options.enableDepartments !== false,
+          enableDepartments: toBoolean(options.enableDepartments) ?? true,
           defaultUserRole: options.defaultUserRole || 'STAFF',
           siteLanguage: options.siteLanguage || i18n.language || 'vi',
           timezone: options.timezone || 'Asia/Ho_Chi_Minh',
@@ -617,45 +120,66 @@ export default function SettingsModule() {
           weekStartDay: options.weekStartDay || 'Monday',
 
           // Media Settings
-          allowedImageTypes: options.allowedImageTypes || ['jpg', 'png', 'webp', 'gif', 'svg'],
-          maxImageSizeMb: options.maxImageSizeMb || 10,
-          convertToWebp: options.convertToWebp !== false,
-          media_strip_exif_metadata: options.media_strip_exif_metadata !== false,
-          media_enable_sha256_deduplication: options.media_enable_sha256_deduplication !== false,
-          media_compression_quality: options.media_compression_quality || 80,
-          media_enable_watermark: !!options.media_enable_watermark,
+          allowedImageTypes: rawAllowedImages.length > 0 ? rawAllowedImages : ['jpg', 'png', 'webp', 'gif', 'svg'],
+          maxImageSizeMb: toNumber(options.maxImageSizeMb) || 10,
+          convertToWebp: toBoolean(options.convertToWebp) ?? true,
+          media_strip_exif_metadata: toBoolean(options.media_strip_exif_metadata) ?? true,
+          media_enable_sha256_deduplication: toBoolean(options.media_enable_sha256_deduplication) ?? true,
+          media_compression_quality: toNumber(options.media_compression_quality) || 80,
+          media_enable_watermark: toBoolean(options.media_enable_watermark) ?? false,
           media_watermark_text: options.media_watermark_text || 'ECOMCX ERP',
-          media_enable_chunked_upload: options.media_enable_chunked_upload !== false,
-          allowedVideoTypes: options.allowedVideoTypes || ['mp4', 'webm', 'mov'],
-          maxVideoSizeMb: options.maxVideoSizeMb || 100,
+          media_enable_chunked_upload: toBoolean(options.media_enable_chunked_upload) ?? true,
+          allowedVideoTypes: rawAllowedVideos.length > 0 ? rawAllowedVideos : ['mp4', 'webm', 'mov'],
+          maxVideoSizeMb: toNumber(options.maxVideoSizeMb) || 1000,
 
           // Reading Settings
           homepageType: options.homepageType || 'latest',
           staticHomepageId: options.staticHomepageId || 'home',
           staticPostsPageId: options.staticPostsPageId || 'blog',
-          postsPerPage: options.postsPerPage || 10,
-          allowSearchIndexing: options.allowSearchIndexing !== false,
+          postsPerPage: toNumber(options.postsPerPage) || 10,
+          allowSearchIndexing: toBoolean(options.allowSearchIndexing) ?? true,
 
           // Writing Settings
           defaultCategory: options.defaultCategory || 'general',
           defaultPostFormat: options.defaultPostFormat || 'standard',
-        });
+        };
+
+        setLoading(false);
+        setTimeout(() => {
+          form.setFieldsValue(valuesToSet);
+        }, 50);
 
         setHomepageDisplayType(options.homepageType || 'latest');
       } catch (err) {
-        notify.error(err, 'Không thể tải cấu hình hệ thống. Vui lòng thử lại.');
-      } finally {
+        notify.error(err, t('settings.loadingFromDatabase'));
         setLoading(false);
       }
     };
 
     loadSettings();
-  }, [form, i18n.language]);
+  }, [form, i18n.language, t]);
 
   const handleSave = async (values: any) => {
     setSaving(true);
     try {
-      await optionsApi.saveOptions(values);
+      const storagePromise = values.disk
+        ? storageConfigApi.saveStorageConfig({
+            disk: values.disk,
+            s3: values.disk === 's3' ? {
+              accessKeyId: values.s3AccessKeyId || undefined,
+              secretAccessKey: values.s3SecretAccessKey || undefined,
+              region: values.s3Region,
+              bucket: values.s3Bucket,
+              endpoint: values.s3Endpoint || undefined,
+              forcePathStyle: values.s3ForcePathStyle,
+            } : undefined,
+          })
+        : Promise.resolve();
+
+      const [updatedOptions] = await Promise.all([
+        optionsApi.saveOptions(values),
+        storagePromise,
+      ]);
 
       if (values.siteLanguage && values.siteLanguage !== i18n.language) {
         i18n.changeLanguage(values.siteLanguage);
@@ -663,353 +187,32 @@ export default function SettingsModule() {
 
       await queryClient.invalidateQueries({ queryKey: SYSTEM_OPTIONS_QUERY_KEY });
 
+      if (updatedOptions && typeof updatedOptions === 'object') {
+        form.setFieldsValue({
+          ...values,
+          maxImageSizeMb: toNumber(updatedOptions.maxImageSizeMb),
+          maxVideoSizeMb: toNumber(updatedOptions.maxVideoSizeMb),
+          media_compression_quality: toNumber(updatedOptions.media_compression_quality),
+          postsPerPage: toNumber(updatedOptions.postsPerPage),
+          enableDepartments: toBoolean(updatedOptions.enableDepartments),
+          convertToWebp: toBoolean(updatedOptions.convertToWebp),
+          media_strip_exif_metadata: toBoolean(updatedOptions.media_strip_exif_metadata),
+          media_enable_sha256_deduplication: toBoolean(updatedOptions.media_enable_sha256_deduplication),
+          media_enable_watermark: toBoolean(updatedOptions.media_enable_watermark),
+          media_enable_chunked_upload: toBoolean(updatedOptions.media_enable_chunked_upload),
+          allowSearchIndexing: toBoolean(updatedOptions.allowSearchIndexing),
+        });
+      }
+
       setSaved(true);
-      notify.success(t('settings.savedSuccessDatabase', 'Đã lưu toàn bộ cấu hình hệ thống vào Database thành công!'));
+      notify.success(t('settings.savedSuccessDatabase'));
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
-      notify.error(err, 'Không thể lưu cấu hình vào Database!');
+      notify.error(err, t('settings.savedSuccessDatabase'));
     } finally {
       setSaving(false);
     }
   };
-
-  const generalTabContent = (
-    <Card variant="borderless" style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
-      <Row gutter={[24, 16]}>
-        <Col xs={24} md={12}>
-          <Form.Item name="siteTitle" label={t('settings.siteTitle')} rules={[{ required: true }]}>
-            <Input placeholder="ECOMCX Enterprise ERP" />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24} md={12}>
-          <Form.Item name="siteTagline" label={t('settings.siteTagline')}>
-            <Input placeholder="Nền tảng quản trị tổng thể doanh nghiệp" />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24} md={12}>
-          <Form.Item name="siteFavicon" label={t('settings.siteFavicon')}>
-            <ImagePickerField pickerTitle="Chọn Favicon" />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24} md={12}>
-          <Form.Item name="siteLogo" label="Logo Hệ Thống">
-            <ImagePickerField pickerTitle="Chọn Logo" />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24} md={12}>
-          <Form.Item name="adminEmail" label={t('settings.adminEmail')} rules={[{ required: true, type: 'email' }]}>
-            <Input placeholder="admin@ecomcx.com" />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24}>
-          <Divider style={{ margin: '8px 0 16px 0' }} />
-        </Col>
-
-        <Col xs={24} md={12}>
-          <Form.Item
-            name="enable2FA"
-            label={t('settings.enable2FA')}
-            valuePropName="checked"
-            extra={t('settings.enable2FAHelp')}
-          >
-            <Switch />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24} md={12}>
-          <Form.Item name="defaultUserRole" label={t('settings.defaultRole')}>
-            <Select
-              options={[
-                { value: 'STAFF', label: 'Nhân Viên (Staff)' },
-                { value: 'MANAGER', label: 'Quản Lý (Manager)' },
-                { value: 'DEVELOPER', label: 'Lập Trình Viên (Developer)' },
-                { value: 'USER', label: 'Người Dùng Cơ Bản (User)' },
-              ]}
-            />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24}>
-          <Divider style={{ margin: '8px 0 16px 0' }} />
-        </Col>
-
-        <Col xs={24} md={12}>
-          <Form.Item name="siteLanguage" label={t('settings.siteLanguage')}>
-            <Select
-              options={[
-                { value: 'vi', label: 'Tiếng Việt (Vietnamese)' },
-                { value: 'en', label: 'English (Mỹ)' },
-              ]}
-            />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24} md={12}>
-          <Form.Item name="timezone" label={t('settings.timezone')}>
-            <Select
-              options={[
-                { value: 'Asia/Ho_Chi_Minh', label: 'Asia/Ho_Chi_Minh (UTC +07:00)' },
-                { value: 'UTC', label: 'UTC (Giờ Phối Hợp Quốc Tế)' },
-                { value: 'America/New_York', label: 'America/New_York (UTC -05:00)' },
-                { value: 'Europe/London', label: 'Europe/London (UTC +00:00)' },
-              ]}
-            />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24} md={8}>
-          <Form.Item name="dateFormat" label={t('settings.dateFormat')}>
-            <Radio.Group style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <Radio value="DD/MM/YYYY">DD/MM/YYYY (24/07/2026)</Radio>
-              <Radio value="YYYY-MM-DD">YYYY-MM-DD (2026-07-24)</Radio>
-              <Radio value="MM/DD/YYYY">MM/DD/YYYY (07/24/2026)</Radio>
-            </Radio.Group>
-          </Form.Item>
-        </Col>
-
-        <Col xs={24} md={8}>
-          <Form.Item name="timeFormat" label={t('settings.timeFormat')}>
-            <Radio.Group style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <Radio value="HH:mm:ss">24 Giờ (14:30:00)</Radio>
-              <Radio value="hh:mm A">12 Giờ (02:30 PM)</Radio>
-            </Radio.Group>
-          </Form.Item>
-        </Col>
-
-        <Col xs={24} md={8}>
-          <Form.Item name="weekStartDay" label={t('settings.weekStartDay')}>
-            <Select
-              options={[
-                { value: 'Monday', label: 'Thứ Hai (Monday)' },
-                { value: 'Sunday', label: 'Chủ Nhật (Sunday)' },
-              ]}
-            />
-          </Form.Item>
-        </Col>
-      </Row>
-    </Card>
-  );
-
-  const mediaTabContent = (
-    <Card variant="borderless" style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
-      <Row gutter={[24, 16]}>
-        <Col xs={24} md={12}>
-          <Form.Item name="allowedImageTypes" label={t('settings.allowedImageTypes')}>
-            <Select
-              mode="tags"
-              placeholder={t('settings.selectImageTypesPlaceholder')}
-              options={[
-                { value: 'jpg', label: 'JPG / JPEG' },
-                { value: 'png', label: 'PNG' },
-                { value: 'webp', label: 'WEBP' },
-                { value: 'gif', label: 'GIF' },
-                { value: 'svg', label: 'SVG' },
-              ]}
-            />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24} md={12}>
-          <Form.Item name="maxImageSizeMb" label={t('settings.maxImageSizeMb')}>
-            <InputNumber min={1} max={100} style={{ width: '100%' }} suffix="MB" />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24} md={12}>
-          <Form.Item
-            name="convertToWebp"
-            label={t('settings.convertToWebp')}
-            valuePropName="checked"
-            extra={t('settings.convertToWebpHelp')}
-          >
-            <Switch />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24} md={12}>
-          <Form.Item name="media_compression_quality" label={t('settings.mediaCompressionQuality')}>
-            <InputNumber min={50} max={100} style={{ width: '100%' }} suffix="%" />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24} md={12}>
-          <Form.Item
-            name="media_enable_sha256_deduplication"
-            label={t('settings.mediaDeduplication')}
-            valuePropName="checked"
-            extra={t('settings.mediaDeduplicationHelp')}
-          >
-            <Switch />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24} md={12}>
-          <Form.Item
-            name="media_strip_exif_metadata"
-            label={t('settings.mediaStripExif')}
-            valuePropName="checked"
-            extra={t('settings.mediaStripExifHelp')}
-          >
-            <Switch />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24} md={12}>
-          <Form.Item
-            name="media_enable_watermark"
-            label={t('settings.mediaEnableWatermark')}
-            valuePropName="checked"
-          >
-            <Switch />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24} md={12}>
-          <Form.Item name="media_watermark_text" label={t('settings.mediaWatermarkText')}>
-            <Input placeholder="ECOMCX ERP" />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24}>
-          <Form.Item
-            name="media_enable_chunked_upload"
-            label={t('settings.mediaChunkedUpload')}
-            valuePropName="checked"
-            extra={t('settings.mediaChunkedUploadHelp')}
-          >
-            <Switch />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24}>
-          <Divider style={{ margin: '8px 0 16px 0' }} />
-        </Col>
-
-        <Col xs={24} md={12}>
-          <Form.Item name="allowedVideoTypes" label={t('settings.allowedVideoTypes')}>
-            <Select
-              mode="tags"
-              placeholder={t('settings.selectVideoTypesPlaceholder')}
-              options={[
-                { value: 'mp4', label: 'MP4' },
-                { value: 'webm', label: 'WEBM' },
-                { value: 'mov', label: 'MOV' },
-                { value: 'mkv', label: 'MKV' },
-              ]}
-            />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24} md={12}>
-          <Form.Item name="maxVideoSizeMb" label={t('settings.maxVideoSizeMb')}>
-            <InputNumber min={10} max={1000} style={{ width: '100%' }} suffix="MB" />
-          </Form.Item>
-        </Col>
-      </Row>
-    </Card>
-  );
-
-  const readingTabContent = (
-    <Card variant="borderless" style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
-      <Row gutter={[24, 16]}>
-        <Col xs={24}>
-          <Form.Item name="homepageType" label={t('settings.homepageType')}>
-            <Radio.Group
-              onChange={(e) => setHomepageDisplayType(e.target.value)}
-              style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
-            >
-              <Radio value="latest">{t('settings.latestPosts')}</Radio>
-              <Radio value="static">{t('settings.staticPage')}</Radio>
-            </Radio.Group>
-          </Form.Item>
-        </Col>
-
-        {homepageDisplayType === 'static' && (
-          <Col xs={24} style={{ paddingLeft: 24 }}>
-            <Row gutter={[16, 16]}>
-              <Col xs={24} md={12}>
-                <Form.Item name="staticHomepageId" label={t('settings.selectHomepage')}>
-                  <Select
-                    options={[
-                      { value: 'home', label: '— Chọn Trang Chủ tĩnh —' },
-                      { value: 'dashboard', label: 'Trang Dashboard Tổng Quan' },
-                      { value: 'landing', label: 'Trang Giới Thiệu Doanh Nghiệp' },
-                    ]}
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={12}>
-                <Form.Item name="staticPostsPageId" label={t('settings.selectPostsPage')}>
-                  <Select
-                    options={[
-                      { value: 'blog', label: '— Chọn Trang Bài Viết —' },
-                      { value: 'news', label: 'Trang Tin Tức & Thông Báo Nội Bộ' },
-                    ]}
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
-          </Col>
-        )}
-
-        <Col xs={24}>
-          <Divider style={{ margin: '8px 0 16px 0' }} />
-        </Col>
-
-        <Col xs={24} md={12}>
-          <Form.Item name="postsPerPage" label={t('settings.postsPerPage')}>
-            <InputNumber min={1} max={100} style={{ width: '100%' }} addonAfter="Bài viết" />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24} md={12}>
-          <Form.Item
-            name="allowSearchIndexing"
-            label={t('settings.allowSearchIndexing')}
-            valuePropName="checked"
-            extra={t('settings.allowSearchIndexingHelp')}
-          >
-            <Switch />
-          </Form.Item>
-        </Col>
-      </Row>
-    </Card>
-  );
-
-  const writingTabContent = (
-    <Card variant="borderless" style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}>
-      <Row gutter={[24, 16]}>
-        <Col xs={24} md={12}>
-          <Form.Item name="defaultCategory" label={t('settings.defaultCategory')}>
-            <Select
-              options={[
-                { value: 'general', label: 'Chưa Phân Loại (General)' },
-                { value: 'news', label: 'Tin Tức Doanh Nghiệp' },
-                { value: 'tech', label: 'Thông Báo Công Nghệ' },
-              ]}
-            />
-          </Form.Item>
-        </Col>
-
-        <Col xs={24} md={12}>
-          <Form.Item name="defaultPostFormat" label={t('settings.defaultPostFormat')}>
-            <Select
-              options={[
-                { value: 'standard', label: 'Chuẩn (Standard Article)' },
-                { value: 'gallery', label: 'Bộ Ảnh (Image Gallery)' },
-                { value: 'video', label: 'Video Clip' },
-              ]}
-            />
-          </Form.Item>
-        </Col>
-      </Row>
-    </Card>
-  );
 
   const tabItems = [
     {
@@ -1020,7 +223,8 @@ export default function SettingsModule() {
           {t('settings.tabGeneral')}
         </Space>
       ),
-      children: generalTabContent,
+      children: <GeneralTab />,
+      forceRender: true,
     },
     {
       key: '2',
@@ -1030,7 +234,8 @@ export default function SettingsModule() {
           {t('settings.tabMedia')}
         </Space>
       ),
-      children: mediaTabContent,
+      children: <MediaTab />,
+      forceRender: true,
     },
     {
       key: '3',
@@ -1040,7 +245,13 @@ export default function SettingsModule() {
           {t('settings.tabReading')}
         </Space>
       ),
-      children: readingTabContent,
+      children: (
+        <ReadingTab
+          homepageDisplayType={homepageDisplayType}
+          setHomepageDisplayType={setHomepageDisplayType}
+        />
+      ),
+      forceRender: true,
     },
     {
       key: '4',
@@ -1050,27 +261,18 @@ export default function SettingsModule() {
           {t('settings.tabWriting')}
         </Space>
       ),
-      children: writingTabContent,
+      children: <WritingTab />,
+      forceRender: true,
     },
     {
       key: '5',
       label: (
         <Space>
           <MailOutlined />
-          Cấu Hình Email
+          {t('settings.tabEmail')}
         </Space>
       ),
       children: <MailConfigTabContent />,
-    },
-    {
-      key: '6',
-      label: (
-        <Space>
-          <CloudServerOutlined />
-          Lưu Trữ
-        </Space>
-      ),
-      children: <StorageConfigTabContent />,
     },
   ];
 
@@ -1087,8 +289,7 @@ export default function SettingsModule() {
               </p>
             </div>
 
-            {/* Chỉ hiển thị nút Lưu chung khi ở tab General/Media/Reading/Writing.
-                Tab Email (key=5) và Storage (key=6) có nút Lưu riêng bên trong. */}
+            {/* Nút Lưu chung cho General/Media/Reading/Writing */}
             {isGeneralFormTab && (
               <Button
                 type="primary"
@@ -1098,18 +299,17 @@ export default function SettingsModule() {
                 onClick={() => form.submit()}
                 style={{ fontWeight: 700 }}
               >
-                {saved ? t('settings.saved', 'Đã Lưu!') : t('settings.save')}
+                {saved ? t('settings.savedSuccess', 'Đã Lưu!') : t('settings.save')}
               </Button>
             )}
           </div>
         </Card>
 
-        {/* Main Settings Form Tabs */}
-        <Form form={form} layout="vertical" onFinish={handleSave}>
+        {/* Form chính chứa các Tabs */}
+        <Form form={form} layout="vertical" onFinish={handleSave} preserve={true}>
           <Tabs
-            defaultActiveKey="1"
             activeKey={activeTab}
-            onChange={setActiveTab}
+            onChange={handleTabChange}
             items={tabItems}
             type="card"
             size="large"

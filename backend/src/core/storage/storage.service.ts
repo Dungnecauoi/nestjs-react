@@ -20,6 +20,8 @@ export const ALLOWED_UPLOAD_MIME_TYPES = [
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // docx
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // xlsx
+  'application/octet-stream', // Cho phép binary/chunk uploads
+  'binary/octet-stream',
 ];
 
 export const ALLOWED_UPLOAD_EXTENSIONS = [
@@ -36,6 +38,11 @@ export const ALLOWED_UPLOAD_EXTENSIONS = [
   '.pdf',
   '.docx',
   '.xlsx',
+  '.tmp',
+  '.part',
+  '.bin',
+  '.chunk',
+  '',
 ];
 
 // Chỉ còn cấu hình multer (đọc lưới an toàn tĩnh ở trên) — driver lưu trữ THẬT (local/S3/MinIO)
@@ -44,8 +51,9 @@ export const ALLOWED_UPLOAD_EXTENSIONS = [
 // (uploadToS3()) — 2 cơ chế cấu hình storage song song dễ gây nhầm lẫn nên đã bỏ.
 @Injectable()
 export class StorageService {
-  // Multer Storage Configuration Generator for Local Disk
-  static getMulterConfig(uploadSubFolder = '') {
+  static getMulterConfig() {
+    const uploadSubFolder = new Date().toISOString().slice(0, 7); // e.g. 2026-07
+
     return {
       storage: diskStorage({
         destination: (req, file, callback) => {
@@ -69,20 +77,28 @@ export class StorageService {
       limits: {
         // Trần cứng an toàn (chặn payload phi lý) — KHÔNG phải giới hạn thật, giới hạn thật
         // theo Settings (maxImageSizeMb/maxVideoSizeMb) được enforce trong MediaService.
-        fileSize: 1024 * 1024 * 1024, // 1GB
+        fileSize: 10 * 1024 * 1024 * 1024, // 10GB
       },
       fileFilter: (req: any, file: any, callback: any) => {
         const ext = extname(file.originalname).toLowerCase();
+        const isChunk =
+          file.fieldname === 'chunk' ||
+          file.mimetype === 'application/octet-stream' ||
+          file.mimetype === 'binary/octet-stream' ||
+          !ext;
+
         if (
-          !ALLOWED_UPLOAD_MIME_TYPES.includes(file.mimetype) ||
-          !ALLOWED_UPLOAD_EXTENSIONS.includes(ext)
+          isChunk ||
+          ALLOWED_UPLOAD_MIME_TYPES.includes(file.mimetype) ||
+          ALLOWED_UPLOAD_EXTENSIONS.includes(ext)
         ) {
-          return callback(
-            new BadRequestException('Định dạng file không được hỗ trợ!'),
-            false,
-          );
+          return callback(null, true);
         }
-        callback(null, true);
+
+        return callback(
+          new BadRequestException('Định dạng file không được hỗ trợ!'),
+          false,
+        );
       },
     };
   }

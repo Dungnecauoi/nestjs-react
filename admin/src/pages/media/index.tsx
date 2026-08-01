@@ -188,7 +188,8 @@ export default function MediaModule() {
 
     const opts: Record<string, any> = systemOptions || {};
     const allowedTypes: string[] = (isVideo ? opts.allowedVideoTypes : opts.allowedImageTypes) || [];
-    const maxSizeMb: number = (isVideo ? opts.maxVideoSizeMb : opts.maxImageSizeMb) || (isVideo ? 100 : 10);
+    const rawSize = isVideo ? opts.maxVideoSizeMb : opts.maxImageSizeMb;
+    const maxSizeMb: number | undefined = (rawSize !== undefined && rawSize !== null && rawSize !== '') ? Number(rawSize) : undefined;
 
     let ext = (file.name.split('.').pop() || '').toLowerCase();
     if (ext === 'jpeg') ext = 'jpg';
@@ -199,7 +200,7 @@ export default function MediaModule() {
         allowed: allowedTypes.join(', '),
       });
     }
-    if (file.size > maxSizeMb * 1024 * 1024) {
+    if (maxSizeMb !== undefined && !isNaN(maxSizeMb) && file.size > maxSizeMb * 1024 * 1024) {
       return t('media.fileTooLarge', `Tập tin vượt quá dung lượng cho phép (${maxSizeMb}MB)`, { max: maxSizeMb });
     }
     return null;
@@ -886,12 +887,12 @@ export default function MediaModule() {
           <p style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', margin: '8px 0 0 0' }}>
             {t(
               'media.uploadLimitsHint',
-              `Ảnh: ${(systemOptions.allowedImageTypes || []).join(', ')} (tối đa ${systemOptions.maxImageSizeMb || 10}MB) · Video: ${(systemOptions.allowedVideoTypes || []).join(', ')} (tối đa ${systemOptions.maxVideoSizeMb || 100}MB)`,
+              `Ảnh: ${(systemOptions.allowedImageTypes?.length ? systemOptions.allowedImageTypes : ['jpg', 'png', 'webp', 'gif', 'svg']).join(', ')} (tối đa ${systemOptions.maxImageSizeMb || 10}MB) · Video: ${(systemOptions.allowedVideoTypes?.length ? systemOptions.allowedVideoTypes : ['mp4', 'webm', 'mov']).join(', ')} (tối đa ${systemOptions.maxVideoSizeMb || 1000}MB)`,
               {
-                imageTypes: (systemOptions.allowedImageTypes || []).join(', '),
+                imageTypes: (systemOptions.allowedImageTypes?.length ? systemOptions.allowedImageTypes : ['jpg', 'png', 'webp', 'gif', 'svg']).join(', '),
                 maxImageSizeMb: systemOptions.maxImageSizeMb || 10,
-                videoTypes: (systemOptions.allowedVideoTypes || []).join(', '),
-                maxVideoSizeMb: systemOptions.maxVideoSizeMb || 100,
+                videoTypes: (systemOptions.allowedVideoTypes?.length ? systemOptions.allowedVideoTypes : ['mp4', 'webm', 'mov']).join(', '),
+                maxVideoSizeMb: systemOptions.maxVideoSizeMb || 1000,
               },
             )}
           </p>
