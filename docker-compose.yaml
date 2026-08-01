@@ -22,6 +22,6 @@ services:
     container_name: ecomcx_admin
     restart: always
     ports:
-      - "8080:80"
+      - "3001:80"
     depends_on:
       - backend
