@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ecomcx_backend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+    env_file:
+      - ./backend/.env
+
+  admin:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+    container_name: ecomcx_admin
+    restart: always
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
